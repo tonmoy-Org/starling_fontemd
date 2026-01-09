@@ -10,745 +10,616 @@ import {
     TableHead,
     TableRow,
     Chip,
-    Button,
     TextField,
     InputAdornment,
-    IconButton,
-    Tooltip,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Grid,
     FormControl,
     InputLabel,
     Select,
     MenuItem,
-    Menu,
     Snackbar,
     Alert,
     CircularProgress,
-    Card,
-    CardContent,
-    Tabs,
-    Tab,
     Avatar,
-    Badge,
-    Divider,
     Stack,
-    useTheme,
+    Checkbox,
+    Button,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Radio,
+    RadioGroup,
+    FormControlLabel,
+    Tooltip,
+    IconButton,
+    Menu,
 } from '@mui/material';
 import {
     Search as SearchIcon,
-    Add as AddIcon,
-    Edit as EditIcon,
-    Delete as DeleteIcon,
-    LocationOn as LocationIcon,
-    Person as PersonIcon,
-    CalendarToday as CalendarIcon,
-    Assignment as AssignmentIcon,
-    CheckCircle as CheckIcon,
-    Pending as PendingIcon,
-    Warning as WarningIcon,
-    MoreVert as MoreVertIcon,
-    LocalShipping as TruckIcon,
-    Business as BusinessIcon,
-    Phone as PhoneIcon,
-    Email as EmailIcon,
-    Notes as NotesIcon,
+    PhoneCallback as PhoneCallbackIcon,
+    Emergency as EmergencyIcon,
     Schedule as ScheduleIcon,
-    Archive as ArchiveIcon,
-    FilterList as FilterIcon,
-    Refresh as RefreshIcon,
-    ArrowRightAlt as ArrowRightIcon,
-    NoteAdd as NoteAddIcon,
+    AccessTime as AccessTimeIcon,
+    Person as PersonIcon,
+    CheckCircle as CheckCircleIcon,
+    MoreVert as MoreVertIcon,
+    LocalOffer as LocalOfferIcon,
+    Sync as SyncIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import GradientButton from '../../../components/ui/GradientButton';
-import OutlineButton from '../../../components/ui/OutlineButton';
 import StyledTextField from '../../../components/ui/StyledTextField';
+import OutlineButton from '../../../components/ui/OutlineButton';
 import { alpha } from '@mui/material/styles';
 import axiosInstance from '../../../api/axios';
-import { format } from 'date-fns';
+import { format, addBusinessDays, addHours, isBefore, differenceInHours, differenceInBusinessDays } from 'date-fns';
 
 const BLUE_COLOR = '#76AADA';
 const BLUE_DARK = '#5A8FC8';
 const GREEN_COLOR = '#10b981';
-const GREEN_DARK = '#059669';
-const ORANGE_COLOR = '#f59e0b';
-const ORANGE_DARK = '#d97706';
 const RED_COLOR = '#ef4444';
-const RED_DARK = '#dc2626';
-const PURPLE_COLOR = '#8b5cf6';
-const PURPLE_DARK = '#7c3aed';
 const GRAY_COLOR = '#6b7280';
-const GRAY_DARK = '#4b5563';
+const ORANGE_COLOR = '#f97316';
+const PURPLE_COLOR = '#8b5cf6';
+const YELLOW_COLOR = '#f59e0b';
 
 const LOCATE_TYPE_CONFIG = {
     STANDARD: {
         label: 'Standard',
         color: BLUE_COLOR,
         bgColor: alpha(BLUE_COLOR, 0.1),
-        icon: <AssignmentIcon />,
+        icon: <ScheduleIcon fontSize="small" />,
+        timeLimit: '2 business days',
+        timerColor: BLUE_COLOR,
     },
     EMERGENCY: {
         label: 'Emergency',
         color: RED_COLOR,
         bgColor: alpha(RED_COLOR, 0.1),
-        icon: <WarningIcon />,
+        icon: <EmergencyIcon fontSize="small" />,
+        timeLimit: '4 hours',
+        timerColor: RED_COLOR,
     },
 };
 
-const STATUS_CONFIG = {
-    NEW: {
-        label: 'New',
-        color: ORANGE_COLOR,
-        bgColor: alpha(ORANGE_COLOR, 0.1),
-        icon: <PendingIcon />,
-        tableBg: alpha(ORANGE_COLOR, 0.03),
-        headerBg: alpha(ORANGE_COLOR, 0.1),
-    },
-    IN_PROGRESS: {
-        label: 'In Progress',
-        color: BLUE_DARK,
-        bgColor: alpha(BLUE_COLOR, 0.1),
-        icon: <LocationIcon />,
-        tableBg: alpha(BLUE_COLOR, 0.03),
-        headerBg: alpha(BLUE_COLOR, 0.1),
-    },
-    COMPLETED: {
-        label: 'Completed',
-        color: GREEN_COLOR,
-        bgColor: alpha(GREEN_COLOR, 0.1),
-        icon: <CheckIcon />,
-        tableBg: alpha(GREEN_COLOR, 0.03),
-        headerBg: alpha(GREEN_COLOR, 0.1),
-    },
-    CANCELLED: {
-        label: 'Cancelled',
-        color: RED_COLOR,
-        bgColor: alpha(RED_COLOR, 0.1),
-        icon: <ArchiveIcon />,
-        tableBg: alpha(RED_COLOR, 0.03),
-        headerBg: alpha(RED_COLOR, 0.1),
-    },
+// Improved address parser
+const parseDashboardAddress = (fullAddress) => {
+    if (!fullAddress) return { street: '', city: '', state: '', zip: '', original: '' };
+
+    try {
+        // Try splitting by ' - ' first
+        const parts = fullAddress.split(' - ');
+        if (parts.length >= 2) {
+            const street = parts[0].trim();
+            const remaining = parts[1].trim();
+
+            // Try to extract zip code (5 digits at end)
+            const zipMatch = remaining.match(/\b(\d{5})\b/);
+            const zip = zipMatch ? zipMatch[1] : '';
+
+            // Remove zip from remaining
+            let withoutZip = remaining.replace(zip, '').trim();
+
+            // Split by comma for city, state
+            const cityStateParts = withoutZip.split(',');
+            if (cityStateParts.length >= 2) {
+                const city = cityStateParts[0].trim();
+                const state = cityStateParts[1].trim();
+                return { street, city, state, zip, original: fullAddress };
+            } else {
+                // If no comma, try to split by space
+                const spaceParts = withoutZip.split(' ');
+                if (spaceParts.length >= 2) {
+                    const state = spaceParts.pop();
+                    const city = spaceParts.join(' ');
+                    return { street, city, state, zip, original: fullAddress };
+                }
+            }
+        }
+
+        // If ' - ' split didn't work, return original as street
+        return { street: fullAddress, city: '', state: '', zip: '', original: fullAddress };
+    } catch (error) {
+        console.error('Error parsing address:', error);
+        return { street: fullAddress || '', city: '', state: '', zip: '', original: fullAddress };
+    }
 };
 
 const Locates = () => {
     const queryClient = useQueryClient();
-    const theme = useTheme();
+
     const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [searchQueryExcavator, setSearchQueryExcavator] = useState('');
+    const [searchQueryInProgress, setSearchQueryInProgress] = useState('');
     const [typeFilter, setTypeFilter] = useState('ALL');
-    const [dateFilter, setDateFilter] = useState('ALL');
-    const [openForm, setOpenForm] = useState(false);
-    const [selectedLocate, setSelectedLocate] = useState(null);
+    const [typeFilterExcavator, setTypeFilterExcavator] = useState('ALL');
+    const [typeFilterInProgress, setTypeFilterInProgress] = useState('ALL');
+    const [removeCheckedLocates, setRemoveCheckedLocates] = useState(new Set());
+    const [removeCheckedExcavatorLocates, setRemoveCheckedExcavatorLocates] = useState(new Set());
+    const [removeCheckedInProgressLocates, setRemoveCheckedInProgressLocates] = useState(new Set());
+    const [openRemoveConfirmDialog, setOpenRemoveConfirmDialog] = useState(false);
+    const [openRemoveExcavatorConfirmDialog, setOpenRemoveExcavatorConfirmDialog] = useState(false);
+    const [openRemoveInProgressConfirmDialog, setOpenRemoveInProgressConfirmDialog] = useState(false);
+
+    // New state for excavator locates call status
+    const [excavatorCallStatus, setExcavatorCallStatus] = useState({});
+    const [calledInBy, setCalledInBy] = useState({});
+
+    // State for row menu
     const [anchorEl, setAnchorEl] = useState(null);
-    const [contextMenuLocate, setContextMenuLocate] = useState(null);
-    const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-    const [locateToDelete, setLocateToDelete] = useState(null);
+    const [selectedLocate, setSelectedLocate] = useState(null);
+    const [openTagDialog, setOpenTagDialog] = useState(false);
+
+    // New state for manual tag form
+    const [tagFormData, setTagFormData] = useState({
+        name: '',
+        email: ''
+    });
+
     const [snackbar, setSnackbar] = useState({
         open: false,
         message: '',
         severity: 'success',
     });
-    const [activeTab, setActiveTab] = useState(0);
 
-    const [locateForm, setLocateForm] = useState({
-        jobId: '',
-        address: '',
-        city: '',
-        state: '',
-        zip: '',
-        description: '',
-        type: 'STANDARD',
-        requestedBy: '',
-        requestedDate: new Date().toISOString().split('T')[0],
-        expectedExcavationDate: '',
-        notes: '',
-        customerName: '',
-        siteAddress: '',
-        technician: '',
-        calledInBy: '',
-    });
-
-    const { data: locates = [], isLoading } = useQuery({
-        queryKey: ['locates'],
+    // Fetch completed locates
+    const { data: completedLocatesResponse = [], isLoading, refetch } = useQuery({
+        queryKey: ['completed-locates'],
         queryFn: async () => {
-            const response = await axiosInstance.get('/locates');
-            console.log('Locates response:', response.data);
-            return response.data.data || response.data.locates || response.data;
+            const response = await axiosInstance.get('/locates/all-locates');
+            return Array.isArray(response.data)
+                ? response.data
+                : response.data?.data || response.data || [];
         },
     });
 
-    const { data: technicians = [] } = useQuery({
-        queryKey: ['technicians'],
-        queryFn: async () => {
-            const response = await axiosInstance.get('/users/tech');
-            return response.data.users || response.data.data || response.data || [];
-        },
-    });
-
-    const { data: managers = [] } = useQuery({
-        queryKey: ['managers'],
-        queryFn: async () => {
-            const response = await axiosInstance.get('/users/manager');
-            return response.data.users || response.data.data || response.data || [];
-        },
-    });
-
-    const createLocateMutation = useMutation({
-        mutationFn: async (locateData) => {
-            const response = await axiosInstance.post('/locates', locateData);
-            return response.data;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['locates'] });
-            setOpenForm(false);
-            resetLocateForm();
-            setSnackbar({
-                open: true,
-                message: 'Locate created successfully',
-                severity: 'success',
-            });
+    // Mutation for syncing from Dashboard server
+    const syncDashboardMutation = useMutation({
+        mutationFn: () => axiosInstance.get('/locates/sync-dashboard'),
+        onSuccess: (response) => {
+            queryClient.invalidateQueries({ queryKey: ['completed-locates'] });
+            showSnackbar('Successfully synced locates from Dashboard server', 'success');
         },
         onError: (error) => {
-            console.error('Error creating locate:', error);
-            setSnackbar({
-                open: true,
-                message: error.response?.data?.message || 'Failed to create locate',
-                severity: 'error',
-            });
+            console.error('Sync error:', error);
+            showSnackbar(error.response?.data?.message || 'Failed to sync from Dashboard server', 'error');
         },
     });
 
-    const updateLocateMutation = useMutation({
-        mutationFn: async ({ locateId, data }) => {
-            const response = await axiosInstance.put(`/locates/${locateId}`, data);
-            return response.data;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['locates'] });
-            setOpenForm(false);
-            setSelectedLocate(null);
-            setSnackbar({
-                open: true,
-                message: 'Locate updated successfully',
-                severity: 'success',
-            });
-        },
-        onError: (error) => {
-            console.error('Error updating locate:', error);
-            setSnackbar({
-                open: true,
-                message: error.response?.data?.message || 'Failed to update locate',
-                severity: 'error',
-            });
-        },
-    });
+    // Process completed locates with proper field mapping
+    const completedLocates = React.useMemo(() => {
+        if (!Array.isArray(completedLocatesResponse) || completedLocatesResponse.length === 0) {
+            return [];
+        }
 
-    const deleteLocateMutation = useMutation({
-        mutationFn: async (locateId) => {
-            const response = await axiosInstance.delete(`/locates/${locateId}`);
-            return response.data;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['locates'] });
-            setOpenDeleteDialog(false);
-            setLocateToDelete(null);
-            setSnackbar({
-                open: true,
-                message: 'Locate deleted successfully',
-                severity: 'success',
+        // Flatten and map the work orders
+        return completedLocatesResponse
+            .flatMap((item) => item.workOrders || [])
+            .map((workOrder) => {
+                // Parse address
+                const addressInfo = parseDashboardAddress(workOrder.customerAddress || '');
+
+                // Determine type - check priorityName or type field
+                let locateType = 'STANDARD';
+                if (workOrder.type) {
+                    locateType = workOrder.type.toUpperCase().includes('EMERGENCY') ? 'EMERGENCY' : 'STANDARD';
+                } else if (workOrder.priorityName) {
+                    locateType = workOrder.priorityName.toUpperCase().includes('EMERGENCY') ? 'EMERGENCY' : 'STANDARD';
+                }
+
+                // Check if excavator locate needs a call (default true for excavator priority)
+                const needsCall = workOrder.priorityName &&
+                    workOrder.priorityName.toUpperCase() === 'EXCAVATOR' &&
+                    !workOrder.locatesCalled;
+
+                // Calculate timer information
+                let timeRemaining = null;
+                let isTimerExpired = false;
+                let completionDate = null;
+
+                if (workOrder.locatesCalled && workOrder.calledAt && workOrder.callType) {
+                    const calledAt = new Date(workOrder.calledAt);
+                    const typeConfig = LOCATE_TYPE_CONFIG[workOrder.callType] || LOCATE_TYPE_CONFIG.STANDARD;
+
+                    if (workOrder.callType === 'EMERGENCY') {
+                        completionDate = addHours(calledAt, 4);
+                    } else {
+                        // Standard - add 2 business days
+                        completionDate = addBusinessDays(calledAt, 2);
+                    }
+
+                    const now = new Date();
+                    isTimerExpired = isBefore(completionDate, now);
+
+                    if (!isTimerExpired) {
+                        if (workOrder.callType === 'EMERGENCY') {
+                            timeRemaining = differenceInHours(completionDate, now);
+                        } else {
+                            timeRemaining = differenceInBusinessDays(completionDate, now);
+                        }
+                    }
+                }
+
+                return {
+                    _id: workOrder._id || `external-${workOrder.workOrderNumber || Math.random().toString(36).substr(2, 9)}`,
+                    jobId: workOrder.workOrderNumber || 'N/A',
+                    customerName: workOrder.customerName || 'Unknown Customer',
+                    address: addressInfo.street,
+                    city: addressInfo.city,
+                    state: addressInfo.state,
+                    zip: addressInfo.zip,
+                    fullAddress: workOrder.customerAddress || '',
+                    description: workOrder.task || 'Locate Required',
+                    type: locateType,
+                    technician: workOrder.techName || workOrder.technician || 'Unknown',
+                    techName: workOrder.techName || workOrder.technician || 'Unknown',
+                    requestedDate: workOrder.createdDate || workOrder.requestedDate,
+                    completedAt: workOrder.completedDate,
+                    duration: workOrder.taskDuration || workOrder.duration || '',
+                    priorityColor: workOrder.priorityColor || GREEN_COLOR,
+                    priorityName: workOrder.priorityName || 'Standard',
+                    locatesCalled: workOrder.locatesCalled || false,
+                    callType: workOrder.callType || null, // 'STANDARD' or 'EMERGENCY'
+                    needsCall: needsCall,
+                    calledAt: workOrder.calledAt,
+                    calledBy: workOrder.calledBy || '',
+                    timeRemaining: timeRemaining,
+                    isTimerExpired: isTimerExpired,
+                    completionDate: completionDate,
+                    manuallyTagged: workOrder.manuallyTagged || false,
+                    taggedBy: workOrder.taggedBy || '',
+                    taggedByEmail: workOrder.taggedByEmail || '',
+                    taggedAt: workOrder.taggedAt || '',
+                };
             });
-        },
-        onError: (error) => {
-            console.error('Error deleting locate:', error);
-            setSnackbar({
-                open: true,
-                message: 'Failed to delete locate',
-                severity: 'error',
-            });
-        },
-    });
+    }, [completedLocatesResponse]);
 
-    const updateStatusMutation = useMutation({
-        mutationFn: async ({ locateId, status }) => {
-            const response = await axiosInstance.patch(`/locates/${locateId}/status`, { status });
-            return response.data;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['locates'] });
-            setSnackbar({
-                open: true,
-                message: 'Status updated successfully',
-                severity: 'success',
-            });
-        },
-        onError: (error) => {
-            console.error('Error updating status:', error);
-            setSnackbar({
-                open: true,
-                message: 'Failed to update status',
-                severity: 'error',
-            });
-        },
-    });
+    // Filter for excavator priority locates (CALL NEEDED)
+    const excavatorLocates = React.useMemo(() => {
+        return completedLocates.filter(locate =>
+            (locate.priorityName && locate.priorityName.toUpperCase() === 'EXCAVATOR') ||
+            locate.manuallyTagged
+        );
+    }, [completedLocates]);
 
-    const filteredLocates = locates.filter(locate => {
-        const matchesSearch = searchQuery === '' ||
-            locate.jobId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            locate.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            locate.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            locate.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    // Filter for in progress locates
+    const inProgressLocates = React.useMemo(() => {
+        return completedLocates.filter(locate =>
+            locate.locatesCalled &&
+            !locate.isTimerExpired
+        );
+    }, [completedLocates]);
 
-        const matchesStatus = statusFilter === 'ALL' || locate.status === statusFilter;
-        const matchesType = typeFilter === 'ALL' || locate.type === typeFilter;
+    // Filter for completed locates (timer expired)
+    const completedLocatesList = React.useMemo(() => {
+        return completedLocates.filter(locate =>
+            locate.locatesCalled &&
+            locate.isTimerExpired
+        );
+    }, [completedLocates]);
 
-        let matchesDate = true;
-        if (dateFilter !== 'ALL') {
-            const today = new Date();
-            const locateDate = new Date(locate.requestedDate);
+    // Mutation for updating call status
+    const updateCallStatusMutation = useMutation({
+        mutationFn: ({ id, callType, calledBy }) =>
+            axiosInstance.patch(`/locates/work-order/${id}/update-call-status`, {
+                locatesCalled: true,
+                callType: callType,
+                calledAt: new Date().toISOString(),
+                calledBy: calledBy,
+            }),
+        onSuccess: (response, variables) => {
+            setExcavatorCallStatus(prev => ({
+                ...prev,
+                [variables.id]: variables.callType
+            }));
 
-            switch (dateFilter) {
-                case 'TODAY':
-                    matchesDate = locateDate.toDateString() === today.toDateString();
-                    break;
-                case 'THIS_WEEK':
-                    const weekStart = new Date(today.setDate(today.getDate() - today.getDay()));
-                    matchesDate = locateDate >= weekStart;
-                    break;
-                case 'THIS_MONTH':
-                    matchesDate = locateDate.getMonth() === today.getMonth() &&
-                        locateDate.getFullYear() === today.getFullYear();
-                    break;
-                default:
-                    matchesDate = true;
+            if (variables.calledBy) {
+                setCalledInBy(prev => ({
+                    ...prev,
+                    [variables.id]: variables.calledBy
+                }));
             }
-        }
 
-        return matchesSearch && matchesStatus && matchesType && matchesDate;
+            queryClient.invalidateQueries({ queryKey: ['completed-locates'] });
+            showSnackbar(`Locates marked as ${variables.callType === 'EMERGENCY' ? 'Emergency' : 'Standard'} call`, 'success');
+        },
+        onError: (error) => {
+            console.error('Update call status error:', error);
+            showSnackbar(error.response?.data?.message || 'Failed to update call status', 'error');
+        },
     });
 
-    const newLocates = filteredLocates.filter(l => l.status === 'NEW');
-    const inProgressLocates = filteredLocates.filter(l => l.status === 'IN_PROGRESS');
-    const completedLocates = filteredLocates.filter(l => l.status === 'COMPLETED');
+    // Mutation for manually tagging individual locate by workOrderNumber
+    const tagIndividualLocateMutation = useMutation({
+        mutationFn: ({ workOrderNumber, name, email }) =>
+            axiosInstance.post('/locates/tag-locates-needed', {
+                workOrderNumber: workOrderNumber,
+                name: name,
+                email: email,
+                manuallyTagged: true,
+                taggedAt: new Date().toISOString(),
+            }),
+        onSuccess: (response) => {
+            queryClient.invalidateQueries({ queryKey: ['completed-locates'] });
+            setOpenTagDialog(false);
+            setSelectedLocate(null);
+            setTagFormData({ name: '', email: '' });
+            showSnackbar('Locate manually tagged successfully', 'success');
+        },
+        onError: (error) => {
+            console.error('Tag individual locate error:', error);
+            showSnackbar(error.response?.data?.message || 'Failed to tag locate', 'error');
+        },
+    });
 
-    const getTechnicianName = (technicianId) => {
-        const tech = technicians.find(t => t._id === technicianId);
-        return tech ? tech.name : 'Unassigned';
+    // Fixed Delete mutation for regular locates
+    const deleteLocateMutation = useMutation({
+        mutationFn: (ids) => axiosInstance.delete('/locates/work-order/bulk-delete', {
+            data: { ids: Array.from(ids) }
+        }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['completed-locates'] });
+            setRemoveCheckedLocates(new Set());
+            setOpenRemoveConfirmDialog(false);
+            showSnackbar('Locate(s) removed successfully', 'success');
+        },
+        onError: (error) => {
+            console.error('Delete error:', error);
+            showSnackbar(error.response?.data?.message || 'Failed to remove locate(s)', 'error');
+        },
+    });
+
+    // Delete mutation for excavator locates
+    const deleteExcavatorLocateMutation = useMutation({
+        mutationFn: (ids) => axiosInstance.delete('/locates/work-order/bulk-delete', {
+            data: { ids: Array.from(ids) }
+        }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['completed-locates'] });
+            setRemoveCheckedExcavatorLocates(new Set());
+            setOpenRemoveExcavatorConfirmDialog(false);
+            showSnackbar('Excavator locate(s) removed successfully', 'success');
+        },
+        onError: (error) => {
+            console.error('Delete error:', error);
+            showSnackbar(error.response?.data?.message || 'Failed to remove excavator locate(s)', 'error');
+        },
+    });
+
+    // Delete mutation for in progress locates
+    const deleteInProgressLocateMutation = useMutation({
+        mutationFn: (ids) => axiosInstance.delete('/locates/work-order/bulk-delete', {
+            data: { ids: Array.from(ids) }
+        }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['completed-locates'] });
+            setRemoveCheckedInProgressLocates(new Set());
+            setOpenRemoveInProgressConfirmDialog(false);
+            showSnackbar('In progress locate(s) removed successfully', 'success');
+        },
+        onError: (error) => {
+            console.error('Delete error:', error);
+            showSnackbar(error.response?.data?.message || 'Failed to remove in progress locate(s)', 'error');
+        },
+    });
+
+    const showSnackbar = (message, severity = 'success') => {
+        setSnackbar({ open: true, message, severity });
     };
 
-    const getManagerName = (managerId) => {
-        const manager = managers.find(m => m._id === managerId);
-        return manager ? manager.name : 'Unknown';
-    };
-
-    const handleContextMenu = (event, locate) => {
-        event.preventDefault();
-        setAnchorEl(event.currentTarget);
-        setContextMenuLocate(locate);
-    };
-
-    const handleCloseMenu = () => {
-        setAnchorEl(null);
-        setContextMenuLocate(null);
-    };
-
-    const handleStatusChange = (status) => {
-        if (contextMenuLocate) {
-            updateStatusMutation.mutate({
-                locateId: contextMenuLocate._id,
-                status
-            });
+    // Handle call status change for excavator locates
+    const handleCallStatusChange = (locateId, callType) => {
+        const managerName = prompt('Please enter your name (manager):');
+        if (!managerName) {
+            showSnackbar('Manager name is required to mark call status', 'warning');
+            return;
         }
-        handleCloseMenu();
+
+        updateCallStatusMutation.mutate({
+            id: locateId,
+            callType: callType,
+            calledBy: managerName
+        });
     };
 
-    const handleEditLocate = (locate) => {
+    // Handle manual tagging for individual locate
+    const handleIndividualManualTag = (locate) => {
+        console.log('Manual tag data for locate:', locate);
         setSelectedLocate(locate);
-        setLocateForm({
-            jobId: locate.jobId || '',
-            address: locate.address || '',
-            city: locate.city || '',
-            state: locate.state || '',
-            zip: locate.zip || '',
-            description: locate.description || '',
-            type: locate.type || 'STANDARD',
-            requestedBy: locate.requestedBy || '',
-            requestedDate: locate.requestedDate ?
-                format(new Date(locate.requestedDate), 'yyyy-MM-dd') :
-                new Date().toISOString().split('T')[0],
-            expectedExcavationDate: locate.expectedExcavationDate ?
-                format(new Date(locate.expectedExcavationDate), 'yyyy-MM-dd') : '',
-            notes: locate.notes || '',
-            customerName: locate.customerName || '',
-            siteAddress: locate.siteAddress || '',
-            technician: locate.technician || '',
-            calledInBy: locate.calledInBy || '',
-        });
-        setOpenForm(true);
+        setOpenTagDialog(true);
+        // Reset form data
+        setTagFormData({ name: '', email: '' });
     };
 
-    const handleDeleteClick = (locate) => {
-        setLocateToDelete(locate);
-        setOpenDeleteDialog(true);
-    };
+    const handleConfirmIndividualTag = () => {
+        if (!selectedLocate) return;
 
-    const handleDeleteConfirm = () => {
-        if (locateToDelete) {
-            deleteLocateMutation.mutate(locateToDelete._id);
+        // Validate form data
+        if (!tagFormData.name.trim()) {
+            showSnackbar('Name is required to tag locate', 'warning');
+            return;
         }
+
+        if (!tagFormData.email.trim() || !isValidEmail(tagFormData.email)) {
+            showSnackbar('Valid email is required', 'warning');
+            return;
+        }
+
+        tagIndividualLocateMutation.mutate({
+            workOrderNumber: selectedLocate.jobId,
+            name: tagFormData.name.trim(),
+            email: tagFormData.email.trim()
+        });
     };
 
-    const resetLocateForm = () => {
-        setLocateForm({
-            jobId: '',
-            address: '',
-            city: '',
-            state: '',
-            zip: '',
-            description: '',
-            type: 'STANDARD',
-            requestedBy: '',
-            requestedDate: new Date().toISOString().split('T')[0],
-            expectedExcavationDate: '',
-            notes: '',
-            customerName: '',
-            siteAddress: '',
-            technician: '',
-            calledInBy: '',
-        });
+    const isValidEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
+    const handleFormChange = (e) => {
+        const { name, value } = e.target;
+        setTagFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    // Handle row menu open
+    const handleMenuOpen = (event, locate) => {
+        setAnchorEl(event.currentTarget);
+        setSelectedLocate(locate);
+    };
+
+    const handleMenuClose = () => {
+        setAnchorEl(null);
         setSelectedLocate(null);
     };
 
-    const handleSubmitLocate = () => {
-        const formData = {
-            ...locateForm,
-            requestedDate: new Date(locateForm.requestedDate).toISOString(),
-            expectedExcavationDate: locateForm.expectedExcavationDate ?
-                new Date(locateForm.expectedExcavationDate).toISOString() : null,
-        };
-
-        if (selectedLocate) {
-            updateLocateMutation.mutate({
-                locateId: selectedLocate._id,
-                data: formData
-            });
-        } else {
-            createLocateMutation.mutate(formData);
+    // Handle sync from Dashboard
+    const handleSyncDashboard = () => {
+        if (window.confirm('Are you sure you want to sync locates from the Dashboard server? This will fetch the latest completed work orders.')) {
+            syncDashboardMutation.mutate();
         }
+    };
+
+    // Filtering for regular locates
+    const filteredLocates = completedLocatesList.filter((locate) => {
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch =
+            !searchQuery ||
+            (locate.jobId && locate.jobId.toLowerCase().includes(searchLower)) ||
+            (locate.address && locate.address.toLowerCase().includes(searchLower)) ||
+            (locate.customerName && locate.customerName.toLowerCase().includes(searchLower)) ||
+            (locate.description && locate.description.toLowerCase().includes(searchLower));
+
+        const matchesType = typeFilter === 'ALL' || locate.type === typeFilter;
+
+        return matchesSearch && matchesType;
+    });
+
+    // Filtering for excavator locates
+    const filteredExcavatorLocates = excavatorLocates.filter((locate) => {
+        const searchLower = searchQueryExcavator.toLowerCase();
+        const matchesSearch =
+            !searchQueryExcavator ||
+            (locate.jobId && locate.jobId.toLowerCase().includes(searchLower)) ||
+            (locate.address && locate.address.toLowerCase().includes(searchLower)) ||
+            (locate.customerName && locate.customerName.toLowerCase().includes(searchLower)) ||
+            (locate.description && locate.description.toLowerCase().includes(searchLower));
+
+        const matchesType = typeFilterExcavator === 'ALL' || locate.type === typeFilterExcavator;
+
+        return matchesSearch && matchesType;
+    });
+
+    // Filtering for in progress locates
+    const filteredInProgressLocates = inProgressLocates.filter((locate) => {
+        const searchLower = searchQueryInProgress.toLowerCase();
+        const matchesSearch =
+            !searchQueryInProgress ||
+            (locate.jobId && locate.jobId.toLowerCase().includes(searchLower)) ||
+            (locate.address && locate.address.toLowerCase().includes(searchLower)) ||
+            (locate.customerName && locate.customerName.toLowerCase().includes(searchLower)) ||
+            (locate.description && locate.description.toLowerCase().includes(searchLower));
+
+        const matchesType = typeFilterInProgress === 'ALL' || locate.type === typeFilterInProgress;
+
+        return matchesSearch && matchesType;
+    });
+
+    const toggleRemoveCheckbox = (locateId) => {
+        const newSet = new Set(removeCheckedLocates);
+        if (newSet.has(locateId)) {
+            newSet.delete(locateId);
+        } else {
+            newSet.add(locateId);
+        }
+        setRemoveCheckedLocates(newSet);
+    };
+
+    const toggleExcavatorRemoveCheckbox = (locateId) => {
+        const newSet = new Set(removeCheckedExcavatorLocates);
+        if (newSet.has(locateId)) {
+            newSet.delete(locateId);
+        } else {
+            newSet.add(locateId);
+        }
+        setRemoveCheckedExcavatorLocates(newSet);
+    };
+
+    const toggleInProgressRemoveCheckbox = (locateId) => {
+        const newSet = new Set(removeCheckedInProgressLocates);
+        if (newSet.has(locateId)) {
+            newSet.delete(locateId);
+        } else {
+            newSet.add(locateId);
+        }
+        setRemoveCheckedInProgressLocates(newSet);
+    };
+
+    const handleConfirmRemove = () => {
+        if (removeCheckedLocates.size === 0) return;
+        const idsToDelete = Array.from(removeCheckedLocates);
+        deleteLocateMutation.mutate(idsToDelete);
+    };
+
+    const handleConfirmExcavatorRemove = () => {
+        if (removeCheckedExcavatorLocates.size === 0) return;
+        const idsToDelete = Array.from(removeCheckedExcavatorLocates);
+        deleteExcavatorLocateMutation.mutate(idsToDelete);
+    };
+
+    const handleConfirmInProgressRemove = () => {
+        if (removeCheckedInProgressLocates.size === 0) return;
+        const idsToDelete = Array.from(removeCheckedInProgressLocates);
+        deleteInProgressLocateMutation.mutate(idsToDelete);
     };
 
     const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
+        if (!dateString || dateString === 'N/A') return 'N/A';
         try {
+            if (typeof dateString === 'string') {
+                if (dateString.includes('/')) {
+                    const [datePart] = dateString.split(' ');
+                    const [month, day, year] = datePart.split('/');
+                    const date = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+                    return format(date, 'MMM dd, yyyy');
+                }
+            }
             return format(new Date(dateString), 'MMM dd, yyyy');
-        } catch (error) {
-            return dateString;
+        } catch {
+            return dateString || 'N/A';
         }
     };
 
-    const renderStatusTable = (status, locates, title, config) => (
-        <Paper
-            elevation={0}
-            sx={{
-                borderRadius: 2,
-                border: `1px solid ${alpha(config.color, 0.2)}`,
-                overflow: 'hidden',
-                mb: 3,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-            }}
-        >
-            {/* Table Header */}
-            <Box sx={{
-                p: 1.5,
-                borderBottom: `2px solid ${config.color}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-            }}>
-                <Box display="flex" alignItems="center" gap={1}>
-                    <Typography sx={{ fontSize: '0.875rem' }} fontWeight={600} color={config.color}>
-                        {title}
-                    </Typography>
-                    <Chip
-                        label={locates.length}
-                        size="small"
-                        sx={{
-                            backgroundColor: alpha(config.color, 0.2),
-                            color: config.color,
-                            fontWeight: 600,
-                        }}
-                    />
-                </Box>
-                <Typography variant="caption" sx={{ color: alpha(config.color, 0.8) }}>
-                    {status === 'NEW' ? 'Call Needed' : status === 'IN_PROGRESS' ? 'In Progress' : 'Locates Complete'}
-                </Typography>
+    const getTechnicianName = (techName) => {
+        if (!techName || techName === 'Unknown') return 'Unassigned';
+        return techName;
+    };
+
+    const formatTimeRemaining = (locate) => {
+        if (!locate.timeRemaining) return 'Calculating...';
+
+        if (locate.callType === 'EMERGENCY') {
+            const hours = Math.floor(locate.timeRemaining);
+            const minutes = Math.round((locate.timeRemaining - hours) * 60);
+            return `${hours}h ${minutes}m remaining`;
+        } else {
+            return `${locate.timeRemaining} business day${locate.timeRemaining !== 1 ? 's' : ''} remaining`;
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+                <CircularProgress sx={{ color: BLUE_COLOR }} />
             </Box>
-
-            {/* Table Content */}
-            <TableContainer>
-                <Table>
-                    <TableHead>
-                        <TableRow sx={{
-                            backgroundColor: alpha(config.color, 0.05),
-                            '& th': {
-                                borderBottom: `2px solid ${alpha(config.color, 0.2)}`,
-                                fontWeight: 600,
-                                color: config.color,
-                                textTransform: 'capitalize',
-                            }
-                        }}>
-                            {status === 'NEW' ? (
-                                <>
-                                    <TableCell width="15%">Locate Type</TableCell>
-                                    <TableCell width="25%">Customer Name</TableCell>
-                                    <TableCell width="25%">Site Address</TableCell>
-                                    <TableCell width="15%">Date</TableCell>
-                                    <TableCell width="15%">Technician</TableCell>
-                                    <TableCell width="5%">Actions</TableCell>
-                                </>
-                            ) : status === 'IN_PROGRESS' ? (
-                                <>
-                                    <TableCell width="15%">Locate Type</TableCell>
-                                    <TableCell width="20%">Customer Name</TableCell>
-                                    <TableCell width="20%">Site Address</TableCell>
-                                    <TableCell width="15%">Date</TableCell>
-                                    <TableCell width="15%">Technician</TableCell>
-                                    <TableCell width="10%">Called In By</TableCell>
-                                    <TableCell width="5%">Actions</TableCell>
-                                </>
-                            ) : (
-                                <>
-                                    <TableCell width="15%">Locate Type</TableCell>
-                                    <TableCell width="20%">Customer Name</TableCell>
-                                    <TableCell width="20%">Site Address</TableCell>
-                                    <TableCell width="15%">Date</TableCell>
-                                    <TableCell width="15%">Technician</TableCell>
-                                    <TableCell width="10%">Called In By</TableCell>
-                                    <TableCell width="5%">Actions</TableCell>
-                                </>
-                            )}
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {locates.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={
-                                    status === 'NEW' ? 6 :
-                                        status === 'IN_PROGRESS' ? 7 :
-                                            7
-                                } align="center" sx={{ py: 4 }}>
-                                    <Box sx={{ textAlign: 'center', py: 2 }}>
-                                        <NoteAddIcon sx={{ fontSize: 48, color: alpha(GRAY_COLOR, 0.3), mb: 2 }} />
-                                        <Typography color="text.secondary" gutterBottom>
-                                            No locates in this section
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            {status === 'NEW' ? 'New locate requests will appear here.' :
-                                                status === 'IN_PROGRESS' ? 'Assign technicians to move locates here.' :
-                                                    'Completed locates will appear here.'}
-                                        </Typography>
-                                    </Box>
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            locates.map((locate) => {
-                                const typeConfig = LOCATE_TYPE_CONFIG[locate.type] || LOCATE_TYPE_CONFIG.STANDARD;
-
-                                return (
-                                    <TableRow
-                                        key={locate._id}
-                                        hover
-                                        sx={{
-                                            '&:hover': {
-                                                backgroundColor: alpha(config.color, 0.03),
-                                            },
-                                            '&:last-child td': {
-                                                borderBottom: 'none',
-                                            }
-                                        }}
-                                    >
-                                        {/* Locate Type - All Tables */}
-                                        <TableCell>
-                                            <Chip
-                                                label={typeConfig.label}
-                                                size="small"
-                                                icon={React.cloneElement(typeConfig.icon, { fontSize: 'small' })}
-                                                sx={{
-                                                    backgroundColor: typeConfig.bgColor,
-                                                    color: typeConfig.color,
-                                                    fontWeight: 500,
-                                                    border: `1px solid ${alpha(typeConfig.color, 0.3)}`,
-                                                }}
-                                            />
-                                        </TableCell>
-
-                                        {/* Customer Name - All Tables */}
-                                        <TableCell>
-                                            <Typography fontWeight={500}>
-                                                {locate.customerName || 'No Customer'}
-                                            </Typography>
-                                        </TableCell>
-
-                                        {/* Site Address - All Tables */}
-                                        <TableCell>
-                                            <Typography variant="body2">
-                                                {locate.address || 'No Address'}
-                                            </Typography>
-                                            <Typography variant="caption" color="text.secondary">
-                                                {locate.city}, {locate.state} {locate.zip}
-                                            </Typography>
-                                        </TableCell>
-
-                                        {/* Date - All Tables */}
-                                        <TableCell>
-                                            <Stack spacing={0.5}>
-                                                <Typography variant="body2">
-                                                    {formatDate(locate.requestedDate)}
-                                                </Typography>
-                                                {locate.expectedExcavationDate && (
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        Exc: {formatDate(locate.expectedExcavationDate)}
-                                                    </Typography>
-                                                )}
-                                            </Stack>
-                                        </TableCell>
-
-                                        {/* Technician - All Tables */}
-                                        <TableCell>
-                                            <Box display="flex" alignItems="center" gap={1}>
-                                                <Avatar
-                                                    sx={{
-                                                        width: 32,
-                                                        height: 32,
-                                                        fontSize: '0.875rem',
-                                                        bgcolor: status === 'COMPLETED' ? GREEN_COLOR :
-                                                            status === 'IN_PROGRESS' ? BLUE_COLOR :
-                                                                ORANGE_COLOR,
-                                                        color: 'white',
-                                                    }}
-                                                >
-                                                    {getTechnicianName(locate.technician).charAt(0)}
-                                                </Avatar>
-                                                <Box>
-                                                    <Typography variant="body2">
-                                                        {getTechnicianName(locate.technician)}
-                                                    </Typography>
-                                                </Box>
-                                            </Box>
-                                        </TableCell>
-
-                                        {/* Called In By - Only for IN_PROGRESS and COMPLETED */}
-                                        {status !== 'NEW' && (
-                                            <TableCell>
-                                                <Typography variant="body2">
-                                                    {locate.calledInBy || 'No caller info'}
-                                                </Typography>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {status === 'COMPLETED' ?
-                                                        `Completed on: ${formatDate(locate.completedAt || new Date().toISOString())}` :
-                                                        `Requested by: ${locate.requestedBy || 'Unknown'}`
-                                                    }
-                                                </Typography>
-                                            </TableCell>
-                                        )}
-
-                                        {/* Actions - All Tables */}
-                                        <TableCell>
-                                            <Box display="flex" gap={1}>
-                                                {status === 'NEW' && (
-                                                    <Tooltip title="Start Work">
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => updateStatusMutation.mutate({
-                                                                locateId: locate._id,
-                                                                status: 'IN_PROGRESS'
-                                                            })}
-                                                            sx={{
-                                                                color: BLUE_COLOR,
-                                                                backgroundColor: alpha(BLUE_COLOR, 0.1),
-                                                                '&:hover': {
-                                                                    backgroundColor: alpha(BLUE_COLOR, 0.2),
-                                                                },
-                                                            }}
-                                                        >
-                                                            <ArrowRightIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                )}
-                                                {status === 'IN_PROGRESS' && (
-                                                    <Tooltip title="Mark Complete">
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => updateStatusMutation.mutate({
-                                                                locateId: locate._id,
-                                                                status: 'COMPLETED'
-                                                            })}
-                                                            sx={{
-                                                                color: GREEN_COLOR,
-                                                                backgroundColor: alpha(GREEN_COLOR, 0.1),
-                                                                '&:hover': {
-                                                                    backgroundColor: alpha(GREEN_COLOR, 0.2),
-                                                                },
-                                                            }}
-                                                        >
-                                                            <CheckIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                )}
-                                                <Tooltip title="Edit">
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleEditLocate(locate)}
-                                                        sx={{
-                                                            color: ORANGE_COLOR,
-                                                            '&:hover': {
-                                                                backgroundColor: alpha(ORANGE_COLOR, 0.1),
-                                                            },
-                                                        }}
-                                                    >
-                                                        <EditIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
-                                                <Tooltip title="Delete">
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleDeleteClick(locate)}
-                                                        sx={{
-                                                            color: RED_COLOR,
-                                                            '&:hover': {
-                                                                backgroundColor: alpha(RED_COLOR, 0.1),
-                                                            },
-                                                        }}
-                                                    >
-                                                        <DeleteIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
-                                            </Box>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })
-                        )}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </Paper>
-    );
-
-    // if (isLoading) {
-    //     return (
-    //         <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-    //             <CircularProgress sx={{ color: BLUE_COLOR }} />
-    //         </Box>
-    //     );
-    // }
+        );
+    }
 
     return (
         <Box>
-            {/* Header Section */}
+            {/* Header */}
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                 <Box>
                     <Typography
@@ -761,462 +632,1045 @@ const Locates = () => {
                             WebkitTextFillColor: 'transparent',
                             backgroundClip: 'text',
                         }}
-                        gutterBottom
                     >
-                        Locate Management
+                        Locates Management
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                        Manage utility locates and excavation requests
+                        Manage locate calls and track progress
                     </Typography>
                 </Box>
-
-                <Grid container spacing={2} alignItems="center">
-                    <Grid size={{ xs: 12, md: 8 }}>
-                        <Box display="flex" gap={1} flexWrap="wrap">
-
-                            <Box display="flex" gap={1}>
-                                <StyledTextField
-                                    placeholder="Search by job, address, or customer..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    InputProps={{
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <SearchIcon sx={{ color: BLUE_COLOR }} />
-                                            </InputAdornment>
-                                        ),
-                                    }}
-                                    size="small"
-                                    sx={{ width: { xs: '100%', sm: 300 } }}
-                                />
-                                <FormControl size="small" sx={{ minWidth: 120 }}>
-                                    <InputLabel>Status</InputLabel>
-                                    <Select
-                                        value={statusFilter}
-                                        onChange={(e) => setStatusFilter(e.target.value)}
-                                        label="Status"
-                                        sx={{ fontWeight: 500, fontSize: '0.875rem' }}
-                                    >
-                                        <MenuItem sx={{ fontWeight: 500, fontSize: '0.875rem' }} value="ALL">All Status</MenuItem>
-                                        {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                                            <MenuItem sx={{ fontWeight: 500, fontSize: '0.875rem' }} key={key} value={key}>
-                                                {config.label}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-
-                                <FormControl size="small" sx={{ minWidth: 120 }}>
-                                    <InputLabel>Type</InputLabel>
-                                    <Select
-                                        value={typeFilter}
-                                        onChange={(e) => setTypeFilter(e.target.value)}
-                                        label="Type"
-                                        sx={{ fontWeight: 500, fontSize: '0.875rem' }}
-                                    >
-                                        <MenuItem sx={{ fontWeight: 500, fontSize: '0.875rem' }} value="ALL">All Types</MenuItem>
-                                        {Object.entries(LOCATE_TYPE_CONFIG).map(([key, config]) => (
-                                            <MenuItem sx={{ fontWeight: 500, fontSize: '0.875rem' }} key={key} value={key}>
-                                                {config.label}
-                                            </MenuItem>
-                                        ))}
-                                    </Select>
-                                </FormControl>
-
-                                <FormControl size="small" sx={{ minWidth: 120 }}>
-                                    <InputLabel>Date</InputLabel>
-                                    <Select
-                                        value={dateFilter}
-                                        onChange={(e) => setDateFilter(e.target.value)}
-                                        label="Date"
-                                        sx={{ fontWeight: 500, fontSize: '0.875rem' }}
-                                    >
-                                        <MenuItem sx={{ fontWeight: 500, fontSize: '0.875rem' }} value="ALL">All Dates</MenuItem>
-                                        <MenuItem sx={{ fontWeight: 500, fontSize: '0.875rem' }} value="TODAY">Today</MenuItem>
-                                        <MenuItem sx={{ fontWeight: 500, fontSize: '0.875rem' }} value="THIS_WEEK">This Week</MenuItem>
-                                        <MenuItem sx={{ fontWeight: 500, fontSize: '0.875rem' }} value="THIS_MONTH">This Month</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Box>
-                        </Box>
-                    </Grid>
-
-                    <Grid size={{ xs: 12, md: 4 }}>
-                        <Box display="flex" justifyContent="flex-end">
-                            <GradientButton
-                                variant="contained"
-                                startIcon={<AddIcon />}
-                                onClick={() => {
-                                    resetLocateForm();
-                                    setOpenForm(true);
-                                }}
-                            >
-                                Create Locate
-                            </GradientButton>
-                        </Box>
-                    </Grid>
-                </Grid>
+                <Box display="flex" gap={2}>
+                    <Button
+                        variant="contained"
+                        startIcon={<SyncIcon />}
+                        onClick={handleSyncDashboard}
+                        disabled={syncDashboardMutation.isPending || isLoading}
+                        sx={{
+                            bgcolor: BLUE_COLOR,
+                            '&:hover': { bgcolor: BLUE_DARK },
+                            textTransform: 'none',
+                            fontWeight: 600,
+                        }}
+                    >
+                        {syncDashboardMutation.isPending ? 'Syncing...' : 'Sync from Dashboard'}
+                    </Button>
+                    <OutlineButton
+                        onClick={() => refetch()}
+                        disabled={isLoading}
+                        startIcon={<SyncIcon />}
+                    >
+                        Refresh
+                    </OutlineButton>
+                </Box>
             </Box>
 
-            {/* Three Section Tables - With Different Columns */}
-            {renderStatusTable('NEW', newLocates, 'Call Needed', STATUS_CONFIG.NEW)}
-            {renderStatusTable('IN_PROGRESS', inProgressLocates, 'In Progress', STATUS_CONFIG.IN_PROGRESS)}
-            {renderStatusTable('COMPLETED', completedLocates, 'Locates Complete', STATUS_CONFIG.COMPLETED)}
-
-            {/* Create/Edit Locate Dialog */}
-            <Dialog
-                open={openForm}
-                onClose={() => {
-                    setOpenForm(false);
-                    setSelectedLocate(null);
-                }}
-                maxWidth="md"
-                fullWidth
-                PaperProps={{
-                    sx: {
-                        borderRadius: 3,
-                        border: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
-                    }
+            {/* Excavator Priority Locates Table - CALL NEEDED */}
+            <Paper
+                elevation={0}
+                sx={{
+                    borderRadius: 2,
+                    border: `1px solid ${alpha(ORANGE_COLOR, 0.2)}`,
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                    mb: 4,
                 }}
             >
-                <DialogTitle sx={{
-                    pb: 2,
-                    background: `linear-gradient(135deg, ${BLUE_COLOR} 0%, ${BLUE_DARK} 100%)`,
-                    color: 'white',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                }}>
-                    <Typography variant="h6" fontWeight={600}>
-                        {selectedLocate ? 'Edit Locate' : 'Create New Locate'}
-                    </Typography>
-                </DialogTitle>
-                <DialogContent sx={{ mt: 3 }}>
-                    <Grid container spacing={2}>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Job/Work Order ID (Optional)"
-                                value={locateForm.jobId}
-                                onChange={(e) => setLocateForm({ ...locateForm, jobId: e.target.value })}
-                                size="small"
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <FormControl fullWidth size="small" required>
-                                <InputLabel>Locate Type</InputLabel>
-                                <Select
-                                    value={locateForm.type}
-                                    onChange={(e) => setLocateForm({ ...locateForm, type: e.target.value })}
-                                    label="Locate Type"
-                                >
-                                    {Object.entries(LOCATE_TYPE_CONFIG).map(([key, config]) => (
-                                        <MenuItem key={key} value={key}>
-                                            <Box display="flex" alignItems="center" gap={1}>
-                                                {React.cloneElement(config.icon, { sx: { fontSize: 18 } })}
-                                                {config.label}
-                                            </Box>
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Grid>
-
-                        <Grid size={{ xs: 12 }}>
-                            <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                Location Information
+                <Box
+                    sx={{
+                        p: 1.5,
+                        borderBottom: `2px solid ${ORANGE_COLOR}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        bgcolor: alpha(ORANGE_COLOR, 0.05),
+                    }}
+                >
+                    <Box display="flex" alignItems="center" gap={1}>
+                        <Box display="flex" alignItems="center" gap={1}>
+                            <PhoneCallbackIcon sx={{ color: ORANGE_COLOR, fontSize: 20 }} />
+                            <Typography fontWeight={600} color={ORANGE_COLOR} fontSize={16}>
+                                Call Needed
                             </Typography>
-                        </Grid>
+                        </Box>
+                        <Chip
+                            label={`${excavatorLocates.filter(l => l.needsCall).length} pending`}
+                            size="small"
+                            sx={{
+                                bgcolor: alpha(ORANGE_COLOR, 0.2),
+                                color: ORANGE_COLOR,
+                                fontWeight: 600,
+                                border: `1px solid ${ORANGE_COLOR}`,
+                                fontSize: 12,
+                            }}
+                        />
+                    </Box>
 
-                        <Grid size={{ xs: 12 }}>
-                            <TextField
-                                fullWidth
-                                label="Address"
-                                value={locateForm.address}
-                                onChange={(e) => setLocateForm({ ...locateForm, address: e.target.value })}
+                    <Box display="flex" gap={2} alignItems="center">
+                        <StyledTextField
+                            placeholder="Search excavator locates..."
+                            value={searchQueryExcavator}
+                            onChange={(e) => setSearchQueryExcavator(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon sx={{ color: ORANGE_COLOR }} />
+                                    </InputAdornment>
+                                ),
+                            }}
+                            size="small"
+                            sx={{ minWidth: 250 }}
+                        />
+                        <FormControl size="small" sx={{ minWidth: 140, fontSize: 12 }}>
+                            <InputLabel sx={{ fontSize: 14 }}>Type</InputLabel>
+                            <Select value={typeFilterExcavator} onChange={(e) => setTypeFilterExcavator(e.target.value)} label="Type">
+                                <MenuItem sx={{ fontSize: 14 }} value="ALL">All Types</MenuItem>
+                                <MenuItem sx={{ fontSize: 14 }} value="STANDARD">Standard</MenuItem>
+                                <MenuItem sx={{ fontSize: 14 }} value="EMERGENCY">Emergency</MenuItem>
+                            </Select>
+                        </FormControl>
+                        {removeCheckedExcavatorLocates.size > 0 && (
+                            <Button
+                                variant="contained"
+                                color="error"
                                 size="small"
-                                required
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 4 }}>
-                            <TextField
-                                fullWidth
-                                label="City"
-                                value={locateForm.city}
-                                onChange={(e) => setLocateForm({ ...locateForm, city: e.target.value })}
-                                size="small"
-                                required
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 4 }}>
-                            <TextField
-                                fullWidth
-                                label="State"
-                                value={locateForm.state}
-                                onChange={(e) => setLocateForm({ ...locateForm, state: e.target.value })}
-                                size="small"
-                                required
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 4 }}>
-                            <TextField
-                                fullWidth
-                                label="ZIP Code"
-                                value={locateForm.zip}
-                                onChange={(e) => setLocateForm({ ...locateForm, zip: e.target.value })}
-                                size="small"
-                                required
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Customer Name"
-                                value={locateForm.customerName}
-                                onChange={(e) => setLocateForm({ ...locateForm, customerName: e.target.value })}
-                                size="small"
-                                required
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Site Address"
-                                value={locateForm.siteAddress}
-                                onChange={(e) => setLocateForm({ ...locateForm, siteAddress: e.target.value })}
-                                size="small"
-                                required
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12 }}>
-                            <TextField
-                                fullWidth
-                                label="Description of Work"
-                                multiline
-                                rows={3}
-                                value={locateForm.description}
-                                onChange={(e) => setLocateForm({ ...locateForm, description: e.target.value })}
-                                size="small"
-                                required
-                                placeholder="Describe the excavation work needed..."
-                            />
-                        </Grid>
-
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Requested By"
-                                value={locateForm.requestedBy}
-                                onChange={(e) => setLocateForm({ ...locateForm, requestedBy: e.target.value })}
-                                size="small"
-                                required
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <PersonIcon sx={{ color: BLUE_COLOR, fontSize: 20 }} />
-                                        </InputAdornment>
-                                    ),
+                                onClick={() => setOpenRemoveExcavatorConfirmDialog(true)}
+                                disabled={deleteExcavatorLocateMutation.isPending}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontSize: 12,
+                                    fontWeight: 600,
                                 }}
-                            />
-                        </Grid>
+                            >
+                                Remove Selected ({removeCheckedExcavatorLocates.size})
+                            </Button>
+                        )}
+                    </Box>
+                </Box>
 
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Called In By"
-                                value={locateForm.calledInBy}
-                                onChange={(e) => setLocateForm({ ...locateForm, calledInBy: e.target.value })}
-                                size="small"
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <PhoneIcon sx={{ color: BLUE_COLOR, fontSize: 20 }} />
-                                        </InputAdornment>
-                                    ),
-                                }}
-                            />
-                        </Grid>
+                <TableContainer>
+                    <Table>
+                        <TableHead>
+                            <TableRow sx={{ bgcolor: alpha(ORANGE_COLOR, 0.05) }}>
+                                <TableCell padding="checkbox">Remove</TableCell>
+                                <TableCell>Call Status</TableCell>
+                                <TableCell>Customer</TableCell>
+                                <TableCell>Site Address</TableCell>
+                                <TableCell>Date</TableCell>
+                                <TableCell>Technician</TableCell>
+                                <TableCell>Tag Type</TableCell>
+                                <TableCell>Tagged By</TableCell>
+                                <TableCell>Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {filteredExcavatorLocates.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
+                                        <Typography color="text.secondary">
+                                            No excavator priority locates found
+                                        </Typography>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                filteredExcavatorLocates.map((locate) => {
+                                    const typeConfig = LOCATE_TYPE_CONFIG[locate.type] || LOCATE_TYPE_CONFIG.STANDARD;
+                                    const displayAddress = locate.fullAddress || locate.address || 'No Address';
+                                    const displayCityStateZip = [locate.city, locate.state, locate.zip]
+                                        .filter(Boolean)
+                                        .join(', ');
 
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Requested Date"
-                                type="date"
-                                value={locateForm.requestedDate}
-                                onChange={(e) => setLocateForm({ ...locateForm, requestedDate: e.target.value })}
-                                size="small"
-                                required
-                                InputLabelProps={{ shrink: true }}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <CalendarIcon sx={{ color: BLUE_COLOR, fontSize: 20 }} />
-                                        </InputAdornment>
-                                    ),
-                                }}
-                            />
-                        </Grid>
+                                    // Determine call status
+                                    const isCalled = locate.locatesCalled || excavatorCallStatus[locate._id];
+                                    const callType = locate.callType || excavatorCallStatus[locate._id];
 
-                        <Grid size={{ xs: 12, md: 6 }}>
-                            <TextField
-                                fullWidth
-                                label="Expected Excavation Date"
-                                type="date"
-                                value={locateForm.expectedExcavationDate}
-                                onChange={(e) => setLocateForm({ ...locateForm, expectedExcavationDate: e.target.value })}
-                                size="small"
-                                InputLabelProps={{ shrink: true }}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <ScheduleIcon sx={{ color: BLUE_COLOR, fontSize: 20 }} />
-                                        </InputAdornment>
-                                    ),
-                                }}
-                            />
-                        </Grid>
+                                    return (
+                                        <TableRow
+                                            key={locate._id}
+                                            hover
+                                            sx={{
+                                                borderLeft: `4px solid ${ORANGE_COLOR}`,
+                                                bgcolor: locate.needsCall ? alpha(ORANGE_COLOR, 0.03) : 'transparent',
+                                                '&:hover': {
+                                                    bgcolor: locate.needsCall ? alpha(ORANGE_COLOR, 0.08) : alpha(GRAY_COLOR, 0.04),
+                                                }
+                                            }}
+                                        >
+                                            <TableCell padding="checkbox">
+                                                <Checkbox
+                                                    checked={removeCheckedExcavatorLocates.has(locate._id)}
+                                                    onChange={() => toggleExcavatorRemoveCheckbox(locate._id)}
+                                                    disabled={deleteExcavatorLocateMutation.isPending}
+                                                    size="small"
+                                                    color="error"
+                                                />
+                                            </TableCell>
 
-                        <Grid size={{ xs: 12 }}>
-                            <FormControl fullWidth size="small">
-                                <InputLabel>Assign Technician</InputLabel>
-                                <Select
-                                    value={locateForm.technician}
-                                    onChange={(e) => setLocateForm({ ...locateForm, technician: e.target.value })}
-                                    label="Assign Technician"
-                                >
-                                    <MenuItem value="">Unassigned</MenuItem>
-                                    {technicians.map(tech => (
-                                        <MenuItem key={tech._id} value={tech._id}>
-                                            {tech.name} ({tech.employeeId || 'No ID'})
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Grid>
+                                            {/* Call Status Column - Standard/Emergency Checkboxes */}
+                                            <TableCell>
+                                                {isCalled ? (
+                                                    <Box>
+                                                        <Chip
+                                                            label={callType === 'EMERGENCY' ? 'Emergency Call' : 'Standard Call'}
+                                                            size="small"
+                                                            sx={{
+                                                                bgcolor: callType === 'EMERGENCY'
+                                                                    ? alpha(RED_COLOR, 0.1)
+                                                                    : alpha(BLUE_COLOR, 0.1),
+                                                                color: callType === 'EMERGENCY'
+                                                                    ? RED_COLOR
+                                                                    : BLUE_COLOR,
+                                                                fontWeight: 500,
+                                                                border: `1px solid ${callType === 'EMERGENCY' ? RED_COLOR : BLUE_COLOR}`,
+                                                            }}
+                                                            icon={callType === 'EMERGENCY' ? <EmergencyIcon /> : <ScheduleIcon />}
+                                                        />
+                                                        <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+                                                            Called
+                                                        </Typography>
+                                                    </Box>
+                                                ) : (
+                                                    <Box>
+                                                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                                                            Mark after calling:
+                                                        </Typography>
+                                                        <RadioGroup
+                                                            row
+                                                            value={callType || ''}
+                                                            onChange={(e) => handleCallStatusChange(locate._id, e.target.value)}
+                                                        >
+                                                            <Tooltip title="Mark as Standard Locate Call">
+                                                                <FormControlLabel
+                                                                    value="STANDARD"
+                                                                    control={
+                                                                        <Radio
+                                                                            size="small"
+                                                                            sx={{
+                                                                                color: BLUE_COLOR,
+                                                                                '&.Mui-checked': { color: BLUE_COLOR }
+                                                                            }}
+                                                                        />
+                                                                    }
+                                                                    label="Standard"
+                                                                    disabled={updateCallStatusMutation.isPending}
+                                                                />
+                                                            </Tooltip>
+                                                            <Tooltip title="Mark as Emergency Locate Call">
+                                                                <FormControlLabel
+                                                                    value="EMERGENCY"
+                                                                    control={
+                                                                        <Radio
+                                                                            size="small"
+                                                                            sx={{
+                                                                                color: RED_COLOR,
+                                                                                '&.Mui-checked': { color: RED_COLOR }
+                                                                            }}
+                                                                        />
+                                                                    }
+                                                                    label="Emergency"
+                                                                    disabled={updateCallStatusMutation.isPending}
+                                                                />
+                                                            </Tooltip>
+                                                        </RadioGroup>
+                                                    </Box>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Typography fontWeight={500}>
+                                                    {locate.customerName || 'No Customer'}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: ORANGE_COLOR, fontWeight: 600 }}>
+                                                    <span style={{ color: 'black' }}>Priority: </span>
+                                                    {locate.priorityName}
+                                                </Typography>
+                                            </TableCell>
 
-                        <Grid size={{ xs: 12 }}>
-                            <TextField
-                                fullWidth
-                                label="Notes (Optional)"
-                                multiline
-                                rows={2}
-                                value={locateForm.notes}
-                                onChange={(e) => setLocateForm({ ...locateForm, notes: e.target.value })}
-                                size="small"
-                                placeholder="Additional notes or instructions..."
-                            />
-                        </Grid>
-                    </Grid>
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 3 }}>
-                    <OutlineButton onClick={() => {
-                        setOpenForm(false);
-                        setSelectedLocate(null);
-                    }}>
-                        Cancel
-                    </OutlineButton>
-                    <GradientButton
-                        onClick={handleSubmitLocate}
-                        disabled={!locateForm.address || !locateForm.city || !locateForm.state || !locateForm.zip || !locateForm.description}
-                        loading={createLocateMutation.isPending || updateLocateMutation.isPending}
-                    >
-                        {selectedLocate ? 'Update Locate' : 'Create Locate'}
-                    </GradientButton>
-                </DialogActions>
-            </Dialog>
+                                            <TableCell>
+                                                <Typography variant="body2">{displayAddress}</Typography>
+                                                {displayCityStateZip && (
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {displayCityStateZip}
+                                                    </Typography>
+                                                )}
+                                            </TableCell>
 
-            {/* Delete Confirmation Dialog */}
-            <Dialog
-                open={openDeleteDialog}
-                onClose={() => setOpenDeleteDialog(false)}
-                maxWidth="xs"
-                fullWidth
-                PaperProps={{
-                    sx: {
-                        borderRadius: 3,
-                        border: `1px solid ${alpha(RED_COLOR, 0.1)}`,
-                    }
+                                            <TableCell>
+                                                <Stack spacing={0.5}>
+                                                    <Typography variant="body2">
+                                                        Requested: {formatDate(locate.requestedDate)}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        Completed: {formatDate(locate.completedAt)}
+                                                    </Typography>
+                                                    {locate.duration && (
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Duration: {locate.duration}
+                                                        </Typography>
+                                                    )}
+                                                </Stack>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Box display="flex" alignItems="center" gap={1}>
+                                                    <Avatar
+                                                        sx={{
+                                                            width: 32,
+                                                            height: 32,
+                                                            bgcolor: ORANGE_COLOR,
+                                                            fontSize: '0.875rem',
+                                                            fontWeight: 600,
+                                                        }}
+                                                    >
+                                                        {getTechnicianName(locate.techName).charAt(0)}
+                                                    </Avatar>
+                                                    <Typography variant="body2">
+                                                        {getTechnicianName(locate.techName)}
+                                                    </Typography>
+                                                </Box>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Box>
+                                                    <Chip
+                                                        label={locate.manuallyTagged ? "Manual Tag" : "Auto Generated"}
+                                                        size="small"
+                                                        sx={{
+                                                            bgcolor: locate.manuallyTagged ? alpha(PURPLE_COLOR, 0.1) : alpha(BLUE_COLOR, 0.1),
+                                                            color: locate.manuallyTagged ? PURPLE_COLOR : BLUE_COLOR,
+                                                            fontWeight: 500,
+                                                            mb: 0.5,
+                                                        }}
+                                                    />
+                                                </Box>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                {locate.manuallyTagged ? (
+                                                    <Box>
+                                                        <Typography variant="body2" fontWeight={500}>
+                                                            {locate.taggedBy}
+                                                        </Typography>
+                                                        <Typography variant="caption" display="block" color="text.secondary">
+                                                            {locate.taggedByEmail}
+                                                        </Typography>
+                                                        {locate.taggedAt && (
+                                                            <Typography variant="caption" display="block" color="text.secondary">
+                                                                {format(new Date(locate.taggedAt), 'MMM dd, yyyy HH:mm')}
+                                                            </Typography>
+                                                        )}
+                                                    </Box>
+                                                ) : (
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        System Generated
+                                                    </Typography>
+                                                )}
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Tooltip title="More actions">
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e) => handleMenuOpen(e, locate)}
+                                                        disabled={deleteExcavatorLocateMutation.isPending || updateCallStatusMutation.isPending}
+                                                    >
+                                                        <MoreVertIcon />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Paper>
+
+            {/* IN PROGRESS Table - Redesigned to match Call Needed table */}
+            <Paper
+                elevation={0}
+                sx={{
+                    borderRadius: 2,
+                    border: `1px solid ${alpha(YELLOW_COLOR, 0.2)}`,
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                    mb: 4,
                 }}
             >
-                <DialogTitle sx={{
-                    background: `linear-gradient(135deg, ${alpha(RED_COLOR, 0.1)}, ${alpha(RED_DARK, 0.1)})`,
-                    color: RED_DARK,
-                    fontWeight: 600,
-                    borderBottom: `1px solid ${alpha(RED_COLOR, 0.2)}`,
-                }}>
-                    <WarningIcon sx={{ mr: 1, fontSize: 24 }} />
-                    Confirm Delete
-                </DialogTitle>
-                <DialogContent sx={{ py: 3 }}>
-                    <Typography variant="body1" gutterBottom>
-                        Are you sure you want to delete this locate?
-                    </Typography>
-                    <Box sx={{
-                        p: 2,
-                        bgcolor: alpha(RED_COLOR, 0.05),
-                        borderRadius: 1,
-                        border: `1px solid ${alpha(RED_COLOR, 0.1)}`,
-                        my: 2,
-                    }}>
-                        <Typography variant="h6" fontWeight={600} color={RED_DARK}>
-                            {locateToDelete?.jobId || 'No Job ID'}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            {locateToDelete?.address}, {locateToDelete?.city}, {locateToDelete?.state}
-                        </Typography>
+                <Box
+                    sx={{
+                        p: 1.5,
+                        borderBottom: `2px solid ${YELLOW_COLOR}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        bgcolor: alpha(YELLOW_COLOR, 0.05),
+                    }}
+                >
+                    <Box display="flex" alignItems="center" gap={1}>
+                        <Box display="flex" alignItems="center" gap={1}>
+                            <AccessTimeIcon sx={{ color: YELLOW_COLOR, fontSize: 20 }} />
+                            <Typography fontWeight={600} color={YELLOW_COLOR} fontSize={16}>
+                                In Progress
+                            </Typography>
+                        </Box>
+                        <Chip
+                            label={`${inProgressLocates.length} active`}
+                            size="small"
+                            sx={{
+                                bgcolor: alpha(YELLOW_COLOR, 0.2),
+                                color: YELLOW_COLOR,
+                                fontWeight: 600,
+                                border: `1px solid ${YELLOW_COLOR}`,
+                                fontSize: 12,
+                            }}
+                        />
                     </Box>
-                    <Alert severity="error" sx={{ mt: 2 }}>
-                        This action cannot be undone. All associated data will be permanently deleted.
-                    </Alert>
+
+                    <Box display="flex" gap={2} alignItems="center">
+                        <StyledTextField
+                            placeholder="Search in progress locates..."
+                            value={searchQueryInProgress}
+                            onChange={(e) => setSearchQueryInProgress(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon sx={{ color: YELLOW_COLOR }} />
+                                    </InputAdornment>
+                                ),
+                            }}
+                            size="small"
+                            sx={{ minWidth: 250 }}
+                        />
+                        <FormControl size="small" sx={{ minWidth: 140, fontSize: 12 }}>
+                            <InputLabel sx={{ fontSize: 14 }}>Type</InputLabel>
+                            <Select value={typeFilterInProgress} onChange={(e) => setTypeFilterInProgress(e.target.value)} label="Type">
+                                <MenuItem sx={{ fontSize: 14 }} value="ALL">All Types</MenuItem>
+                                <MenuItem sx={{ fontSize: 14 }} value="STANDARD">Standard</MenuItem>
+                                <MenuItem sx={{ fontSize: 14 }} value="EMERGENCY">Emergency</MenuItem>
+                            </Select>
+                        </FormControl>
+                        {removeCheckedInProgressLocates.size > 0 && (
+                            <Button
+                                variant="contained"
+                                color="error"
+                                size="small"
+                                onClick={() => setOpenRemoveInProgressConfirmDialog(true)}
+                                disabled={deleteInProgressLocateMutation.isPending}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                }}
+                            >
+                                Remove Selected ({removeCheckedInProgressLocates.size})
+                            </Button>
+                        )}
+                    </Box>
+                </Box>
+
+                <TableContainer>
+                    <Table>
+                        <TableHead>
+                            <TableRow sx={{ bgcolor: alpha(YELLOW_COLOR, 0.05) }}>
+                                <TableCell padding="checkbox">Remove</TableCell>
+                                <TableCell>Call Status</TableCell>
+                                <TableCell>Timer</TableCell>
+                                <TableCell>Customer</TableCell>
+                                <TableCell>Site Address</TableCell>
+                                <TableCell>Date</TableCell>
+                                <TableCell>Technician</TableCell>
+                                <TableCell>Called In By</TableCell>
+                                <TableCell>Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {filteredInProgressLocates.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
+                                        <Typography color="text.secondary">
+                                            No in progress locates found
+                                        </Typography>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                filteredInProgressLocates.map((locate) => {
+                                    const typeConfig = LOCATE_TYPE_CONFIG[locate.callType] || LOCATE_TYPE_CONFIG.STANDARD;
+                                    const displayAddress = locate.fullAddress || locate.address || 'No Address';
+                                    const displayCityStateZip = [locate.city, locate.state, locate.zip]
+                                        .filter(Boolean)
+                                        .join(', ');
+
+                                    return (
+                                        <TableRow
+                                            key={locate._id}
+                                            hover
+                                            sx={{
+                                                borderLeft: `4px solid ${YELLOW_COLOR}`,
+                                                bgcolor: alpha(YELLOW_COLOR, 0.03),
+                                                '&:hover': {
+                                                    bgcolor: alpha(YELLOW_COLOR, 0.08),
+                                                }
+                                            }}
+                                        >
+                                            <TableCell padding="checkbox">
+                                                <Checkbox
+                                                    checked={removeCheckedInProgressLocates.has(locate._id)}
+                                                    onChange={() => toggleInProgressRemoveCheckbox(locate._id)}
+                                                    disabled={deleteInProgressLocateMutation.isPending}
+                                                    size="small"
+                                                    color="error"
+                                                />
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Box>
+                                                    <Chip
+                                                        label={typeConfig.label}
+                                                        size="small"
+                                                        sx={{
+                                                            bgcolor: typeConfig.bgColor,
+                                                            color: typeConfig.color,
+                                                            fontWeight: 500,
+                                                            border: `1px solid ${typeConfig.color}`,
+                                                        }}
+                                                        icon={typeConfig.icon}
+                                                    />
+                                                    <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+                                                        {typeConfig.timeLimit}
+                                                    </Typography>
+                                                </Box>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Box display="flex" alignItems="center" gap={1}>
+                                                    <AccessTimeIcon sx={{ color: typeConfig.timerColor }} />
+                                                    <Typography
+                                                        variant="body2"
+                                                        fontWeight={600}
+                                                        color={typeConfig.timerColor}
+                                                    >
+                                                        {formatTimeRemaining(locate)}
+                                                    </Typography>
+                                                </Box>
+                                                {locate.completionDate && (
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        Complete by: {format(locate.completionDate, 'MMM dd, hh:mm a')}
+                                                    </Typography>
+                                                )}
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Typography fontWeight={500}>
+                                                    {locate.customerName || 'No Customer'}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: YELLOW_COLOR, fontWeight: 600 }}>
+                                                    <span style={{ color: 'black' }}>Status: </span>In Progress
+                                                </Typography>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Typography variant="body2">{displayAddress}</Typography>
+                                                {displayCityStateZip && (
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {displayCityStateZip}
+                                                    </Typography>
+                                                )}
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Stack spacing={0.5}>
+                                                    <Typography variant="body2">
+                                                        Requested: {formatDate(locate.requestedDate)}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        Called: {format(new Date(locate.calledAt), 'MMM dd, hh:mm a')}
+                                                    </Typography>
+                                                </Stack>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Box display="flex" alignItems="center" gap={1}>
+                                                    <Avatar
+                                                        sx={{
+                                                            width: 32,
+                                                            height: 32,
+                                                            bgcolor: YELLOW_COLOR,
+                                                            fontSize: '0.875rem',
+                                                            fontWeight: 600,
+                                                        }}
+                                                    >
+                                                        {getTechnicianName(locate.techName).charAt(0)}
+                                                    </Avatar>
+                                                    <Typography variant="body2">
+                                                        {getTechnicianName(locate.techName)}
+                                                    </Typography>
+                                                </Box>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Box display="flex" alignItems="center" gap={1}>
+                                                    <PersonIcon sx={{ color: PURPLE_COLOR, fontSize: 20 }} />
+                                                    <Typography variant="body2">
+                                                        {locate.calledBy || calledInBy[locate._id] || 'Unknown'}
+                                                    </Typography>
+                                                </Box>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Tooltip title="More actions">
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e) => handleMenuOpen(e, locate)}
+                                                        disabled={deleteInProgressLocateMutation.isPending}
+                                                    >
+                                                        <MoreVertIcon />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Paper>
+
+            {/* LOCATES COMPLETE Table - Redesigned to match Call Needed table */}
+            <Paper
+                elevation={0}
+                sx={{
+                    borderRadius: 2,
+                    border: `1px solid ${alpha(GREEN_COLOR, 0.2)}`,
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                }}
+            >
+                <Box
+                    sx={{
+                        p: 1.5,
+                        borderBottom: `2px solid ${GREEN_COLOR}`,
+                        display: 'flex',
+                        alignItems: "center",
+                        justifyContent: 'space-between',
+                        bgcolor: alpha(GREEN_COLOR, 0.05),
+                    }}
+                >
+                    <Box display="flex" alignItems="center" gap={1}>
+                        <Box display="flex" alignItems="center" gap={1}>
+                            <CheckCircleIcon sx={{ color: GREEN_COLOR, fontSize: 20 }} />
+                            <Typography fontWeight={600} color={GREEN_COLOR} fontSize={16}>
+                                Locates Complete
+                            </Typography>
+                        </Box>
+                        <Chip
+                            label={filteredLocates.length}
+                            size="small"
+                            sx={{
+                                bgcolor: alpha(GREEN_COLOR, 0.2),
+                                color: GREEN_COLOR,
+                                fontWeight: 600,
+                                border: `1px solid ${GREEN_COLOR}`,
+                                fontSize: 12,
+                            }}
+                        />
+                    </Box>
+
+                    <Box display="flex" gap={2} alignItems="center">
+                        <StyledTextField
+                            placeholder="Search complete locates..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon sx={{ color: GREEN_COLOR }} />
+                                    </InputAdornment>
+                                ),
+                            }}
+                            size="small"
+                            sx={{ minWidth: 250 }}
+                        />
+                        <FormControl size="small" sx={{ minWidth: 140, fontSize: 12 }}>
+                            <InputLabel sx={{ fontSize: 14 }}>Type</InputLabel>
+                            <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} label="Type">
+                                <MenuItem sx={{ fontSize: 14 }} value="ALL">All Types</MenuItem>
+                                <MenuItem sx={{ fontSize: 14 }} value="STANDARD">Standard</MenuItem>
+                                <MenuItem sx={{ fontSize: 14 }} value="EMERGENCY">Emergency</MenuItem>
+                            </Select>
+                        </FormControl>
+                        {removeCheckedLocates.size > 0 && (
+                            <Button
+                                variant="contained"
+                                color="error"
+                                size="small"
+                                onClick={() => setOpenRemoveConfirmDialog(true)}
+                                disabled={deleteLocateMutation.isPending}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                }}
+                            >
+                                Remove Selected ({removeCheckedLocates.size})
+                            </Button>
+                        )}
+                    </Box>
+                </Box>
+
+                <TableContainer>
+                    <Table>
+                        <TableHead>
+                            <TableRow sx={{ bgcolor: alpha(GREEN_COLOR, 0.05) }}>
+                                <TableCell padding="checkbox">Remove</TableCell>
+                                <TableCell>Call Status</TableCell>
+                                <TableCell>Customer</TableCell>
+                                <TableCell>Site Address</TableCell>
+                                <TableCell>Date</TableCell>
+                                <TableCell>Technician</TableCell>
+                                <TableCell>Called In By</TableCell>
+                                <TableCell>Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {filteredLocates.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                                        <Typography color="text.secondary">
+                                            No complete locates found
+                                        </Typography>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                filteredLocates.map((locate) => {
+                                    const typeConfig = LOCATE_TYPE_CONFIG[locate.callType] || LOCATE_TYPE_CONFIG.STANDARD;
+                                    const displayAddress = locate.fullAddress || locate.address || 'No Address';
+                                    const displayCityStateZip = [locate.city, locate.state, locate.zip]
+                                        .filter(Boolean)
+                                        .join(', ');
+
+                                    return (
+                                        <TableRow
+                                            key={locate._id}
+                                            hover
+                                            sx={{
+                                                borderLeft: `4px solid ${GREEN_COLOR}`,
+                                                bgcolor: alpha(GREEN_COLOR, 0.02),
+                                                '&:hover': {
+                                                    bgcolor: alpha(GREEN_COLOR, 0.06),
+                                                }
+                                            }}
+                                        >
+                                            <TableCell padding="checkbox">
+                                                <Checkbox
+                                                    checked={removeCheckedLocates.has(locate._id)}
+                                                    onChange={() => toggleRemoveCheckbox(locate._id)}
+                                                    disabled={deleteLocateMutation.isPending}
+                                                    size="small"
+                                                    color="error"
+                                                />
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Box>
+                                                    <Chip
+                                                        label={typeConfig.label}
+                                                        size="small"
+                                                        sx={{
+                                                            bgcolor: typeConfig.bgColor,
+                                                            color: typeConfig.color,
+                                                            fontWeight: 500,
+                                                            border: `1px solid ${typeConfig.color}`,
+                                                        }}
+                                                        icon={typeConfig.icon}
+                                                    />
+                                                    <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+                                                        Timer Expired
+                                                    </Typography>
+                                                </Box>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Typography fontWeight={500}>
+                                                    {locate.customerName || 'No Customer'}
+                                                </Typography>
+                                                <Typography variant="caption" sx={{ color: GREEN_COLOR, fontWeight: 600 }}>
+                                                    <span style={{ color: 'black' }}>Status: </span>Complete
+                                                </Typography>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Typography variant="body2">{displayAddress}</Typography>
+                                                {displayCityStateZip && (
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {displayCityStateZip}
+                                                    </Typography>
+                                                )}
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Stack spacing={0.5}>
+                                                    <Typography variant="body2">
+                                                        Requested: {formatDate(locate.requestedDate)}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        Called: {format(new Date(locate.calledAt), 'MMM dd, hh:mm a')}
+                                                    </Typography>
+                                                    <Typography variant="caption" color={GREEN_COLOR} fontWeight={500}>
+                                                        Completed: {locate.completionDate ? format(locate.completionDate, 'MMM dd, hh:mm a') : 'N/A'}
+                                                    </Typography>
+                                                </Stack>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Box display="flex" alignItems="center" gap={1}>
+                                                    <Avatar
+                                                        sx={{
+                                                            width: 32,
+                                                            height: 32,
+                                                            bgcolor: GREEN_COLOR,
+                                                            fontSize: '0.875rem',
+                                                            fontWeight: 600,
+                                                        }}
+                                                    >
+                                                        {getTechnicianName(locate.techName).charAt(0)}
+                                                    </Avatar>
+                                                    <Typography variant="body2">
+                                                        {getTechnicianName(locate.techName)}
+                                                    </Typography>
+                                                </Box>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Box display="flex" alignItems="center" gap={1}>
+                                                    <PersonIcon sx={{ color: PURPLE_COLOR, fontSize: 20 }} />
+                                                    <Typography variant="body2">
+                                                        {locate.calledBy || 'Unknown'}
+                                                    </Typography>
+                                                </Box>
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Tooltip title="More actions">
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e) => handleMenuOpen(e, locate)}
+                                                        disabled={deleteLocateMutation.isPending}
+                                                    >
+                                                        <MoreVertIcon />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Paper>
+
+            {/* Row Action Menu */}
+            <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+                anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'right',
+                }}
+                transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                }}
+            >
+                <MenuItem
+                    onClick={() => {
+                        handleIndividualManualTag(selectedLocate);
+                        handleMenuClose();
+                    }}
+                // disabled={selectedLocate?.manuallyTagged}
+                >
+                    <LocalOfferIcon fontSize="small" sx={{ mr: 1, color: PURPLE_COLOR }} />
+                    {selectedLocate?.manuallyTagged ? 'Already Manually Tagged' : 'Add Manual Tag'}
+                </MenuItem>
+            </Menu>
+
+            {/* Manual Tag Dialog with form */}
+            <Dialog open={openTagDialog} onClose={() => setOpenTagDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ color: PURPLE_COLOR, fontWeight: 600 }}>
+                    <LocalOfferIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                    Add Manual Tag
+                </DialogTitle>
+                <DialogContent dividers>
+                    {selectedLocate && (
+                        <Box>
+                            <Typography gutterBottom>
+                                You are about to add a manual "Locates Needed" tag to:
+                            </Typography>
+                            <Alert severity="info" sx={{ mb: 3 }}>
+                                <Typography variant="body2">
+                                    <strong>Job ID:</strong> {selectedLocate.jobId}
+                                </Typography>
+                                <Typography variant="body2">
+                                    <strong>Customer:</strong> {selectedLocate.customerName}
+                                </Typography>
+                                <Typography variant="body2">
+                                    <strong>Address:</strong> {selectedLocate.fullAddress}
+                                </Typography>
+                            </Alert>
+
+                            <Box component="form" sx={{ mt: 2 }}>
+                                <Typography variant="subtitle2" gutterBottom>
+                                    Enter your details for tagging:
+                                </Typography>
+
+                                <TextField
+                                    fullWidth
+                                    label="Your Name"
+                                    name="name"
+                                    value={tagFormData.name}
+                                    onChange={handleFormChange}
+                                    margin="normal"
+                                    size="small"
+                                    required
+                                    error={!tagFormData.name.trim() && tagFormData.name !== ''}
+                                    helperText={!tagFormData.name.trim() && tagFormData.name !== '' ? "Name is required" : ""}
+                                />
+
+                                <TextField
+                                    fullWidth
+                                    label="Your Email"
+                                    name="email"
+                                    type="email"
+                                    value={tagFormData.email}
+                                    onChange={handleFormChange}
+                                    margin="normal"
+                                    size="small"
+                                    required
+                                    error={!isValidEmail(tagFormData.email) && tagFormData.email !== ''}
+                                    helperText={!isValidEmail(tagFormData.email) && tagFormData.email !== '' ? "Valid email is required" : ""}
+                                />
+                            </Box>
+
+                            <Alert severity="warning" sx={{ mt: 3 }}>
+                                This will mark this locate as "Excavator Priority" and require a call to be made.
+                            </Alert>
+                        </Box>
+                    )}
                 </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 3 }}>
-                    <OutlineButton onClick={() => setOpenDeleteDialog(false)}>
+                <DialogActions>
+                    <OutlineButton onClick={() => setOpenTagDialog(false)}>
                         Cancel
                     </OutlineButton>
                     <Button
                         variant="contained"
                         sx={{
-                            background: `linear-gradient(135deg, ${RED_COLOR}, ${RED_DARK})`,
-                            color: 'white',
-                            fontWeight: 600,
-                            '&:hover': {
-                                background: `linear-gradient(135deg, ${RED_DARK}, #b91c1c)`,
-                                boxShadow: `0 4px 12px ${alpha(RED_COLOR, 0.4)}`,
-                            },
-                            boxShadow: `0 2px 8px ${alpha(RED_COLOR, 0.3)}`,
+                            bgcolor: PURPLE_COLOR,
+                            '&:hover': { bgcolor: '#7c3aed' },
                         }}
-                        onClick={handleDeleteConfirm}
-                        disabled={deleteLocateMutation.isPending}
-                        startIcon={deleteLocateMutation.isPending ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+                        startIcon={<LocalOfferIcon />}
+                        onClick={handleConfirmIndividualTag}
+                        disabled={tagIndividualLocateMutation.isPending || !tagFormData.name.trim() || !isValidEmail(tagFormData.email)}
                     >
-                        {deleteLocateMutation.isPending ? 'Deleting...' : 'Delete Locate'}
+                        {tagIndividualLocateMutation.isPending ? 'Tagging...' : 'Add Manual Tag'}
                     </Button>
                 </DialogActions>
             </Dialog>
 
-            {/* Snackbar for notifications */}
+            {/* Bulk Remove Confirmation Dialogs */}
+            <Dialog open={openRemoveConfirmDialog} onClose={() => setOpenRemoveConfirmDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ color: RED_COLOR, fontWeight: 600 }}>
+                    Confirm Removal
+                </DialogTitle>
+                <DialogContent dividers>
+                    <Typography>
+                        You are about to permanently remove {removeCheckedLocates.size} complete locate(s).
+                    </Typography>
+                    <Alert severity="warning" sx={{ mt: 2 }}>
+                        This action cannot be undone.
+                    </Alert>
+                </DialogContent>
+                <DialogActions>
+                    <OutlineButton onClick={() => setOpenRemoveConfirmDialog(false)}>
+                        Cancel
+                    </OutlineButton>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        onClick={handleConfirmRemove}
+                        disabled={deleteLocateMutation.isPending}
+                    >
+                        {deleteLocateMutation.isPending ? 'Removing...' : 'Remove Permanently'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog open={openRemoveExcavatorConfirmDialog} onClose={() => setOpenRemoveExcavatorConfirmDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ color: RED_COLOR, fontWeight: 600 }}>
+                    Confirm Removal
+                </DialogTitle>
+                <DialogContent dividers>
+                    <Typography>
+                        You are about to permanently remove {removeCheckedExcavatorLocates.size} excavator locate(s).
+                    </Typography>
+                    <Alert severity="warning" sx={{ mt: 2 }}>
+                        This action cannot be undone.
+                    </Alert>
+                </DialogContent>
+                <DialogActions>
+                    <OutlineButton onClick={() => setOpenRemoveExcavatorConfirmDialog(false)}>
+                        Cancel
+                    </OutlineButton>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        onClick={handleConfirmExcavatorRemove}
+                        disabled={deleteExcavatorLocateMutation.isPending}
+                    >
+                        {deleteExcavatorLocateMutation.isPending ? 'Removing...' : 'Remove Permanently'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog open={openRemoveInProgressConfirmDialog} onClose={() => setOpenRemoveInProgressConfirmDialog(false)} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ color: RED_COLOR, fontWeight: 600 }}>
+                    Confirm Removal
+                </DialogTitle>
+                <DialogContent dividers>
+                    <Typography>
+                        You are about to permanently remove {removeCheckedInProgressLocates.size} in progress locate(s).
+                    </Typography>
+                    <Alert severity="warning" sx={{ mt: 2 }}>
+                        This action cannot be undone. Timer will be stopped.
+                    </Alert>
+                </DialogContent>
+                <DialogActions>
+                    <OutlineButton onClick={() => setOpenRemoveInProgressConfirmDialog(false)}>
+                        Cancel
+                    </OutlineButton>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        onClick={handleConfirmInProgressRemove}
+                        disabled={deleteInProgressLocateMutation.isPending}
+                    >
+                        {deleteInProgressLocateMutation.isPending ? 'Removing...' : 'Remove Permanently'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Snackbar */}
             <Snackbar
                 open={snackbar.open}
                 autoHideDuration={6000}
-                onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             >
                 <Alert
-                    onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
                     severity={snackbar.severity}
                     variant="filled"
-                    sx={{
-                        width: '100%',
-                        borderRadius: 2,
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                    }}
+                    onClose={() => setSnackbar({ ...snackbar, open: false })}
                 >
                     {snackbar.message}
                 </Alert>
