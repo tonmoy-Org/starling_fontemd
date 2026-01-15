@@ -273,6 +273,11 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
             isExpandable: true,
             items: [
                 {
+                    text: 'Lookup',
+                    icon: <Search size={18} />,
+                    path: 'https://dashboard.sterlingsepticandplumbing.com/lookup',
+                },
+                {
                     text: 'Training',
                     icon: <GraduationCap size={18} />,
                     path: '/super-admin-dashboard/training',
@@ -286,12 +291,7 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
                     text: 'Library',
                     icon: <LibraryBig size={18} />,
                     path: '/super-admin-dashboard/library',
-                },
-                {
-                    text: 'Lookup',
-                    icon: <Search size={18} />,
-                    path: '/super-admin-dashboard/lookup',
-                },
+                }
             ],
         },
     ];

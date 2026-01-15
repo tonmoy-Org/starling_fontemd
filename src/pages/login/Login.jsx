@@ -9,11 +9,6 @@ import {
   Eye,
   EyeOff,
   LogIn,
-  Building,
-  Shield,
-  User,
-  Key,
-  HelpCircle,
 } from 'lucide-react';
 import {
   Box,
@@ -31,7 +26,7 @@ import {
 } from '@mui/material';
 import GradientButton from '../../components/ui/GradientButton';
 import StyledTextField from '../../components/ui/StyledTextField';
-import OutlineButton from '../../components/ui/OutlineButton';
+import logo from '../../public/logo.png'
 
 // Define color constants (same as other components)
 const TEXT_COLOR = '#0F1115';
@@ -138,7 +133,8 @@ export const Login = () => {
             top: 0,
             left: 0,
             right: 0,
-            height: '4px',          }
+            height: '4px',
+          }
         }}
       >
         {/* Background decorative elements */}
@@ -181,16 +177,18 @@ export const Login = () => {
           >
             {/* Form Header */}
             <Box sx={{ mb: 3, textAlign: 'center' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, mb: 1 }}>
-                <Typography
+              {/* Logo */}
+              <Box sx={{ mb: 0.5, display: 'flex', justifyContent: 'center' }}>
+                <Box
+                  component="img"
+                  src={logo}
+                  alt="Sterling Septic & Plumbing Logo"
                   sx={{
-                    fontSize: '1.25rem',
-                    color: TEXT_COLOR,
-                    fontWeight: 600,
+                    height: 48,
+                    width: 'auto',
+                    objectFit: 'contain',
                   }}
-                >
-                  Sterling Septic & Plumbing
-                </Typography>
+                />
               </Box>
               <Typography
                 sx={{

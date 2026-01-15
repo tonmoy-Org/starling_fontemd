@@ -408,8 +408,8 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
   const getDashboardBasePath = () => {
     const currentPath = location.pathname;
 
-    if (currentPath.startsWith('/superadmin-dashboard')) {
-      return '/superadmin-dashboard';
+    if (currentPath.startsWith('/super-admin-dashboard')) {
+      return '/super-admin-dashboard';
     } else if (currentPath.startsWith('/manager-dashboard')) {
       return '/manager-dashboard';
     } else if (currentPath.startsWith('/tech-dashboard')) {
@@ -417,8 +417,8 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
     }
 
     switch (userRole?.toUpperCase()) {
-      case 'SUPERADMIN':
-        return '/superadmin-dashboard';
+      case 'SUPER-ADMIN':
+        return '/super-admin-dashboard';
       case 'MANAGER':
         return '/manager-dashboard';
       case 'TECH':
@@ -734,6 +734,7 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
   const [hoverTimeout, setHoverTimeout] = React.useState(null);
 
   const isItemActive = (path) => {
+    if (!path) return false;
     const currentPath = location.pathname;
     if (currentPath === path) return true;
     if (path !== '/superadmin-dashboard' && path !== '/manager-dashboard' && path !== '/tech-dashboard' && currentPath.startsWith(path + '/')) {
@@ -751,7 +752,7 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
   const isActive = isItemActive(item.path);
 
   const handleMouseEnter = (event) => {
-    if (!isDrawerOpen && !isMobile && (item.isExpandable || item.subItems?.length > 0)) {
+    if (!isDrawerOpen && !isMobile) {
       clearTimeout(hoverTimeout);
       setHoverMenuAnchor(event.currentTarget);
     }
@@ -913,6 +914,7 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
           maxWidth: 250,
         }}
       >
+        {/* Main item */}
         <HoverMenuItem
           onClick={handleItemClick}
           className={isActive ? 'active' : ''}
@@ -925,25 +927,63 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
           <span>{item.text}</span>
         </HoverMenuItem>
         
+        {/* Sub-items */}
         {hasSubItems && item.subItems.map((subItem, index) => {
           const isSubItemActive = isItemActive(subItem.path);
+          const hasNestedSubItems = subItem.subItems && subItem.subItems.length > 0;
+          
           return (
-            <HoverMenuItem
-              key={index}
-              onClick={() => {
-                if (subItem.path) {
-                  handleNavigation(subItem.path);
-                }
-                setHoverMenuAnchor(null);
-              }}
-              className={isSubItemActive ? 'active' : ''}
-              sx={{
-                pl: 3,
-              }}
-            >
-              {React.cloneElement(subItem.icon, { size: 14, color: isSubItemActive ? '#ffffff' : alpha('#ffffff', 0.85) })}
-              <span>{subItem.text}</span>
-            </HoverMenuItem>
+            <React.Fragment key={index}>
+              {/* Sub-item with its own navigation */}
+              <HoverMenuItem
+                onClick={() => {
+                  if (subItem.path) {
+                    handleNavigation(subItem.path);
+                  } else if (subItem.onClick) {
+                    subItem.onClick();
+                  }
+                  setHoverMenuAnchor(null);
+                }}
+                className={isSubItemActive ? 'active' : ''}
+                sx={{
+                  pl: 3,
+                }}
+              >
+                {subItem.icon && React.cloneElement(subItem.icon, { 
+                  size: 14, 
+                  color: isSubItemActive ? '#ffffff' : alpha('#ffffff', 0.85) 
+                })}
+                <span>{subItem.text}</span>
+              </HoverMenuItem>
+              
+              {/* Nested sub-items */}
+              {hasNestedSubItems && subItem.subItems.map((nestedItem, nestedIndex) => {
+                const isNestedItemActive = isItemActive(nestedItem.path);
+                return (
+                  <HoverMenuItem
+                    key={`${index}-${nestedIndex}`}
+                    onClick={() => {
+                      if (nestedItem.path) {
+                        handleNavigation(nestedItem.path);
+                      } else if (nestedItem.onClick) {
+                        nestedItem.onClick();
+                      }
+                      setHoverMenuAnchor(null);
+                    }}
+                    className={isNestedItemActive ? 'active' : ''}
+                    sx={{
+                      pl: 5,
+                    }}
+                  >
+                    {nestedItem.icon && React.cloneElement(nestedItem.icon, { 
+                      size: 12, 
+                      color: isNestedItemActive ? '#ffffff' : alpha('#ffffff', 0.85) 
+                    })}
+                    <span style={{ fontSize: '0.75rem' }}>{nestedItem.text}</span>
+                  </HoverMenuItem>
+                );
+              })}
+            </React.Fragment>
           );
         })}
       </HoverMenu>
@@ -1030,6 +1070,7 @@ export default function DashboardLayout({ children, title, menuItems }) {
   const userRole = getUserRole();
 
   const isRouteActive = (path) => {
+    if (!path) return false;
     const currentPath = location.pathname;
 
     if (currentPath === path) return true;
