@@ -2752,7 +2752,7 @@ const LocateTable = ({
                                                                 display: 'block'
                                                             }}
                                                         >
-                                                            Completion Date: 
+                                                            Work order will commence: 
                                                             <Typography
                                                                 variant="caption"
                                                                 sx={{
