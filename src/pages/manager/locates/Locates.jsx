@@ -2686,7 +2686,7 @@ const LocateTable = ({
                                                         display: 'block'
                                                     }}
                                                 >
-                                                    Target Work Date:
+                                                    Work order was created: 
                                                     <Typography
                                                         variant="caption"
                                                         sx={{
@@ -2697,6 +2697,30 @@ const LocateTable = ({
                                                         }}
                                                     >
                                                         {item.targetWorkDate}
+                                                    </Typography>
+                                                </Typography>
+                                            </Box>
+                                            <Box>
+                                                <Typography
+                                                    variant="caption"
+                                                    sx={{
+                                                        color: GRAY_COLOR,
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: 400,
+                                                        display: 'block'
+                                                    }}
+                                                >
+                                                    Work order was created: 
+                                                    <Typography
+                                                        variant="caption"
+                                                        sx={{
+                                                            color: item.targetWorkDate === 'ASAP' ? RED_COLOR : PURPLE_COLOR,
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: 500,
+                                                            ml: 1,
+                                                        }}
+                                                    >
+                                                        {item.completion_date ? item.completion_date : '-'}
                                                     </Typography>
                                                 </Typography>
                                             </Box>
