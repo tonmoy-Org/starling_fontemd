@@ -2,35 +2,41 @@ import React, { useState } from 'react';
 import {
     LayoutDashboard,
     Users,
-    ClipboardList,
-    BarChart3,
-    Briefcase,
-    Truck,
-    ListChecks,
+    MapPin,
     FileText,
-    GraduationCap,
-    LibraryBig,
+    Bell,
+    BellRing,
+    ClipboardList,
+    History,
+    Database,
+    User,
+    BarChart3,
+    AlertTriangle,
+    ClipboardCheck,
+    Activity,
     ChevronDown,
     ChevronUp,
-    Database,
+    Briefcase,
+    Truck,
+    Map,
+    ListChecks,
     SignalHigh,
-    Wrench,
-    Package,
-    Activity,
-    ClipboardCheck,
+    GraduationCap,
+    LibraryBig,
     Search,
-    Map as MapIcon,
+    // Additional icons from manager menu
     Settings,
+    Wrench,
     Calendar,
     Quote,
     Target,
-    FileBarChart as FileBarChartIcon,
+    Package,
     Shield,
     Award,
     FileEdit,
     CheckSquare,
-    MapPin as MapPinIcon,
-    Clipboard,
+    MapIcon,
+    MapPinIcon,
 } from 'lucide-react';
 import { TollOutlined } from '@mui/icons-material';
 
@@ -45,10 +51,7 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
         'assets-subsection': false,
         'reports-subsection': false,
         'forms-subsection': false,
-        'training-subsection': false,
-        'tasks-subsection': false,
-        'library-subsection': false,
-        'lookup-subsection': false,
+        'health-reports': false,
     });
 
     const toggleSection = (sectionId) => {
@@ -201,8 +204,26 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
                     subItems: [
                         {
                             text: 'Health Dept Reports',
-                            icon: <FileBarChartIcon size={16} />,
-                            path: '/manager-dashboard/health-dept-reports',
+                            icon: <AlertTriangle size={16} />,
+                            isExpandable: true,
+                            sectionId: 'health-reports',
+                            subItems: [
+                                {
+                                    text: 'RME Reports',
+                                    icon: <ClipboardCheck size={14} />,
+                                    path: '/manager-dashboard/health-department-report-tracking/rme',
+                                },
+                                {
+                                    text: 'RSS Reports',
+                                    icon: <Activity size={14} />,
+                                    path: '/manager-dashboard/health-department-report-tracking/rss',
+                                },
+                                {
+                                    text: 'TOS Reports',
+                                    icon: <BarChart3 size={14} />,
+                                    path: '/manager-dashboard/health-department-report-tracking/tos',
+                                },
+                            ],
                         },
                         {
                             text: 'Risk Management',
@@ -249,25 +270,25 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
             isExpandable: true,
             items: [
                 {
+                    text: 'Lookup',
+                    icon: <Search size={18} />,
+                    path: 'https://dashboard.sterlingsepticandplumbing.com/lookup',
+                },
+                {
                     text: 'Training',
                     icon: <GraduationCap size={18} />,
                     path: '/manager-dashboard/training',
                 },
                 {
                     text: 'Tasks',
-                    icon: <Clipboard size={18} />,
+                    icon: <ClipboardList size={18} />,
                     path: '/manager-dashboard/tasks',
                 },
                 {
                     text: 'Library',
                     icon: <LibraryBig size={18} />,
                     path: '/manager-dashboard/library',
-                },
-                {
-                    text: 'Lookup',
-                    icon: <Search size={18} />,
-                    path: '/manager-dashboard/lookup',
-                },
+                }
             ],
         },
     ];
@@ -276,6 +297,28 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
     const processedMenuItems = menuItems.map(section => {
         const processedItems = section.items.map(item => {
             if (item.isExpandable) {
+                // Process nested expandable items (like health reports)
+                const processedSubItems = item.subItems?.map(subItem => {
+                    if (subItem.isExpandable) {
+                        return {
+                            ...subItem,
+                            onClick: () => toggleSection(subItem.sectionId),
+                            expanded: expandedSections[subItem.sectionId] || false,
+                            expandIcon: expandedSections[subItem.sectionId]
+                                ? <ChevronUp size={14} />
+                                : <ChevronDown size={14} />,
+                            subItems: subItem.subItems?.map(nestedSubItem => ({
+                                ...nestedSubItem,
+                                onClick: () => onMenuItemClick(nestedSubItem.path),
+                            })) || [],
+                        };
+                    }
+                    return {
+                        ...subItem,
+                        onClick: () => onMenuItemClick(subItem.path),
+                    };
+                });
+
                 return {
                     ...item,
                     onClick: () => toggleSection(item.sectionId),
@@ -283,10 +326,7 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
                     expandIcon: expandedSections[item.sectionId]
                         ? <ChevronUp size={16} />
                         : <ChevronDown size={16} />,
-                    subItems: item.subItems?.map(subItem => ({
-                        ...subItem,
-                        onClick: () => onMenuItemClick(subItem.path),
-                    })) || [],
+                    subItems: processedSubItems || [],
                 };
             }
 

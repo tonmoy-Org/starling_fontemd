@@ -563,16 +563,25 @@ const RMEReports = () => {
         if (isChecked) {
             newSet.add(id);
             newLocalChanges.add(id);
+        } else {
+            newSet.delete(id);
+            newLocalChanges.add(id);
+
+            // Clear Locked and Wait To Lock if Tech Report Submitted is unchecked
+            const lockedSet = new Set(lockedAction);
+            lockedSet.delete(id);
+            setLockedAction(lockedSet);
+
             const waitToLockSet = new Set(waitToLockAction);
             waitToLockSet.delete(id);
             setWaitToLockAction(waitToLockSet);
 
-            const deleteSet = new Set(deleteAction);
-            deleteSet.delete(id);
-            setDeleteAction(deleteSet);
-        } else {
-            newSet.delete(id);
-            newLocalChanges.add(id);
+            // Clear wait to lock details
+            if (waitToLockSet.has(id)) {
+                const newDetails = { ...waitToLockDetails };
+                delete newDetails[id];
+                setWaitToLockDetails(newDetails);
+            }
         }
 
         setTechReportSubmitted(newSet);
@@ -606,7 +615,7 @@ const RMEReports = () => {
         } else {
             newSet.add(id);
             const techReportSet = new Set(techReportSubmitted);
-            techReportSet.delete(id);
+            techReportSet.add(id);
             setTechReportSubmitted(techReportSet);
 
             const lockedSet = new Set(lockedAction);
@@ -642,6 +651,13 @@ const RMEReports = () => {
             const waitToLockSet = new Set(waitToLockAction);
             waitToLockSet.delete(id);
             setWaitToLockAction(waitToLockSet);
+
+            // Clear wait to lock details
+            if (waitToLockSet.has(id)) {
+                const newDetails = { ...waitToLockDetails };
+                delete newDetails[id];
+                setWaitToLockDetails(newDetails);
+            }
         }
         setDeleteAction(newSet);
     };
@@ -1155,6 +1171,11 @@ const RMEReports = () => {
                     waitToLockDetails={waitToLockDetails}
                     onWaitToLockReasonChange={handleWaitToLockReasonChange}
                     onWaitToLockNotesChange={handleWaitToLockNotesChange}
+                    onSaveStage1Changes={handleSaveStage1Changes}
+                    lockedActionSize={lockedAction.size}
+                    waitToLockActionSize={waitToLockAction.size}
+                    deleteActionSize={deleteAction.size}
+                    localTechReportChangesSize={localTechReportChanges.size}
                     color={BLUE_COLOR}
                     totalCount={filteredUnverifiedReports.length}
                     page={pageUnverified}
@@ -2290,6 +2311,11 @@ const UnverifiedTable = ({
     waitToLockDetails,
     onWaitToLockReasonChange,
     onWaitToLockNotesChange,
+    onSaveStage1Changes,
+    lockedActionSize,
+    waitToLockActionSize,
+    deleteActionSize,
+    localTechReportChangesSize,
     color,
     totalCount,
     page,
@@ -2508,22 +2534,31 @@ const UnverifiedTable = ({
                                                         size="small"
                                                         checked={isLocked}
                                                         onChange={() => onLockedToggle(item.id)}
-                                                        disabled={isWaitToLock || isDelete}
+                                                        disabled={!isTechReportSubmitted || isWaitToLock || isDelete}
                                                         sx={{
                                                             padding: '6px',
                                                             color: isTechReportSubmitted ? 'inherit' : alpha(TEXT_COLOR, 0.3),
+                                                            '&.Mui-disabled': {
+                                                                opacity: 0.5,
+                                                            }
                                                         }}
                                                     />
                                                 </Tooltip>
                                             </TableCell>
                                             <TableCell align="center" sx={{ py: 1.5 }}>
-                                                <Tooltip title="Wait to Lock - Requires Save Changes">
+                                                <Tooltip title="Wait to Lock - Requires Save Changes and Tech Report Submitted must be checked">
                                                     <Checkbox
                                                         size="small"
                                                         checked={isWaitToLock}
                                                         onChange={() => onWaitToLockToggle(item.id)}
-                                                        disabled={isLocked || isDelete}
-                                                        sx={{ padding: '6px' }}
+                                                        disabled={!isTechReportSubmitted || isLocked || isDelete}
+                                                        sx={{
+                                                            padding: '6px',
+                                                            color: isTechReportSubmitted ? 'inherit' : alpha(TEXT_COLOR, 0.3),
+                                                            '&.Mui-disabled': {
+                                                                opacity: 0.5,
+                                                            }
+                                                        }}
                                                     />
                                                 </Tooltip>
                                             </TableCell>
@@ -2574,6 +2609,30 @@ const UnverifiedTable = ({
                                                                 placeholder="Enter specific details about why the RME will not be locked today..."
                                                                 sx={{ flex: 1 }}
                                                             />
+                                                            <Button
+                                                                variant="contained"
+                                                                color="warning"
+                                                                size="small"
+                                                                onClick={onSaveStage1Changes}
+                                                                disabled={
+                                                                    lockedActionSize === 0 &&
+                                                                    waitToLockActionSize === 0 &&
+                                                                    deleteActionSize === 0 &&
+                                                                    localTechReportChangesSize === 0
+                                                                }
+                                                                startIcon={<Save size={14} />}
+                                                                sx={{
+                                                                    textTransform: 'none',
+                                                                    fontSize: '0.75rem',
+                                                                    height: '36px',
+                                                                    bgcolor: ORANGE_COLOR,
+                                                                    '&:hover': {
+                                                                        bgcolor: alpha(ORANGE_COLOR, 0.9),
+                                                                    },
+                                                                }}
+                                                            >
+                                                                Save Changes
+                                                            </Button>
                                                         </Box>
                                                     </Box>
                                                 </TableCell>
@@ -2966,6 +3025,7 @@ const FinalizedTable = ({
                             />
                         </TableCell>
                         <TableCell>Status</TableCell>
+                        <TableCell>Address</TableCell>
                         <TableCell>Date</TableCell>
                         <TableCell>By Manager</TableCell>
                     </TableRow>
@@ -2973,7 +3033,7 @@ const FinalizedTable = ({
                 <TableBody>
                     {items.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                            <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                                 <Box sx={{
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -3035,6 +3095,16 @@ const FinalizedTable = ({
                                                 fontSize: '0.75rem',
                                             }}
                                         />
+                                    </TableCell>
+                                    <TableCell sx={{ py: 1.5 }}>
+                                        <Box>
+                                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                                {item.street}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{ color: GRAY_COLOR }}>
+                                                {item.city}, {item.state} {item.zip}
+                                            </Typography>
+                                        </Box>
                                     </TableCell>
                                     <TableCell sx={{ py: 1.5 }}>
                                         <Typography variant="body2" sx={{ fontWeight: 500 }}>

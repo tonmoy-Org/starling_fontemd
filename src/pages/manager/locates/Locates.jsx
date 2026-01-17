@@ -518,7 +518,7 @@ const Locates = () => {
 
                     // Get scheduled date from scheduled_date field
                     const scheduledDate = extractScheduledDate(wo.scheduled_date);
-                    const targetWorkDate = scheduledDate ? formatMonthDay(scheduledDate) : 'ASAP';
+                    const targetWorkDate = scheduledDate ? formatDateOnly(scheduledDate) : 'ASAP';
 
                     // Format completion date properly
                     const formattedCompletionDate = wo.completion_date
@@ -559,7 +559,7 @@ const Locates = () => {
                         locateCalledInDate: wo.called_at || '',
                         clearToDigDate: wo.completion_date || '',
                         targetWorkDate: targetWorkDate,
-                        scheduledDateRaw: wo.scheduled_date || '',
+                        scheduledDateRaw: wo.scheduled_date || 'ASAP',
                         actualCompletionDate: wo.completion_date || '', // Store actual completion date
                     });
                 });
@@ -927,7 +927,7 @@ const Locates = () => {
             {/* UPDATED SECTION - Now shows all pending work orders, not just excavator */}
             <Section
                 title="Pending Locates"
-                color={ORANGE_COLOR}
+                color={BLUE_COLOR}  // Changed from ORANGE to BLUE
                 count={allPending.length}
                 selectedCount={selectedPending.size}
                 onDelete={() => confirmSoftDelete(selectedPending, 'Pending Locates')}
@@ -974,7 +974,7 @@ const Locates = () => {
                     onToggleSelect={(id) => toggleSelection(setSelectedPending, id)}
                     onToggleAll={() => setSelectedPending(toggleAllSelection(allPending, pendingPageItems, selectedPending))}
                     onMarkCalled={handleMarkCalled}
-                    color={ORANGE_COLOR}
+                    color={BLUE_COLOR}
                     showCallAction
                     totalCount={allPending.length}
                     page={pagePending}
@@ -982,13 +982,13 @@ const Locates = () => {
                     onPageChange={handleChangePagePending}
                     onRowsPerPageChange={handleChangeRowsPerPagePending}
                     markCalledMutation={markCalledMutation}
-                    tableType="pending" // Added table type
+                    tableType="pending"
                 />
             </Section>
 
             <Section
                 title="In Progress"
-                color={BLUE_COLOR}
+                color={ORANGE_COLOR}  // Orange for In Progress
                 count={inProgress.length}
                 selectedCount={selectedInProgress.size}
                 onDelete={() => confirmSoftDelete(selectedInProgress, 'In Progress')}
@@ -1026,7 +1026,7 @@ const Locates = () => {
                     onToggleSelect={(id) => toggleSelection(setSelectedInProgress, id)}
                     onToggleAll={() => setSelectedInProgress(toggleAllSelection(inProgress, inProgressPageItems, selectedInProgress))}
                     onManualComplete={handleManualCompletion}
-                    color={BLUE_COLOR}
+                    color={ORANGE_COLOR}  // Orange for In Progress
                     showTimerColumn
                     showCalledBy
                     showManualCompleteAction={false}
@@ -1037,13 +1037,13 @@ const Locates = () => {
                     onPageChange={handleChangePageInProgress}
                     onRowsPerPageChange={handleChangeRowsPerPageInProgress}
                     completeWorkOrderManuallyMutation={completeWorkOrderManuallyMutation}
-                    tableType="inProgress" // Added table type
+                    tableType="inProgress"
                 />
             </Section>
 
             <Section
                 title="Completed"
-                color={GREEN_COLOR}
+                color={GREEN_COLOR}  // Green for Completed
                 count={completed.length}
                 selectedCount={selectedCompleted.size}
                 onDelete={() => confirmSoftDelete(selectedCompleted, 'Completed')}
@@ -1053,7 +1053,7 @@ const Locates = () => {
                     selected={selectedCompleted}
                     onToggleSelect={(id) => toggleSelection(setSelectedCompleted, id)}
                     onToggleAll={() => setSelectedCompleted(toggleAllSelection(completed, completedPageItems, selectedCompleted))}
-                    color={GREEN_COLOR}
+                    color={GREEN_COLOR}  // Green for Completed
                     showCalledBy
                     showTimerColumn={false}
                     totalCount={completed.length}
@@ -1061,7 +1061,7 @@ const Locates = () => {
                     rowsPerPage={rowsPerPageCompleted}
                     onPageChange={handleChangePageCompleted}
                     onRowsPerPageChange={handleChangeRowsPerPageCompleted}
-                    tableType="completed" // Added table type
+                    tableType="completed"
                 />
             </Section>
 
@@ -2724,58 +2724,6 @@ const LocateTable = ({
                                                             )}
                                                         </Typography>
                                                     </Box>
-
-                                                    {/* 4. Work order will commence */}
-                                                    <Box>
-                                                        <Typography
-                                                            variant="caption"
-                                                            sx={{
-                                                                color: GRAY_COLOR,
-                                                                fontSize: '0.7rem',
-                                                                fontWeight: 400,
-                                                                display: 'block'
-                                                            }}
-                                                        >
-                                                            Work order was created:
-                                                            <Typography
-                                                                variant="caption"
-                                                                sx={{
-                                                                    color: item.targetWorkDate === 'ASAP' ? RED_COLOR : PURPLE_COLOR,
-                                                                    fontSize: '0.75rem',
-                                                                    fontWeight: 500,
-                                                                    ml: 1,
-                                                                }}
-                                                            >
-                                                                {item.targetWorkDate}
-                                                            </Typography>
-                                                        </Typography>
-                                                    </Box>
-
-                                                    {/* 5. Completion Date */}
-                                                    <Box>
-                                                        <Typography
-                                                            variant="caption"
-                                                            sx={{
-                                                                color: GRAY_COLOR,
-                                                                fontSize: '0.7rem',
-                                                                fontWeight: 400,
-                                                                display: 'block'
-                                                            }}
-                                                        >
-                                                            Work order will commence:
-                                                            <Typography
-                                                                variant="caption"
-                                                                sx={{
-                                                                    color: GREEN_COLOR,
-                                                                    fontSize: '0.75rem',
-                                                                    fontWeight: 500,
-                                                                    ml: 1,
-                                                                }}
-                                                            >
-                                                                {item.formattedCompletionDate}
-                                                            </Typography>
-                                                        </Typography>
-                                                    </Box>
                                                 </>
                                             ) : tableType === 'inProgress' ? (
                                                 // Progress table: Show only Called At date
@@ -2807,16 +2755,54 @@ const LocateTable = ({
                                                 // Pending table: Simple view
                                                 <>
                                                     <Box>
-                                                        <Typography
-                                                            variant="caption"
-                                                            sx={{
-                                                                color: item.targetWorkDate === 'ASAP' ? RED_COLOR : PURPLE_COLOR,
-                                                                fontSize: '0.75rem',
-                                                                fontWeight: 500,
-                                                            }}
-                                                        >
-                                                            {item.requestedDate}
-                                                        </Typography>
+                                                        <Box>
+                                                            <Typography
+                                                                variant="caption"
+                                                                sx={{
+                                                                    color: GRAY_COLOR,
+                                                                    fontSize: '0.7rem',
+                                                                    fontWeight: 400,
+                                                                    display: 'block'
+                                                                }}
+                                                            >
+                                                                Triggered Locate:
+                                                                <Typography
+                                                                    variant="caption"
+                                                                    sx={{
+                                                                        color: GREEN_COLOR,
+                                                                        fontSize: '0.75rem',
+                                                                        fontWeight: 500,
+                                                                        ml: 1,
+                                                                    }}
+                                                                >
+                                                                    {formatDate(item.requestedDate)}
+                                                                </Typography>
+                                                            </Typography>
+                                                        </Box>
+                                                        <Box>
+                                                            <Typography
+                                                                variant="caption"
+                                                                sx={{
+                                                                    color: GRAY_COLOR,
+                                                                    fontSize: '0.7rem',
+                                                                    fontWeight: 400,
+                                                                    display: 'block'
+                                                                }}
+                                                            >
+                                                                Target Work Data:
+                                                                <Typography
+                                                                    variant="caption"
+                                                                    sx={{
+                                                                        color: GREEN_COLOR,
+                                                                        fontSize: '0.75rem',
+                                                                        fontWeight: 500,
+                                                                        ml: 1,
+                                                                    }}
+                                                                >
+                                                                    {item.targetWorkDate}
+                                                                </Typography>
+                                                            </Typography>
+                                                        </Box>
                                                     </Box>
                                                 </>
                                             )}

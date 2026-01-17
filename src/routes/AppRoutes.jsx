@@ -83,13 +83,13 @@ export const AppRoutes = () => {
         >
           <Route index element={<ManagerDashboard />} />
           <Route path="profile" element={<ManagerProfile />} />
-          <Route path="technicians" element={<TechUserManagement />} />
+          <Route path="all-technicians" element={<TechUserManagement />} />
           <Route path="locates" element={<Locates />} />
 
           {/* Health Department Reports */}
-          <Route path="health-department-reports/rme" element={<RMEReports />} />
-          <Route path="health-department-reports/rss" element={<RSSReports />} />
-          <Route path="health-department-reports/tos" element={<TOSReports />} />
+          <Route path="health-department-report-tracking/rme" element={<RMEReports />} />
+          <Route path="health-department-report-tracking/rss" element={<RSSReports />} />
+          <Route path="health-department-report-tracking/tos" element={<TOSReports />} />
         </Route>
 
         {/* Tech Routes */}

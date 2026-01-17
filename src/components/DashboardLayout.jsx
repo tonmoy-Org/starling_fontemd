@@ -65,6 +65,7 @@ import {
   Camera,
   ShieldCheck,
   Briefcase,
+  GraduationCap,
 } from 'lucide-react';
 
 const drawerWidth = 250;
@@ -778,9 +779,16 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
     setHoverTimeout(timeout);
   };
 
-  const handleItemClick = () => {
-    if (item.onClick) {
-      item.onClick();
+  const handleItemClick = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Check if it's an external URL (starts with http:// or https://)
+    if (item.path && (item.path.startsWith('http://') || item.path.startsWith('https://'))) {
+      // Open external link in new tab
+      window.open(item.path, '_blank');
+    } else if (item.onClick) {
+      item.onClick(event);
     } else if (item.path) {
       handleNavigation(item.path);
     }
@@ -789,6 +797,7 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
 
   const mainButton = (
     <ListItemButton
+      component="div"
       onClick={handleItemClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -810,7 +819,10 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
           },
           '& .MuiListItemText-root': {
             m: 0,
+            display: isDrawerOpen ? 'block' : 'none', // Hide text when drawer is closed
           },
+          textDecoration: 'none',
+          cursor: 'pointer',
         },
         isExpandable && {
           pr: 1.25,
@@ -843,19 +855,6 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
             </Typography>
           }
         />
-      )}
-      {!isDrawerOpen && (
-        <Typography sx={{
-          fontSize: '0.55rem',
-          fontWeight: 500,
-          lineHeight: 1.2,
-          mt: 0.25,
-          textAlign: 'center',
-          color: 'inherit',
-          letterSpacing: '0.01em',
-        }}>
-          {item.text.split(' ').map(word => word.charAt(0)).join('')}
-        </Typography>
       )}
       {isExpandable && isDrawerOpen && (
         <ListItemIcon sx={{
@@ -902,7 +901,7 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
 
     const rect = hoverMenuAnchor.getBoundingClientRect();
     const hasSubItems = item.subItems && item.subItems.length > 0;
-    
+
     return (
       <HoverMenu
         onMouseEnter={handleHoverMenuMouseEnter}
@@ -925,22 +924,32 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
         >
           {React.cloneElement(item.icon, { size: 16, color: isActive ? '#ffffff' : alpha('#ffffff', 0.85) })}
           <span>{item.text}</span>
+          {item.path && (item.path.startsWith('http://') || item.path.startsWith('https://')) && (
+            <Box component="span" sx={{ ml: 'auto', fontSize: '0.7rem', opacity: 0.7 }}>
+              ↗
+            </Box>
+          )}
         </HoverMenuItem>
-        
+
         {/* Sub-items */}
         {hasSubItems && item.subItems.map((subItem, index) => {
           const isSubItemActive = isItemActive(subItem.path);
           const hasNestedSubItems = subItem.subItems && subItem.subItems.length > 0;
-          
+          const isSubItemExternal = subItem.path && (subItem.path.startsWith('http://') || subItem.path.startsWith('https://'));
+
           return (
             <React.Fragment key={index}>
               {/* Sub-item with its own navigation */}
               <HoverMenuItem
-                onClick={() => {
-                  if (subItem.path) {
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  if (isSubItemExternal) {
+                    window.open(subItem.path, '_blank');
+                  } else if (subItem.path) {
                     handleNavigation(subItem.path);
                   } else if (subItem.onClick) {
-                    subItem.onClick();
+                    subItem.onClick(event);
                   }
                   setHoverMenuAnchor(null);
                 }}
@@ -949,24 +958,35 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
                   pl: 3,
                 }}
               >
-                {subItem.icon && React.cloneElement(subItem.icon, { 
-                  size: 14, 
-                  color: isSubItemActive ? '#ffffff' : alpha('#ffffff', 0.85) 
+                {subItem.icon && React.cloneElement(subItem.icon, {
+                  size: 14,
+                  color: isSubItemActive ? '#ffffff' : alpha('#ffffff', 0.85)
                 })}
                 <span>{subItem.text}</span>
+                {isSubItemExternal && (
+                  <Box component="span" sx={{ ml: 'auto', fontSize: '0.7rem', opacity: 0.7 }}>
+                    ↗
+                  </Box>
+                )}
               </HoverMenuItem>
-              
+
               {/* Nested sub-items */}
               {hasNestedSubItems && subItem.subItems.map((nestedItem, nestedIndex) => {
                 const isNestedItemActive = isItemActive(nestedItem.path);
+                const isNestedItemExternal = nestedItem.path && (nestedItem.path.startsWith('http://') || nestedItem.path.startsWith('https://'));
+
                 return (
                   <HoverMenuItem
                     key={`${index}-${nestedIndex}`}
-                    onClick={() => {
-                      if (nestedItem.path) {
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (isNestedItemExternal) {
+                        window.open(nestedItem.path, '_blank');
+                      } else if (nestedItem.path) {
                         handleNavigation(nestedItem.path);
                       } else if (nestedItem.onClick) {
-                        nestedItem.onClick();
+                        nestedItem.onClick(event);
                       }
                       setHoverMenuAnchor(null);
                     }}
@@ -975,11 +995,16 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
                       pl: 5,
                     }}
                   >
-                    {nestedItem.icon && React.cloneElement(nestedItem.icon, { 
-                      size: 12, 
-                      color: isNestedItemActive ? '#ffffff' : alpha('#ffffff', 0.85) 
+                    {nestedItem.icon && React.cloneElement(nestedItem.icon, {
+                      size: 12,
+                      color: isNestedItemActive ? '#ffffff' : alpha('#ffffff', 0.85)
                     })}
                     <span style={{ fontSize: '0.75rem' }}>{nestedItem.text}</span>
+                    {isNestedItemExternal && (
+                      <Box component="span" sx={{ ml: 'auto', fontSize: '0.65rem', opacity: 0.7 }}>
+                        ↗
+                      </Box>
+                    )}
                   </HoverMenuItem>
                 );
               })}
@@ -1153,7 +1178,15 @@ export default function DashboardLayout({ children, title, menuItems }) {
 
   const handleNavigation = (path) => {
     if (path) {
-      navigate(path);
+      // Check if it's an external URL (starts with http:// or https://)
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        // Open external link in new tab
+        window.open(path, '_blank');
+      } else {
+        // Internal navigation
+        navigate(path);
+      }
+
       if (isMobile) {
         setOpen(false);
       }
