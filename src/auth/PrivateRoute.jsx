@@ -1,12 +1,13 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
+import CommonLoader from '../components/Loader/CommonLoader';
 
 export const PrivateRoute = ({ children, requiredRoles }) => {
   const { isAuthenticated, user, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return <CommonLoader />;
   }
 
   if (!isAuthenticated || !user) {

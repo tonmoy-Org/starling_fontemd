@@ -8,9 +8,9 @@ export const SuperAdminDashboard = () => {
     <Box>
       <Helmet>
         <title>Dashboard | Sterling Septic & Plumbing LLC</title>
-        <meta name="description" content="Technical dashboard" />
+        <meta name="description" content="Supper Admin dashboard" />
       </Helmet>
-      <Typography gutterBottom  sx={{ mb: 4, fontSize: 14 }}>
+      <Typography gutterBottom sx={{ mb: 4, fontSize: 14 }}>
         Welcome to Sterling Septic & Plumbing LLC. This is a web application that allows you to look up customer information.
       </Typography>
     </Box>

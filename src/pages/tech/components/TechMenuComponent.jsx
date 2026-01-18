@@ -3,21 +3,12 @@ import {
     LayoutDashboard,
     ClipboardList,
     Calendar,
-    Briefcase,
-    PlusCircle,
-    History,
     FileText,
     Shield,
     BookOpen,
-    User,
     CheckCircle,
-    TrendingUp,
-    // Additional icons
     AlertTriangle,
     FileCheck,
-    Activity,
-    Book,
-    ChevronRight,
 } from 'lucide-react';
 
 export const TechMenuComponent = ({ onMenuItemClick }) => {

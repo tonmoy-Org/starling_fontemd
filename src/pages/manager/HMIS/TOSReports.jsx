@@ -1,17 +1,17 @@
 import React from 'react';
 import { Box, Typography, Paper } from '@mui/material';
+import { Helmet } from 'react-helmet-async';
 
 const TOSReports = () => {
     return (
         <Box>
-            <Typography variant="h4" gutterBottom>
-                TOS Reports
+            <Helmet>
+                <title>TOS | Sterling Septic & Plumbing LLC</title>
+                <meta name="description" content="Super Admin TOS page" />
+            </Helmet>
+            <Typography gutterBottom sx={{ mb: 4, fontSize: 14 }}>
+                This Page Is Coming Soon....
             </Typography>
-            <Paper sx={{ p: 3 }}>
-                <Typography variant="body1">
-                    This is the TOS Reports page. Here you can view and manage TOS-related health department reports.
-                </Typography>
-            </Paper>
         </Box>
     );
 };

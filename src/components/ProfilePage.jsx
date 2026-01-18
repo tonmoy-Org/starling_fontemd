@@ -45,10 +45,11 @@ import {
     AlertCircle,
     Eye,
     EyeOff,
-    ChevronRight,
     Key,
     RefreshCw,
 } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
+import DashboardLoader from './Loader/DashboardLoader';
 
 // Define color constants
 const TEXT_COLOR = '#0F1115';
@@ -283,15 +284,7 @@ export const ProfilePage = ({ roleLabel }) => {
 
     if (isLoading) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
-                <CircularProgress
-                    sx={{
-                        color: BLUE_COLOR,
-                        width: '32px !important',
-                        height: '32px !important',
-                    }}
-                />
-            </Box>
+            <DashboardLoader />
         );
     }
 
@@ -379,6 +372,10 @@ export const ProfilePage = ({ roleLabel }) => {
 
     return (
         <Box position="relative">
+            <Helmet>
+                <title>Profile | Sterling Septic & Plumbing LLC</title>
+                <meta name="description" content="Profile page" />
+            </Helmet>
             {(updateProfileMutation.isPending || changePasswordMutation.isPending) && (
                 <LinearProgress
                     sx={{

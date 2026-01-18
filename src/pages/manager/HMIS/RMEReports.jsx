@@ -55,6 +55,8 @@ import {
     Edit,
     RotateCcw,
 } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
+import DashboardLoader from '../../../components/Loader/DashboardLoader';
 
 const TEXT_COLOR = '#0F1115';
 const BLUE_COLOR = '#1976d2';
@@ -1046,15 +1048,7 @@ const RMEReports = () => {
     // Loading state
     if (isLoading) {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                <CircularProgress
-                    sx={{
-                        color: BLUE_COLOR,
-                        width: '32px !important',
-                        height: '32px !important',
-                    }}
-                />
-            </Box>
+            <DashboardLoader />
         );
     }
 
@@ -2329,6 +2323,10 @@ const UnverifiedTable = ({
     return (
         <>
             <TableContainer>
+                <Helmet>
+                    <title>RME | Sterling Septic & Plumbing LLC</title>
+                    <meta name="description" content="Super Admin RME page" />
+                </Helmet>
                 <Table size="small">
                     <TableHead>
                         <TableRow sx={{

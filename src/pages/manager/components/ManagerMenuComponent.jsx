@@ -37,6 +37,7 @@ import {
     CheckSquare,
     MapIcon,
     MapPinIcon,
+    TruckIcon,
 } from 'lucide-react';
 import { TollOutlined } from '@mui/icons-material';
 
@@ -186,7 +187,7 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
                     subItems: [
                         {
                             text: 'Vehicles & Tools',
-                            icon: <TollOutlined size={16} />,
+                            icon: <TruckIcon size={16} />,
                             path: '/manager-dashboard/vehicles-tools',
                         },
                         {

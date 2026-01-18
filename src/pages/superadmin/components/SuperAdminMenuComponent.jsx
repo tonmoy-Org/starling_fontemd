@@ -35,6 +35,7 @@ import {
     Award,
     FileEdit,
     CheckSquare,
+    TruckIcon,
 } from 'lucide-react';
 import { TollOutlined } from '@mui/icons-material';
 
@@ -189,7 +190,7 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
                     subItems: [
                         {
                             text: 'Vehicles & Tools',
-                            icon: <TollOutlined size={16} />,
+                            icon: <TruckIcon size={16} />,
                             path: '/super-admin-dashboard/vehicles-tools',
                         },
                         {

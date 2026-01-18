@@ -8,9 +8,11 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
+    TextField,
     Select,
     MenuItem,
     FormControl,
+    InputLabel,
     Table,
     TableBody,
     TableCell,
@@ -41,6 +43,7 @@ import {
     User,
     UserPlus,
     UserCog,
+    Shield,
     ShieldCheck,
     UserCheck,
     UserX,
@@ -48,11 +51,22 @@ import {
     XCircle,
     Edit,
     Trash2,
+    Filter,
+    MoreVertical,
+    AlertCircle,
     Mail,
+    Phone,
+    Calendar,
+    MapPin,
+    Clock,
     ChevronRight,
     ChevronLeft,
     ChevronsLeft,
     ChevronsRight,
+    Eye,
+    EyeOff,
+    Lock,
+    Unlock,
     RefreshCw,
 } from 'lucide-react';
 import DashboardLoader from '../../components/Loader/DashboardLoader';
@@ -67,8 +81,11 @@ const RED_DARK = '#dc2626';
 const GREEN_COLOR = '#10b981';
 const GREEN_DARK = '#059669';
 const GRAY_COLOR = '#6b7280';
+const GRAY_LIGHT = '#f3f4f6';
+const PURPLE_COLOR = '#8b5cf6';
+const ORANGE_COLOR = '#f97316';
 
-export const UserManagement = () => {
+export const TechUser = () => {
     const queryClient = useQueryClient();
     const [openDialog, setOpenDialog] = useState(false);
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -87,14 +104,14 @@ export const UserManagement = () => {
         name: '',
         email: '',
         password: '',
-        role: 'manager',
+        role: 'tech',
         isActive: true,
     });
 
     const { data: users = [], isLoading } = useQuery({
         queryKey: ['users'],
         queryFn: async () => {
-            const response = await axiosInstance.get('/users');
+            const response = await axiosInstance.get('/users/tech');
             return response.data.users || response.data.data || response.data;
         },
     });
@@ -257,7 +274,7 @@ export const UserManagement = () => {
             name: '',
             email: '',
             password: '',
-            role: 'manager',
+            role: 'tech',
             isActive: true,
         });
     };
@@ -291,18 +308,6 @@ export const UserManagement = () => {
 
     const getRoleStyle = (role) => {
         switch (role) {
-            case 'superadmin':
-                return {
-                    backgroundColor: alpha(RED_COLOR, 0.08),
-                    color: RED_DARK,
-                    border: `1px solid ${alpha(RED_COLOR, 0.3)}`,
-                };
-            case 'manager':
-                return {
-                    backgroundColor: alpha(BLUE_COLOR, 0.08),
-                    color: BLUE_DARK,
-                    border: `1px solid ${alpha(BLUE_COLOR, 0.3)}`,
-                };
             case 'tech':
                 return {
                     backgroundColor: alpha(GREEN_COLOR, 0.08),
@@ -500,8 +505,8 @@ export const UserManagement = () => {
     return (
         <Box>
             <Helmet>
-                <title>User Management | Sterling Septic & Plumbing LLC</title>
-                <meta name="description" content="Manage users and their roles" />
+                <title> Tech User Management | Sterling Septic & Plumbing LLC</title>
+                <meta name="description" content="Manage tech users and their roles" />
             </Helmet>
 
             {/* Header */}
@@ -516,7 +521,7 @@ export const UserManagement = () => {
                             letterSpacing: '-0.01em',
                         }}
                     >
-                        User Management
+                        Tech User Management
                     </Typography>
                     <Typography
                         variant="body2"
@@ -575,7 +580,7 @@ export const UserManagement = () => {
                                     fontWeight: 600,
                                 }}
                             >
-                                Users
+                                Tech Users
                             </Typography>
                         </Box>
                         <Chip
@@ -1107,12 +1112,6 @@ export const UserManagement = () => {
                                         },
                                     }}
                                 >
-                                    <MenuItem value="manager" sx={{ fontSize: '0.85rem' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <UserCog size={14} />
-                                            Manager
-                                        </Box>
-                                    </MenuItem>
                                     <MenuItem value="tech" sx={{ fontSize: '0.85rem' }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                             <User size={14} />

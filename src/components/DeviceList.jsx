@@ -12,7 +12,6 @@ import {
     alpha,
     Tooltip,
 } from '@mui/material';
-import { Helmet } from 'react-helmet-async';
 
 // Import Lucide React icons
 import {
@@ -25,8 +24,6 @@ import {
     Globe,
     Cpu,
     ChevronRight,
-    AlertCircle,
-    User,
 } from 'lucide-react';
 
 // Define color constants (same as previous component)
@@ -111,11 +108,6 @@ const DeviceList = ({ devices = [], title = "Active Devices", subtitle = "View a
     if (!devices || devices.length === 0) {
         return (
             <>
-                <Helmet>
-                    <title>Devices | Sterling Septic & Plumbing LLC</title>
-                    <meta name="description" content="View active devices" />
-                </Helmet>
-
                 {/* Header */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                     <Box>
@@ -209,11 +201,6 @@ const DeviceList = ({ devices = [], title = "Active Devices", subtitle = "View a
 
     return (
         <Box>
-            <Helmet>
-                <title>Devices | Sterling Septic & Plumbing LLC</title>
-                <meta name="description" content="View active devices" />
-            </Helmet>
-
             {/* Header */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Box>

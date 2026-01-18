@@ -28,14 +28,7 @@ import {
     Shield,
     CheckCircle,
     XCircle,
-    Filter,
-    MoreVertical,
-    AlertCircle,
     Mail,
-    Phone,
-    Calendar,
-    MapPin,
-    Clock,
     ChevronRight,
     ChevronLeft,
     ChevronsLeft,
@@ -291,7 +284,6 @@ export const TechUserManagement = () => {
                 <title>Tech Users | Sterling Septic & Plumbing LLC</title>
                 <meta name="description" content="View all tech users" />
             </Helmet>
-
             {/* Header */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Box>
