@@ -171,20 +171,29 @@ const parseDashboardAddress = (fullAddress) => {
     };
 };
 
-// Function to extract date from scheduled_date field in Pacific Time
-const extractScheduledDate = (scheduledDateString) => {
-    if (!scheduledDateString) return null;
+// Function to format target work date from scheduledDateRaw in Pacific Time
+const formatTargetWorkDate = (scheduledDateRaw) => {
+    if (!scheduledDateRaw || scheduledDateRaw === 'ASAP') return 'ASAP';
+
     try {
-        // Handle format like "01/13/2026 8:00 AM - 4:30 PM"
-        const datePart = scheduledDateString.split(' ')[0];
-        const [month, day, year] = datePart.split('/');
-        const pacificDate = new Date(year, month - 1, day);
-        return toZonedTime(pacificDate, TIMEZONE);
+        // Example: "01/19/2026 8:00 AM - 5:15 PM"
+        const datePart = scheduledDateRaw.split(' ')[0];
+        if (!datePart) return 'ASAP';
+
+        const [month, day, year] = datePart.split('/').map(Number);
+        if (!month || !day || !year) return 'ASAP';
+
+        // ✅ Create LOCAL date (no UTC, no timezone conversion)
+        const date = new Date(year, month - 1, day);
+
+        // ✅ Just format the date
+        return formatTZ(date, 'MMM dd, yyyy');
     } catch (e) {
-        console.error('Error extracting scheduled date:', e);
-        return null;
+        console.error('Error formatting target work date:', e);
+        return 'ASAP';
     }
 };
+
 
 const Locates = () => {
     const queryClient = useQueryClient();
@@ -524,9 +533,8 @@ const Locates = () => {
                         }
                     }
 
-                    // Get scheduled date from scheduled_date field in Pacific Time
-                    const scheduledDate = extractScheduledDate(wo.scheduled_date);
-                    const targetWorkDate = scheduledDate ? formatTZ(scheduledDate, 'MMM dd, yyyy', { timeZone: TIMEZONE }) : 'ASAP';
+                    // Format target work date from scheduledDateRaw
+                    const targetWorkDate = formatTargetWorkDate(wo.scheduled_date);
 
                     // Format completion date properly in Pacific Time
                     const formattedCompletionDate = wo.completion_date
@@ -566,10 +574,10 @@ const Locates = () => {
                         workflowStatus: wo.workflow_status || 'UNKNOWN',
                         dashboardId: dashboard.id || null,
                         // New fields for dates display in Pacific Time
-                        locateTriggeredDate: triggeredDate, // CHANGED: Use scraped_at
+                        locateTriggeredDate: triggeredDate,
                         locateCalledInDate: wo.called_at || '',
                         clearToDigDate: wo.completion_date || '',
-                        targetWorkDate: targetWorkDate,
+                        targetWorkDate: targetWorkDate, // This will show like "Jan 18, 2026"
                         scheduledDateRaw: wo.scheduled_date || 'ASAP',
                         actualCompletionDate: wo.completion_date || '', // Store actual completion date
                     });
