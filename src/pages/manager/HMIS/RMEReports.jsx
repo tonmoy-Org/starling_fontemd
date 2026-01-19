@@ -36,6 +36,8 @@ import { alpha } from '@mui/material/styles';
 import axiosInstance from '../../../api/axios';
 import { useAuth } from '../../../auth/AuthProvider';
 import { format as formatTZ, toZonedTime } from 'date-fns-tz';
+import pen from '../../../public/icons/Edit.gif';
+import book from '../../../public/icons/report.gif';
 
 import {
     Search,
@@ -336,7 +338,7 @@ const RMEReports = () => {
         staleTime: 30000,
         refetchInterval: 60000,
     });
-
+    console.log(workOrders);
     // Fetch only deleted work orders for history
     const { data: deletedWorkOrders = [] } = useQuery({
         queryKey: ['rme-deleted-work-orders'],
@@ -2613,7 +2615,7 @@ const UnverifiedTable = ({
                                                                 },
                                                             }}
                                                         >
-                                                            <img src="/src/public/icons/report.gif" alt="view-report" />
+                                                            <img src={book} alt="view-report" />
                                                         </IconButton>
                                                     </Tooltip>
                                                 ) : (
@@ -2633,7 +2635,7 @@ const UnverifiedTable = ({
                                                                 },
                                                             }}
                                                         >
-                                                            <img src="/src/public/icons/Edit.gif" alt="view-report" />
+                                                            <img src={pen} alt="view-report" />
                                                         </IconButton>
                                                     </Tooltip>
                                                 ) : (
@@ -2982,7 +2984,7 @@ const HoldingTable = ({
                                                         },
                                                     }}
                                                 >
-                                                    <img src="/src/public/icons/report.gif" alt="view-report" />
+                                                    <img src={book} alt="view-report" />
                                                 </IconButton>
                                             </Tooltip>
                                         ) : (
@@ -3002,7 +3004,7 @@ const HoldingTable = ({
                                                         },
                                                     }}
                                                 >
-                                                    <img src="/src/public/icons/Edit.gif" alt="view-report" />
+                                                    <img src={pen} alt="view-report" />
                                                 </IconButton>
                                             </Tooltip>
                                         ) : (
