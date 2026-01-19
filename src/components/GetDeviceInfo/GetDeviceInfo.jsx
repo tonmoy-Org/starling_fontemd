@@ -1,10 +1,13 @@
 import { UAParser } from 'ua-parser-js';
+import { format as formatTZ, toZonedTime } from 'date-fns-tz';
+
+const TIME_ZONE = 'America/Los_Angeles';
 
 const getDeviceInfo = () => {
   const parser = new UAParser();
   const result = parser.getResult();
 
-  // 🔐 Stable device ID per browser
+
   let deviceId = localStorage.getItem('deviceId');
 
   if (!deviceId) {
@@ -13,6 +16,9 @@ const getDeviceInfo = () => {
     localStorage.setItem('deviceId', deviceId);
   }
 
+  const now = new Date();
+  const zonedDate = toZonedTime(now, TIME_ZONE);
+
   return {
     deviceId,
     browser: result.browser.name || 'Unknown',
@@ -20,7 +26,11 @@ const getDeviceInfo = () => {
     os: result.os.name || 'Unknown',
     osVersion: result.os.version || 'Unknown',
     deviceType: result.device.type || 'Desktop',
-    date: new Date(),
+
+    // formatted time in GMT-8
+    date: formatTZ(zonedDate, 'yyyy-MM-dd HH:mm:ssXXX', {
+      timeZone: TIME_ZONE,
+    }),
   };
 };
 

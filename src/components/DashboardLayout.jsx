@@ -721,13 +721,13 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
     if (!path) return false;
     const currentPath = location.pathname;
     if (currentPath === path) return true;
-    if (path !== '/superadmin-dashboard' && path !== '/manager-dashboard' && path !== '/tech-dashboard' && currentPath.startsWith(path + '/')) {
+    if (path !== '/super-admin-dashboard' && path !== '/manager-dashboard' && path !== '/tech-dashboard' && currentPath.startsWith(path + '/')) {
       return true;
     }
     if (path === '/manager-dashboard' && currentPath === '/manager-dashboard') {
       return true;
     }
-    if (path !== '/superadmin-dashboard' && path !== '/manager-dashboard' && path !== '/tech-dashboard' && currentPath === path) {
+    if (path !== '/super-admin-dashboard' && path !== '/manager-dashboard' && path !== '/tech-dashboard' && currentPath === path) {
       return true;
     }
     return false;
@@ -1083,7 +1083,7 @@ export default function DashboardLayout({ children, title, menuItems }) {
 
     if (currentPath === path) return true;
 
-    if (path !== '/superadmin-dashboard' && path !== '/manager-dashboard' && path !== '/tech-dashboard' && currentPath.startsWith(path + '/')) {
+    if (path !== '/super-admin-dashboard' && path !== '/manager-dashboard' && path !== '/tech-dashboard' && currentPath.startsWith(path + '/')) {
       return true;
     }
 
@@ -1091,7 +1091,7 @@ export default function DashboardLayout({ children, title, menuItems }) {
       return true;
     }
 
-    if (path !== '/superadmin-dashboard' && path !== '/manager-dashboard' && path !== '/tech-dashboard' && currentPath === path) {
+    if (path !== '/super-admin-dashboard' && path !== '/manager-dashboard' && path !== '/tech-dashboard' && currentPath === path) {
       return true;
     }
 

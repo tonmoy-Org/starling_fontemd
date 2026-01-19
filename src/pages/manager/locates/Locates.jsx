@@ -31,13 +31,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { alpha } from '@mui/material/styles';
 import axiosInstance from '../../../api/axios';
 import {
-    format,
+    format as formatDateFns,
     addBusinessDays,
     addHours,
     isBefore,
     isWeekend,
     addDays,
 } from 'date-fns';
+import { format as formatTZ, toZonedTime } from 'date-fns-tz';
 import StyledTextField from '../../../components/ui/StyledTextField';
 
 import {
@@ -66,49 +67,50 @@ const ORANGE_COLOR = '#ed6c02';
 const GRAY_COLOR = '#6b7280';
 const PURPLE_COLOR = '#8b5cf6';
 
-const formatDate = (dateString) => {
-    if (!dateString) return '—';
+// Define the timezone
+const TIMEZONE = 'America/Los_Angeles'; // GMT-8 (Pacific Time)
+
+// Helper function to convert date to Pacific Time
+const toPacificTime = (dateString) => {
+    if (!dateString) return null;
     try {
-        return format(new Date(dateString), 'MMM dd, yyyy HH:mm');
+        const date = new Date(dateString);
+        return toZonedTime(date, TIMEZONE);
     } catch (e) {
-        return '—';
+        console.error('Error converting to Pacific Time:', e);
+        return null;
     }
+};
+
+// Updated date formatting functions in Pacific Time
+const formatDate = (dateString) => {
+    const date = toPacificTime(dateString);
+    if (!date) return '—';
+    return formatTZ(date, 'MMM dd, yyyy HH:mm', { timeZone: TIMEZONE });
 };
 
 const formatDateShort = (dateString) => {
-    if (!dateString) return '—';
-    try {
-        return format(new Date(dateString), 'MMM dd, HH:mm');
-    } catch (e) {
-        return '—';
-    }
+    const date = toPacificTime(dateString);
+    if (!date) return '—';
+    return formatTZ(date, 'MMM dd, HH:mm', { timeZone: TIMEZONE });
 };
 
 const formatDateOnly = (dateString) => {
-    if (!dateString) return '—';
-    try {
-        return format(new Date(dateString), 'MMM dd, yyyy');
-    } catch (e) {
-        return '—';
-    }
+    const date = toPacificTime(dateString);
+    if (!date) return '—';
+    return formatTZ(date, 'MMM dd, yyyy', { timeZone: TIMEZONE });
 };
 
 const formatMonthDay = (dateString) => {
-    if (!dateString) return '—';
-    try {
-        return format(new Date(dateString), 'MMM dd');
-    } catch (e) {
-        return '—';
-    }
+    const date = toPacificTime(dateString);
+    if (!date) return '—';
+    return formatTZ(date, 'MMM dd', { timeZone: TIMEZONE });
 };
 
 const formatDateTime = (dateString) => {
-    if (!dateString) return '—';
-    try {
-        return format(new Date(dateString), 'MMM dd, yyyy HH:mm:ss');
-    } catch (e) {
-        return '—';
-    }
+    const date = toPacificTime(dateString);
+    if (!date) return '—';
+    return formatTZ(date, 'MMM dd, yyyy HH:mm:ss', { timeZone: TIMEZONE });
 };
 
 const formatEmergencyCountdown = (remainingMs) => {
@@ -126,8 +128,8 @@ const formatEmergencyCountdown = (remainingMs) => {
 };
 
 const getBusinessDaysRemaining = (endDate) => {
-    const now = new Date();
-    const end = new Date(endDate);
+    const now = toZonedTime(new Date(), TIMEZONE);
+    const end = toZonedTime(endDate, TIMEZONE);
 
     if (now >= end) return { days: 0, expired: true };
 
@@ -169,21 +171,24 @@ const parseDashboardAddress = (fullAddress) => {
     };
 };
 
-// Function to extract date from scheduled_date field
+// Function to extract date from scheduled_date field in Pacific Time
 const extractScheduledDate = (scheduledDateString) => {
     if (!scheduledDateString) return null;
     try {
         // Handle format like "01/13/2026 8:00 AM - 4:30 PM"
         const datePart = scheduledDateString.split(' ')[0];
-        return new Date(datePart);
+        const [month, day, year] = datePart.split('/');
+        const pacificDate = new Date(year, month - 1, day);
+        return toZonedTime(pacificDate, TIMEZONE);
     } catch (e) {
+        console.error('Error extracting scheduled date:', e);
         return null;
     }
 };
 
 const Locates = () => {
     const queryClient = useQueryClient();
-    const [currentTime, setCurrentTime] = useState(new Date());
+    const [currentTime, setCurrentTime] = useState(() => toZonedTime(new Date(), TIMEZONE));
 
     const [selectedPending, setSelectedPending] = useState(new Set());
     const [selectedInProgress, setSelectedInProgress] = useState(new Set());
@@ -226,7 +231,7 @@ const Locates = () => {
 
     useEffect(() => {
         const timer = setInterval(() => {
-            setCurrentTime(new Date());
+            setCurrentTime(toZonedTime(new Date(), TIMEZONE));
         }, 1000);
 
         return () => clearInterval(timer);
@@ -453,14 +458,14 @@ const Locates = () => {
                     const calledByName = wo.called_by || wo.metadata?.updatedBy || '';
                     const calledByEmail = wo.called_by_email || '';
 
-                    // Handle completion date logic
+                    // Handle completion date logic in Pacific Time
                     if (wo.locates_called && wo.called_at && wo.call_type) {
-                        const called = new Date(wo.called_at);
+                        const called = toPacificTime(wo.called_at);
 
                         // Use the actual completion_date from API if available
                         if (wo.completion_date) {
-                            completionDate = new Date(wo.completion_date);
-                        } else {
+                            completionDate = toPacificTime(wo.completion_date);
+                        } else if (called) {
                             // Calculate based on call type if no completion date
                             completionDate = wo.call_type === 'EMERGENCY'
                                 ? addHours(called, 4)
@@ -468,60 +473,62 @@ const Locates = () => {
                         }
 
                         const now = currentTime;
-                        isExpired = isBefore(completionDate, now);
+                        if (completionDate) {
+                            isExpired = isBefore(completionDate, now);
 
-                        if (!isExpired) {
-                            if (wo.call_type === 'EMERGENCY') {
-                                const totalMs = 4 * 60 * 60 * 1000;
-                                const elapsedMs = now.getTime() - called.getTime();
-                                const remainingMs = Math.max(0, totalMs - elapsedMs);
+                            if (!isExpired) {
+                                if (wo.call_type === 'EMERGENCY') {
+                                    const totalMs = 4 * 60 * 60 * 1000;
+                                    const elapsedMs = now.getTime() - called.getTime();
+                                    const remainingMs = Math.max(0, totalMs - elapsedMs);
 
-                                timeRemainingText = formatEmergencyCountdown(remainingMs);
-                                timeRemainingDetail = `Expires at: ${format(completionDate, 'MMM dd, HH:mm:ss')}`;
+                                    timeRemainingText = formatEmergencyCountdown(remainingMs);
+                                    timeRemainingDetail = `Expires at: ${formatTZ(completionDate, 'MMM dd, HH:mm:ss', { timeZone: TIMEZONE })}`;
 
-                                if (remainingMs <= 30 * 60 * 1000) {
-                                    timeRemainingColor = RED_COLOR;
-                                } else if (remainingMs <= 60 * 60 * 1000) {
-                                    timeRemainingColor = ORANGE_COLOR;
+                                    if (remainingMs <= 30 * 60 * 1000) {
+                                        timeRemainingColor = RED_COLOR;
+                                    } else if (remainingMs <= 60 * 60 * 1000) {
+                                        timeRemainingColor = ORANGE_COLOR;
+                                    } else {
+                                        timeRemainingColor = BLUE_COLOR;
+                                    }
                                 } else {
-                                    timeRemainingColor = BLUE_COLOR;
+                                    const businessInfo = getBusinessDaysRemaining(completionDate);
+                                    const now = currentTime;
+                                    const isBusinessDay = !isWeekend(now);
+
+                                    if (businessInfo.days === 0 && isBusinessDay) {
+                                        const businessHoursRemaining = Math.max(0, 17 - now.getHours());
+                                        timeRemainingText = `${businessHoursRemaining}h remaining today`;
+                                    } else if (businessInfo.days === 1) {
+                                        timeRemainingText = `1 business day`;
+                                    } else {
+                                        timeRemainingText = `${businessInfo.days} business days`;
+                                    }
+
+                                    timeRemainingDetail = `Expires: ${formatTZ(completionDate, 'MMM dd, yyyy', { timeZone: TIMEZONE })}`;
+
+                                    if (businessInfo.days === 0) {
+                                        timeRemainingColor = ORANGE_COLOR;
+                                    } else if (businessInfo.days <= 1) {
+                                        timeRemainingColor = ORANGE_COLOR;
+                                    } else {
+                                        timeRemainingColor = BLUE_COLOR;
+                                    }
                                 }
                             } else {
-                                const businessInfo = getBusinessDaysRemaining(completionDate);
-                                const now = new Date();
-                                const isBusinessDay = !isWeekend(now);
-
-                                if (businessInfo.days === 0 && isBusinessDay) {
-                                    const businessHoursRemaining = Math.max(0, 17 - now.getHours());
-                                    timeRemainingText = `${businessHoursRemaining}h remaining today`;
-                                } else if (businessInfo.days === 1) {
-                                    timeRemainingText = `1 business day`;
-                                } else {
-                                    timeRemainingText = `${businessInfo.days} business days`;
-                                }
-
-                                timeRemainingDetail = `Expires: ${format(completionDate, 'MMM dd, yyyy')}`;
-
-                                if (businessInfo.days === 0) {
-                                    timeRemainingColor = ORANGE_COLOR;
-                                } else if (businessInfo.days <= 1) {
-                                    timeRemainingColor = ORANGE_COLOR;
-                                } else {
-                                    timeRemainingColor = BLUE_COLOR;
-                                }
+                                timeRemainingText = 'EXPIRED';
+                                timeRemainingDetail = `Expired on: ${formatTZ(completionDate, 'MMM dd, yyyy HH:mm', { timeZone: TIMEZONE })}`;
+                                timeRemainingColor = RED_COLOR;
                             }
-                        } else {
-                            timeRemainingText = 'EXPIRED';
-                            timeRemainingDetail = `Expired on: ${format(completionDate, 'MMM dd, yyyy HH:mm')}`;
-                            timeRemainingColor = RED_COLOR;
                         }
                     }
 
-                    // Get scheduled date from scheduled_date field
+                    // Get scheduled date from scheduled_date field in Pacific Time
                     const scheduledDate = extractScheduledDate(wo.scheduled_date);
-                    const targetWorkDate = scheduledDate ? formatDateOnly(scheduledDate) : 'ASAP';
+                    const targetWorkDate = scheduledDate ? formatTZ(scheduledDate, 'MMM dd, yyyy', { timeZone: TIMEZONE }) : 'ASAP';
 
-                    // Format completion date properly
+                    // Format completion date properly in Pacific Time
                     const formattedCompletionDate = wo.completion_date
                         ? formatMonthDay(wo.completion_date)
                         : completionDate
@@ -555,7 +562,7 @@ const Locates = () => {
                         timeRemainingColor,
                         workflowStatus: wo.workflow_status || 'UNKNOWN',
                         dashboardId: dashboard.id || null,
-                        // New fields for dates display
+                        // New fields for dates display in Pacific Time
                         locateTriggeredDate: wo.created_date || wo.requested_date || '',
                         locateCalledInDate: wo.called_at || '',
                         clearToDigDate: wo.completion_date || '',
@@ -871,6 +878,14 @@ const Locates = () => {
         recycleBinPage * recycleBinRowsPerPage + recycleBinRowsPerPage
     );
 
+    // Helper function to format date from calledAt field for progress table in Pacific Time
+    const getCalledAtDate = (item) => {
+        if (!item.calledAt) return '—';
+        const date = toPacificTime(item.calledAt);
+        if (!date) return '—';
+        return formatTZ(date, 'MMM dd, yyyy HH:mm', { timeZone: TIMEZONE });
+    };
+
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -894,7 +909,7 @@ const Locates = () => {
                             fontWeight: 400,
                         }}
                     >
-                        Dispatch and monitor locate requests efficiently
+                        Dispatch and monitor locate requests efficiently (Times in PST)
                     </Typography>
                 </Box>
                 <Button
@@ -976,6 +991,7 @@ const Locates = () => {
                     onRowsPerPageChange={handleChangeRowsPerPagePending}
                     markCalledMutation={markCalledMutation}
                     tableType="pending"
+                    getCalledAtDate={getCalledAtDate}
                 />
             </Section>
 
@@ -1031,6 +1047,7 @@ const Locates = () => {
                     onRowsPerPageChange={handleChangeRowsPerPageInProgress}
                     completeWorkOrderManuallyMutation={completeWorkOrderManuallyMutation}
                     tableType="inProgress"
+                    getCalledAtDate={getCalledAtDate}
                 />
             </Section>
 
@@ -1055,6 +1072,7 @@ const Locates = () => {
                     onPageChange={handleChangePageCompleted}
                     onRowsPerPageChange={handleChangeRowsPerPageCompleted}
                     tableType="completed"
+                    getCalledAtDate={getCalledAtDate}
                 />
             </Section>
 
@@ -1113,7 +1131,7 @@ const Locates = () => {
                                     fontSize: '0.85rem',
                                     color: GRAY_COLOR,
                                 }}>
-                                    {recycleBinItems.length} deleted item(s) • Restore or permanently delete
+                                    {recycleBinItems.length} deleted item(s) • Restore or permanently delete (Times in PST)
                                 </Typography>
                             </Box>
                         </Box>
@@ -2246,19 +2264,10 @@ const LocateTable = ({
     markCalledMutation,
     completeWorkOrderManuallyMutation,
     tableType = 'pending', // 'pending', 'inProgress', or 'completed'
+    getCalledAtDate,
 }) => {
     const allSelectedOnPage = items.length > 0 && items.every(item => selected.has(item.id));
     const someSelectedOnPage = items.length > 0 && items.some(item => selected.has(item.id));
-
-    // Helper function to format date from calledAt field for progress table
-    const getCalledAtDate = (item) => {
-        if (!item.calledAt) return '—';
-        try {
-            return format(new Date(item.calledAt), 'MMM dd, yyyy HH:mm');
-        } catch (e) {
-            return '—';
-        }
-    };
 
     return (
         <TableContainer>
@@ -2344,7 +2353,7 @@ const LocateTable = ({
                             fontWeight: 600,
                             py: 1.5,
                         }}>
-                            Dates
+                            Dates (PST)
                         </TableCell>
                         <TableCell sx={{
                             color: TEXT_COLOR,
@@ -2786,7 +2795,7 @@ const LocateTable = ({
                                                                     display: 'block'
                                                                 }}
                                                             >
-                                                                Target Work Data:
+                                                                Target Work Date:
                                                                 <Typography
                                                                     variant="caption"
                                                                     sx={{

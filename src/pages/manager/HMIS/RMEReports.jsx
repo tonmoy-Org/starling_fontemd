@@ -12,7 +12,6 @@ import {
     Chip,
     Snackbar,
     Alert,
-    CircularProgress,
     Avatar,
     Stack,
     Checkbox,
@@ -36,6 +35,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { alpha } from '@mui/material/styles';
 import axiosInstance from '../../../api/axios';
 import { useAuth } from '../../../auth/AuthProvider';
+import { format as formatTZ, toZonedTime } from 'date-fns-tz';
 
 import {
     Search,
@@ -67,62 +67,46 @@ const ORANGE_COLOR = '#ed6c02';
 const GRAY_COLOR = '#6b7280';
 const PURPLE_COLOR = '#8b5cf6';
 
-const formatDate = (dateString) => {
-    if (!dateString) return '—';
+// Define the timezone for Pierce County, WA, USA (GMT-8)
+const TIMEZONE = 'America/Los_Angeles'; // Pacific Time (GMT-8)
+
+// Helper function to convert date to Pacific Time
+const toPacificTime = (dateString) => {
+    if (!dateString) return null;
     try {
         const date = new Date(dateString);
-        // Convert to US Eastern Time
-        return date.toLocaleDateString('en-US', {
-            timeZone: 'America/New_York',
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
+        return toZonedTime(date, TIMEZONE);
     } catch (e) {
-        return '—';
+        console.error('Error converting to Pacific Time:', e);
+        return null;
     }
+};
+
+const formatDate = (dateString) => {
+    const date = toPacificTime(dateString);
+    if (!date) return '—';
+    return formatTZ(date, 'MMM dd, yyyy', { timeZone: TIMEZONE });
 };
 
 const formatTime = (dateString) => {
-    if (!dateString) return '—';
-    try {
-        const date = new Date(dateString);
-        // Convert to US Eastern Time
-        return date.toLocaleTimeString('en-US', {
-            timeZone: 'America/New_York',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
-    } catch (e) {
-        return '—';
-    }
+    const date = toPacificTime(dateString);
+    if (!date) return '—';
+    return formatTZ(date, 'h:mm a', { timeZone: TIMEZONE });
 };
 
 const formatDateTime = (dateString) => {
-    if (!dateString) return '—';
-    try {
-        const date = new Date(dateString);
-        // Convert to US Eastern Time
-        return date.toLocaleDateString('en-US', {
-            timeZone: 'America/New_York',
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
-    } catch (e) {
-        return '—';
-    }
+    const date = toPacificTime(dateString);
+    if (!date) return '—';
+    return formatTZ(date, 'MMM dd, yyyy h:mm a', { timeZone: TIMEZONE });
 };
 
 const calculateElapsedTime = (createdDate) => {
     if (!createdDate) return '—';
     try {
-        const now = new Date();
-        const created = new Date(createdDate);
+        const now = toZonedTime(new Date(), TIMEZONE);
+        const created = toPacificTime(createdDate);
+        if (!created) return '—';
+
         const diffMs = now - created;
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
 
@@ -142,8 +126,10 @@ const calculateElapsedTime = (createdDate) => {
 const getElapsedColor = (createdDate) => {
     if (!createdDate) return GRAY_COLOR;
     try {
-        const now = new Date();
-        const created = new Date(createdDate);
+        const now = toZonedTime(new Date(), TIMEZONE);
+        const created = toPacificTime(createdDate);
+        if (!created) return GRAY_COLOR;
+
         const diffMs = now - created;
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
 
@@ -218,7 +204,7 @@ const PDFViewerModal = ({ open, onClose, pdfUrl }) => {
                                 fontSize: '0.85rem',
                                 color: GRAY_COLOR,
                             }}>
-                                Last Locked Report
+                                Last Locked Report (Times in PST)
                             </Typography>
                         </Box>
                     </Box>
@@ -1207,7 +1193,7 @@ const RMEReports = () => {
                             fontWeight: 400,
                         }}
                     >
-                        Track RME reports through 3 stages: Unverified → Holding → Finalized
+                        Track RME reports through 3 stages: Unverified → Holding → Finalized (Times in Pacific Time)
                     </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -1244,7 +1230,7 @@ const RMEReports = () => {
                     setDeleteDialogOpen(true);
                 }}
                 icon={<FileSpreadsheet size={20} />}
-                subtitle="New reports awaiting verification"
+                subtitle="New reports awaiting verification (Times in PST)"
                 additionalActions={
                     <Stack direction="row" spacing={1} alignItems="center">
                         <SearchInput
@@ -1324,7 +1310,7 @@ const RMEReports = () => {
                     setDeleteDialogOpen(true);
                 }}
                 icon={<AlertOctagon size={20} />}
-                subtitle="Reports on hold pending additional information"
+                subtitle="Reports on hold pending additional information (Times in PST)"
                 additionalActions={
                     <Stack direction="row" spacing={1} alignItems="center">
                         <SearchInput
@@ -1387,7 +1373,7 @@ const RMEReports = () => {
                     setDeleteDialogOpen(true);
                 }}
                 icon={<CheckCircle size={20} />}
-                subtitle="Completed reports"
+                subtitle="Completed reports (Times in PST)"
                 additionalActions={
                     <Stack direction="row" spacing={1} alignItems="center">
                         <SearchInput
@@ -1475,7 +1461,7 @@ const RMEReports = () => {
                                     fontSize: '0.85rem',
                                     color: GRAY_COLOR,
                                 }}>
-                                    {deletedWorkOrders.length} deleted item(s) • Restore or permanently delete
+                                    {deletedWorkOrders.length} deleted item(s) • Restore or permanently delete (Times in PST)
                                 </Typography>
                             </Box>
                         </Box>
@@ -2878,7 +2864,7 @@ const HoldingTable = ({
                                 }}
                             />
                         </TableCell>
-                        <TableCell>W.O Date & Elapsed Time</TableCell>
+                        <TableCell>W.O Date & Elapsed Time </TableCell>
                         <TableCell>Technician</TableCell>
                         <TableCell>Address</TableCell>
                         <TableCell align="center">Prior Locked Report</TableCell>
@@ -3016,7 +3002,7 @@ const HoldingTable = ({
                                                         },
                                                     }}
                                                 >
-                                                     <img src="/src/public/icons/Edit.gif" alt="view-report" />
+                                                    <img src="/src/public/icons/Edit.gif" alt="view-report" />
                                                 </IconButton>
                                             </Tooltip>
                                         ) : (
@@ -3170,7 +3156,7 @@ const FinalizedTable = ({
                         </TableCell>
                         <TableCell>Status</TableCell>
                         <TableCell>Address</TableCell>
-                        <TableCell>Date</TableCell>
+                        <TableCell>Date </TableCell>
                         <TableCell>By Manager</TableCell>
                     </TableRow>
                 </TableHead>
@@ -3253,6 +3239,9 @@ const FinalizedTable = ({
                                     <TableCell sx={{ py: 1.5 }}>
                                         <Typography variant="body2" sx={{ fontWeight: 500 }}>
                                             {formatDate(item.actionTime)}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ color: GRAY_COLOR }}>
+                                            {formatTime(item.actionTime)}
                                         </Typography>
                                     </TableCell>
                                     <TableCell sx={{ py: 1.5 }}>
