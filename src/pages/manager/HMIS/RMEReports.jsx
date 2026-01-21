@@ -2584,7 +2584,14 @@ const ReportNeededTable = ({
                                                         },
                                                     }}
                                                 >
-                                                    <img src={report} alt="view-report" />
+                                                    <img
+                                                        src={report}
+                                                        alt="view-report"
+                                                        style={{
+                                                            width: '20px',
+                                                            height: '20px',
+                                                        }}
+                                                    />
                                                 </IconButton>
                                             </Tooltip>
                                         ) : (
@@ -2819,7 +2826,14 @@ const ReportSubmittedTable = ({
                                                                 },
                                                             }}
                                                         >
-                                                            <img src={report} alt="view-report" />
+                                                            <img
+                                                                src={report}
+                                                                alt="view-report"
+                                                                style={{
+                                                                    width: '20px',
+                                                                    height: '20px',
+                                                                }}
+                                                            />
                                                         </IconButton>
                                                     </Tooltip>
                                                 ) : (
@@ -2839,7 +2853,14 @@ const ReportSubmittedTable = ({
                                                                 },
                                                             }}
                                                         >
-                                                            <img src={pen} alt="view-report" />
+                                                            <img
+                                                                src={pen}
+                                                                alt="view-report"
+                                                                style={{
+                                                                    width: '20px',
+                                                                    height: '20px',
+                                                                }}
+                                                            />
                                                         </IconButton>
                                                     </Tooltip>
                                                 ) : (
@@ -3185,7 +3206,14 @@ const HoldingTable = ({
                                                         },
                                                     }}
                                                 >
-                                                    <img src={report} alt="view-report" />
+                                                    <img
+                                                        src={report}
+                                                        alt="view-report"
+                                                        style={{
+                                                            width: '20px',
+                                                            height: '20px',
+                                                        }}
+                                                    />
                                                 </IconButton>
                                             </Tooltip>
                                         ) : (
@@ -3205,7 +3233,14 @@ const HoldingTable = ({
                                                         },
                                                     }}
                                                 >
-                                                    <img src={pen} alt="view-report" />
+                                                    <img
+                                                        src={pen}
+                                                        alt="view-report"
+                                                        style={{
+                                                            width: '20px',
+                                                            height: '20px',
+                                                        }}
+                                                    />
                                                 </IconButton>
                                             </Tooltip>
                                         ) : (
