@@ -1011,8 +1011,8 @@ const DashboardLayout = ({ children, title, menuItems }) => {
                 backgroundColor: alpha('#ffffff', 0.1),
                 borderRadius: '5px',
                 border: `1px solid ${alpha('#ffffff', 0.3)}`,
-                width: 32,
-                height: 32,
+                width: 38,
+                height: 38,
                 '&:hover': {
                   backgroundColor: alpha('#ffffff', 0.2),
                   color: colors.primary,
@@ -1020,17 +1020,18 @@ const DashboardLayout = ({ children, title, menuItems }) => {
               }}
             >
               <Badge
-                badgeContent={3}
+                badgeContent={badgeCount}
                 color="error"
                 sx={{
                   '& .MuiBadge-badge': {
                     fontSize: '0.55rem',
                     height: '14px',
                     minWidth: '14px',
+                    bgcolor: colors.red,
                   }
                 }}
               >
-                <Bell size={16} />
+                <Bell size={18} />
               </Badge>
             </IconButton>
 
