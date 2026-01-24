@@ -22,7 +22,6 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    InputAdornment,
     TablePagination,
     Modal,
     useMediaQuery,
@@ -37,13 +36,15 @@ import {
     addHours,
     isWeekend,
     addDays,
+    format,
+    parseISO,
+    differenceInMilliseconds,
+    isAfter,
 } from 'date-fns';
-import { format as formatTZ, toZonedTime } from 'date-fns-tz';
 
 import {
     CheckCircle,
     Clock,
-    Timer,
     Mail,
     User,
     X,
@@ -68,43 +69,71 @@ const ORANGE_COLOR = '#ed6c02';
 const GRAY_COLOR = '#6b7280';
 const PURPLE_COLOR = '#8b5cf6';
 
-const TIMEZONE = 'America/Los_Angeles';
-
+// Helper functions for Pacific Time (GMT-8)
 const toPacificTime = (dateString) => {
     if (!dateString) return null;
     try {
-        const date = new Date(dateString);
-        return toZonedTime(date, TIMEZONE);
+        const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+        // If date is already in UTC, convert to Pacific Time (GMT-8)
+        return new Date(date.getTime() - (8 * 60 * 60 * 1000));
     } catch (e) {
         console.error('Error converting to Pacific Time:', e);
         return null;
     }
 };
 
+const toUTC = (pacificTime) => {
+    if (!pacificTime) return null;
+    try {
+        // Convert Pacific Time to UTC (add 8 hours)
+        return new Date(pacificTime.getTime() + (8 * 60 * 60 * 1000));
+    } catch (e) {
+        console.error('Error converting to UTC:', e);
+        return null;
+    }
+};
+
 const formatDate = (dateString) => {
-    const date = toPacificTime(dateString);
-    if (!date) return '—';
-    return formatTZ(date, 'MMM dd, yyyy HH:mm', { timeZone: TIMEZONE });
+    if (!dateString) return '—';
+    try {
+        const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+        return format(date, 'MMM dd, yyyy HH:mm');
+    } catch (e) {
+        return '—';
+    }
 };
 
 const formatDateShort = (dateString) => {
-    const date = toPacificTime(dateString);
-    if (!date) return '—';
-    return formatTZ(date, 'MMM dd, HH:mm', { timeZone: TIMEZONE });
+    if (!dateString) return '—';
+    try {
+        const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+        return format(date, 'MMM dd, HH:mm');
+    } catch (e) {
+        return '—';
+    }
 };
 
 const formatMonthDay = (dateString) => {
-    const date = toPacificTime(dateString);
-    if (!date) return '—';
-    return formatTZ(date, 'MMM dd', { timeZone: TIMEZONE });
+    if (!dateString) return '—';
+    try {
+        const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+        return format(date, 'MMM dd');
+    } catch (e) {
+        return '—';
+    }
 };
 
-const formatEmergencyCountdown = (remainingMs) => {
-    const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+const formatTimeRemaining = (remainingMs) => {
+    if (remainingMs <= 0) return 'EXPIRED';
+    
+    const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
-
-    if (hours > 0) {
+    
+    if (days > 0) {
+        return `${days}d ${hours}h`;
+    } else if (hours > 0) {
         return `${hours}h ${minutes}m`;
     } else if (minutes > 0) {
         return `${minutes}m ${seconds}s`;
@@ -113,29 +142,35 @@ const formatEmergencyCountdown = (remainingMs) => {
     }
 };
 
-const getBusinessDaysRemaining = (endDate) => {
-    const now = toZonedTime(new Date(), TIMEZONE);
-    const end = toZonedTime(endDate, TIMEZONE);
-
-    if (now >= end) return { days: 0, expired: true };
-
-    let current = new Date(now);
-    let businessDays = 0;
-
-    if (current.getHours() >= 17) {
-        current = addDays(current, 1);
-    }
-
-    current.setHours(8, 0, 0, 0);
-
-    while (current < end) {
-        if (!isWeekend(current)) {
-            businessDays++;
+const calculateExpirationDate = (calledAt, callType) => {
+    if (!calledAt || !callType) return null;
+    
+    try {
+        const calledDate = typeof calledAt === 'string' ? parseISO(calledAt) : calledAt;
+        
+        if (callType === 'EMERGENCY' || callType === 'Emergency') {
+            // Emergency: 4 hours from called time
+            return addHours(calledDate, 4);
+        } else if (callType === 'STANDARD' || callType === 'Standard') {
+            // Standard: 2 calendar days (48 hours) from called time
+            // NO WEEKENDS - exact 2 calendar days
+            return addDays(calledDate, 2);
         }
-        current = addDays(current, 1);
+        
+        return null;
+    } catch (e) {
+        console.error('Error calculating expiration:', e);
+        return null;
     }
+};
 
-    return { days: businessDays, expired: false };
+const isTimerExpired = (calledAt, callType) => {
+    if (!calledAt || !callType) return true;
+    
+    const expirationDate = calculateExpirationDate(calledAt, callType);
+    if (!expirationDate) return true;
+    
+    return isAfter(new Date(), expirationDate);
 };
 
 const parseDashboardAddress = (fullAddress) => {
@@ -168,28 +203,11 @@ const formatTargetWorkDate = (scheduledDateRaw) => {
         if (!month || !day || !year) return 'ASAP';
 
         const date = new Date(year, month - 1, day);
-        return formatTZ(date, 'MMM dd, yyyy');
+        return format(date, 'MMM dd, yyyy');
     } catch (e) {
         console.error('Error formatting target work date:', e);
         return 'ASAP';
     }
-};
-
-const shouldExpireTimer = (calledAt, callType) => {
-    if (!calledAt || !callType) return false;
-
-    const calledDate = toPacificTime(calledAt);
-    const now = toZonedTime(new Date(), TIMEZONE);
-
-    if (callType === 'EMERGENCY' || callType === 'Emergency') {
-        const fourHoursLater = addHours(calledDate, 4);
-        return now >= fourHoursLater;
-    } else if (callType === 'STANDARD' || callType === 'Standard') {
-        const twoBusinessDaysLater = addBusinessDays(calledDate, 2);
-        return now >= twoBusinessDaysLater;
-    }
-
-    return false;
 };
 
 const Locates = () => {
@@ -202,7 +220,7 @@ const Locates = () => {
     const currentUserName = user?.name || 'Admin User';
     const currentUserEmail = user?.email || 'admin@company.com';
 
-    const [currentTime, setCurrentTime] = useState(() => toZonedTime(new Date(), TIMEZONE));
+    const [currentTime, setCurrentTime] = useState(() => new Date());
 
     const [selectedPending, setSelectedPending] = useState(new Set());
     const [selectedInProgress, setSelectedInProgress] = useState(new Set());
@@ -244,9 +262,10 @@ const Locates = () => {
 
     const [recycleBinCount, setRecycleBinCount] = useState(0);
 
+    // Update current time every second for live countdown
     useEffect(() => {
         const timer = setInterval(() => {
-            setCurrentTime(toZonedTime(new Date(), TIMEZONE));
+            setCurrentTime(new Date());
         }, 1000);
 
         return () => clearInterval(timer);
@@ -262,36 +281,38 @@ const Locates = () => {
         refetchInterval: 60000,
     });
 
+    // Auto-expire timers that have elapsed
     useEffect(() => {
-        const checkExpiredTimers = () => {
-            const now = toZonedTime(new Date(), TIMEZONE);
-            const expiredItems = rawData.filter(item =>
+        const checkAndExpireTimers = async () => {
+            const itemsToExpire = rawData.filter(item =>
                 item.locates_called &&
                 item.called_at &&
                 item.call_type &&
-                shouldExpireTimer(item.called_at, item.call_type)
+                !item.timer_expired &&
+                !item.is_deleted &&
+                isTimerExpired(item.called_at, item.call_type)
             );
 
-            if (expiredItems.length > 0) {
-                expiredItems.forEach(async (item) => {
-                    try {
+            if (itemsToExpire.length > 0) {
+                try {
+                    const promises = itemsToExpire.map(async (item) => {
                         await axiosInstance.patch(`/locates/${item.id}/`, {
                             timer_expired: true,
                             time_remaining: 'EXPIRED',
                             completed_at: new Date().toISOString(),
                         });
-                    } catch (error) {
-                        console.error('Error auto-updating expired timer:', error);
-                    }
-                });
+                    });
 
-                if (expiredItems.length > 0) {
+                    await Promise.all(promises);
                     queryClient.invalidateQueries({ queryKey: ['locates-all'] });
+                } catch (error) {
+                    console.error('Error auto-expiring timers:', error);
                 }
             }
         };
 
-        const interval = setInterval(checkExpiredTimers, 60000);
+        checkAndExpireTimers();
+        const interval = setInterval(checkAndExpireTimers, 30000); // Check every 30 seconds
         return () => clearInterval(interval);
     }, [rawData, queryClient]);
 
@@ -325,17 +346,20 @@ const Locates = () => {
 
     const markCalledMutation = useMutation({
         mutationFn: async ({ id, callType }) => {
+            const calledDate = new Date();
+            const calledDateUTC = toUTC(calledDate);
+
             const response = await axiosInstance.patch(
                 `/locates/${id}/`,
                 {
                     locates_called: true,
                     call_type: callType === 'STANDARD' ? 'Standard' : 'Emergency',
-                    called_at: new Date().toISOString(),
+                    called_at: calledDateUTC ? calledDateUTC.toISOString() : new Date().toISOString(),
                     called_by: currentUserName,
                     called_by_email: currentUserEmail,
                     timer_started: true,
                     timer_expired: false,
-                    time_remaining: callType === 'STANDARD' ? '2 business days' : '4 hours',
+                    time_remaining: callType === 'STANDARD' ? '2 days' : '4 hours',
                 }
             );
             return response.data;
@@ -351,10 +375,13 @@ const Locates = () => {
 
     const softDeleteBulkMutation = useMutation({
         mutationFn: async (ids) => {
+            const deleteTime = new Date();
+            const deleteTimeUTC = toUTC(deleteTime);
+
             const promises = Array.from(ids).map(id =>
                 axiosInstance.patch(`/locates/${id}/`, {
                     is_deleted: true,
-                    deleted_date: new Date().toISOString(),
+                    deleted_date: deleteTimeUTC ? deleteTimeUTC.toISOString() : new Date().toISOString(),
                     deleted_by: currentUserName,
                     deleted_by_email: currentUserEmail,
                 })
@@ -378,10 +405,13 @@ const Locates = () => {
 
     const completeWorkOrderManuallyMutation = useMutation({
         mutationFn: async (id) => {
+            const completeTime = new Date();
+            const completeTimeUTC = toUTC(completeTime);
+
             const response = await axiosInstance.patch(`/locates/${id}/`, {
                 timer_expired: true,
                 time_remaining: 'COMPLETED',
-                completed_at: new Date().toISOString(),
+                completed_at: completeTimeUTC ? completeTimeUTC.toISOString() : new Date().toISOString(),
             });
             return response.data;
         },
@@ -399,11 +429,14 @@ const Locates = () => {
 
     const bulkCompleteWorkOrdersMutation = useMutation({
         mutationFn: async (ids) => {
+            const completeTime = new Date();
+            const completeTimeUTC = toUTC(completeTime);
+
             const promises = Array.from(ids).map(id =>
                 axiosInstance.patch(`/locates/${id}/`, {
                     timer_expired: true,
                     time_remaining: 'COMPLETED',
-                    completed_at: new Date().toISOString(),
+                    completed_at: completeTimeUTC ? completeTimeUTC.toISOString() : new Date().toISOString(),
                 })
             );
             await Promise.all(promises);
@@ -442,6 +475,7 @@ const Locates = () => {
             showSnackbar(err?.response?.data?.message || 'Restore failed', 'error');
         },
     });
+
     const bulkRestoreMutation = useMutation({
         mutationFn: async (ids) => {
             const promises = ids.map(id =>
@@ -454,17 +488,14 @@ const Locates = () => {
             );
 
             await Promise.all(promises);
-            return ids; // 👈 return something
+            return ids;
         },
-
         onSuccess: (response) => {
             invalidateAndRefetch();
             setSelectedRecycleBinItems(new Set());
             setRestoreDialogOpen(false);
-
             showSnackbar(`${response.length} item(s) restored`, 'success');
         },
-
         onError: (err) => {
             console.error('Bulk restore error:', err);
             showSnackbar(
@@ -513,80 +544,59 @@ const Locates = () => {
 
     const processed = useMemo(() => {
         return rawData
-            .filter(item => !item.is_deleted) // Filter out soft-deleted items
+            .filter(item => !item.is_deleted)
             .map(item => {
                 const addr = parseDashboardAddress(item.customer_address || '');
                 const isEmergency = (item.call_type || '').toUpperCase().includes('EMERGENCY');
                 const type = isEmergency ? 'EMERGENCY' : 'STANDARD';
 
-                let completionDate = null;
                 let timeRemainingText = '';
                 let timeRemainingDetail = '';
                 let timeRemainingColor = TEXT_COLOR;
                 let isExpired = false;
+                let expirationDate = null;
 
                 const calledByName = item.called_by || '';
                 const calledByEmail = item.called_by_email || '';
 
+                // Check if timer is expired (either already marked or time has passed)
+                const isAlreadyExpired = item.timer_expired === true;
+                const shouldBeExpired = item.locates_called && item.called_at && item.call_type 
+                    ? isTimerExpired(item.called_at, item.call_type)
+                    : false;
+
+                isExpired = isAlreadyExpired || shouldBeExpired;
+
                 if (item.locates_called && item.called_at && item.call_type) {
-                    const called = toPacificTime(item.called_at);
-                    const now = currentTime;
+                    expirationDate = calculateExpirationDate(item.called_at, item.call_type);
 
-                    if (called) {
-                        if (item.call_type === 'Emergency' || item.call_type === 'EMERGENCY') {
-                            completionDate = addHours(called, 4);
-                            const totalMs = 4 * 60 * 60 * 1000;
-                            const elapsedMs = now.getTime() - called.getTime();
-                            const remainingMs = Math.max(0, totalMs - elapsedMs);
+                    if (expirationDate) {
+                        const now = currentTime;
+                        const remainingMs = expirationDate.getTime() - now.getTime();
 
-                            isExpired = now >= completionDate;
-
-                            if (!isExpired) {
-                                timeRemainingText = formatEmergencyCountdown(remainingMs);
-                                timeRemainingDetail = `Expires at: ${formatTZ(completionDate, 'MMM dd, HH:mm:ss', { timeZone: TIMEZONE })}`;
-
-                                if (remainingMs <= 30 * 60 * 1000) {
-                                    timeRemainingColor = RED_COLOR;
-                                } else if (remainingMs <= 60 * 60 * 1000) {
-                                    timeRemainingColor = ORANGE_COLOR;
-                                } else {
-                                    timeRemainingColor = BLUE_COLOR;
-                                }
-                            } else {
-                                timeRemainingText = 'EXPIRED';
-                                timeRemainingDetail = `Expired on: ${formatTZ(completionDate, 'MMM dd, yyyy HH:mm', { timeZone: TIMEZONE })}`;
-                                timeRemainingColor = RED_COLOR;
-                            }
+                        if (isExpired) {
+                            timeRemainingText = 'EXPIRED';
+                            timeRemainingDetail = `Expired on: ${format(expirationDate, 'MMM dd, yyyy HH:mm')}`;
+                            timeRemainingColor = RED_COLOR;
                         } else {
-                            completionDate = addBusinessDays(called, 2);
-                            const businessInfo = getBusinessDaysRemaining(completionDate);
-                            const isBusinessDay = !isWeekend(now);
+                            timeRemainingText = formatTimeRemaining(remainingMs);
+                            timeRemainingDetail = `Expires at: ${format(expirationDate, 'MMM dd, yyyy HH:mm')}`;
 
-                            isExpired = now >= completionDate;
-
-                            if (!isExpired) {
-                                if (businessInfo.days === 0 && isBusinessDay) {
-                                    const businessHoursRemaining = Math.max(0, 17 - now.getHours());
-                                    timeRemainingText = `${businessHoursRemaining}h remaining today`;
-                                } else if (businessInfo.days === 1) {
-                                    timeRemainingText = `1 business day`;
-                                } else {
-                                    timeRemainingText = `${businessInfo.days} business days`;
-                                }
-
-                                timeRemainingDetail = `Expires: ${formatTZ(completionDate, 'MMM dd, yyyy', { timeZone: TIMEZONE })}`;
-
-                                if (businessInfo.days === 0) {
-                                    timeRemainingColor = ORANGE_COLOR;
-                                } else if (businessInfo.days <= 1) {
+                            // Set color based on urgency
+                            if (isEmergency) {
+                                if (remainingMs <= 60 * 60 * 1000) { // 1 hour or less
+                                    timeRemainingColor = RED_COLOR;
+                                } else if (remainingMs <= 2 * 60 * 60 * 1000) { // 2 hours or less
                                     timeRemainingColor = ORANGE_COLOR;
                                 } else {
                                     timeRemainingColor = BLUE_COLOR;
                                 }
                             } else {
-                                timeRemainingText = 'EXPIRED';
-                                timeRemainingDetail = `Expired on: ${formatTZ(completionDate, 'MMM dd, yyyy HH:mm', { timeZone: TIMEZONE })}`;
-                                timeRemainingColor = RED_COLOR;
+                                if (remainingMs <= 24 * 60 * 60 * 1000) { // 1 day or less
+                                    timeRemainingColor = ORANGE_COLOR;
+                                } else {
+                                    timeRemainingColor = BLUE_COLOR;
+                                }
                             }
                         }
                     }
@@ -609,10 +619,10 @@ const Locates = () => {
                     calledByName,
                     calledByEmail,
                     calledAt: item.called_at,
-                    completionDate: completionDate,
-                    formattedCompletionDate: completionDate ? formatMonthDay(completionDate) : '—',
-                    isExpired,
-                    timeRemainingText,
+                    expirationDate: expirationDate,
+                    formattedExpirationDate: expirationDate ? formatMonthDay(expirationDate) : '—',
+                    isExpired: isExpired,
+                    timeRemainingText: isExpired ? 'EXPIRED' : timeRemainingText,
                     timeRemainingDetail,
                     timeRemainingColor,
                     timerStarted: !!item.timer_started,
@@ -650,51 +660,68 @@ const Locates = () => {
 
     // Filter functions for each table
     const allPending = useMemo(() => {
-        let filtered = processed.filter(l => !l.locatesCalled);
-        if (searchPending) {
-            const searchLower = searchPending.toLowerCase();
-            filtered = filtered.filter(l =>
-                l.workOrderNumber?.toLowerCase().includes(searchLower) ||
-                l.customerName?.toLowerCase().includes(searchLower) ||
-                l.street?.toLowerCase().includes(searchLower) ||
-                l.city?.toLowerCase().includes(searchLower) ||
-                l.techName?.toLowerCase().includes(searchLower)
-            );
-        }
-        return filtered;
-    }, [processed, searchPending]);
+        return processed.filter(l => !l.locatesCalled);
+    }, [processed]);
 
     const inProgress = useMemo(() => {
-        let filtered = processed.filter(l => l.locatesCalled && !l.timerExpired && l.timeRemainingText !== 'EXPIRED');
-        if (searchInProgress) {
-            const searchLower = searchInProgress.toLowerCase();
-            filtered = filtered.filter(l =>
-                l.workOrderNumber?.toLowerCase().includes(searchLower) ||
-                l.customerName?.toLowerCase().includes(searchLower) ||
-                l.street?.toLowerCase().includes(searchLower) ||
-                l.city?.toLowerCase().includes(searchLower) ||
-                l.techName?.toLowerCase().includes(searchLower) ||
-                l.calledByName?.toLowerCase().includes(searchLower)
-            );
-        }
-        return filtered;
-    }, [processed, searchInProgress]);
+        return processed.filter(l => l.locatesCalled && !l.isExpired);
+    }, [processed]);
 
     const completed = useMemo(() => {
-        let filtered = processed.filter(l => l.locatesCalled && (l.timerExpired || l.timeRemainingText === 'EXPIRED' || l.timeRemainingApi === 'COMPLETED'));
-        if (searchCompleted) {
-            const searchLower = searchCompleted.toLowerCase();
-            filtered = filtered.filter(l =>
-                l.workOrderNumber?.toLowerCase().includes(searchLower) ||
-                l.customerName?.toLowerCase().includes(searchLower) ||
-                l.street?.toLowerCase().includes(searchLower) ||
-                l.city?.toLowerCase().includes(searchLower) ||
-                l.techName?.toLowerCase().includes(searchLower) ||
-                l.calledByName?.toLowerCase().includes(searchLower)
-            );
-        }
-        return filtered;
-    }, [processed, searchCompleted]);
+        return processed.filter(l => l.locatesCalled && l.isExpired);
+    }, [processed]);
+
+    // Filter with search
+    const filteredPending = useMemo(() => {
+        if (!searchPending) return allPending;
+        const searchLower = searchPending.toLowerCase();
+        return allPending.filter(l =>
+            l.workOrderNumber?.toLowerCase().includes(searchLower) ||
+            l.customerName?.toLowerCase().includes(searchLower) ||
+            l.street?.toLowerCase().includes(searchLower) ||
+            l.city?.toLowerCase().includes(searchLower) ||
+            l.techName?.toLowerCase().includes(searchLower)
+        );
+    }, [allPending, searchPending]);
+
+    const filteredInProgress = useMemo(() => {
+        if (!searchInProgress) return inProgress;
+        const searchLower = searchInProgress.toLowerCase();
+        return inProgress.filter(l =>
+            l.workOrderNumber?.toLowerCase().includes(searchLower) ||
+            l.customerName?.toLowerCase().includes(searchLower) ||
+            l.street?.toLowerCase().includes(searchLower) ||
+            l.city?.toLowerCase().includes(searchLower) ||
+            l.techName?.toLowerCase().includes(searchLower) ||
+            l.calledByName?.toLowerCase().includes(searchLower)
+        );
+    }, [inProgress, searchInProgress]);
+
+    const filteredCompleted = useMemo(() => {
+        if (!searchCompleted) return completed;
+        const searchLower = searchCompleted.toLowerCase();
+        return completed.filter(l =>
+            l.workOrderNumber?.toLowerCase().includes(searchLower) ||
+            l.customerName?.toLowerCase().includes(searchLower) ||
+            l.street?.toLowerCase().includes(searchLower) ||
+            l.city?.toLowerCase().includes(searchLower) ||
+            l.techName?.toLowerCase().includes(searchLower) ||
+            l.calledByName?.toLowerCase().includes(searchLower)
+        );
+    }, [completed, searchCompleted]);
+
+    // Filter recycle bin items
+    const filteredRecycleBinItems = useMemo(() => {
+        if (!recycleBinSearch) return recycleBinItems;
+        const searchLower = recycleBinSearch.toLowerCase();
+        return recycleBinItems.filter(item =>
+            item.workOrderNumber?.toLowerCase().includes(searchLower) ||
+            item.customerName?.toLowerCase().includes(searchLower) ||
+            item.street?.toLowerCase().includes(searchLower) ||
+            item.city?.toLowerCase().includes(searchLower) ||
+            item.deletedBy?.toLowerCase().includes(searchLower)
+        );
+    }, [recycleBinItems, recycleBinSearch]);
 
     const handleChangePagePending = (event, newPage) => {
         setPagePending(newPage);
@@ -785,7 +812,7 @@ const Locates = () => {
     };
 
     const toggleAllRecycleBinSelection = () => {
-        const currentPageItems = recycleBinItems.slice(
+        const currentPageItems = filteredRecycleBinItems.slice(
             recycleBinPage * recycleBinRowsPerPage,
             recycleBinPage * recycleBinRowsPerPage + recycleBinRowsPerPage
         );
@@ -872,31 +899,29 @@ const Locates = () => {
         return <DashboardLoader />;
     }
 
-    const pendingPageItems = allPending.slice(
+    const pendingPageItems = filteredPending.slice(
         pagePending * rowsPerPagePending,
         pagePending * rowsPerPagePending + rowsPerPagePending
     );
 
-    const inProgressPageItems = inProgress.slice(
+    const inProgressPageItems = filteredInProgress.slice(
         pageInProgress * rowsPerPageInProgress,
         pageInProgress * rowsPerPageInProgress + rowsPerPageInProgress
     );
 
-    const completedPageItems = completed.slice(
+    const completedPageItems = filteredCompleted.slice(
         pageCompleted * rowsPerPageCompleted,
         pageCompleted * rowsPerPageCompleted + rowsPerPageCompleted
     );
 
-    const recycleBinPageItems = recycleBinItems.slice(
+    const recycleBinPageItems = filteredRecycleBinItems.slice(
         recycleBinPage * recycleBinRowsPerPage,
         recycleBinPage * recycleBinRowsPerPage + recycleBinRowsPerPage
     );
 
     const getCalledAtDate = (item) => {
         if (!item.calledAt) return '—';
-        const date = toPacificTime(item.calledAt);
-        if (!date) return '—';
-        return formatTZ(date, 'MMM dd, yyyy HH:mm', { timeZone: TIMEZONE });
+        return formatDate(item.calledAt);
     };
 
     // Search input component
@@ -983,7 +1008,7 @@ const Locates = () => {
                             fontWeight: 400,
                         }}
                     >
-                        Dispatch and monitor locate requests efficiently
+                        Dispatch and monitor locate
                     </Typography>
                 </Box>
                 <Button
@@ -1007,34 +1032,102 @@ const Locates = () => {
             </Box>
 
             {/* Pending Locates */}
-            <Section
-                title="Pending Locates"
-                color={BLUE_COLOR}
-                count={allPending.length}
-                selectedCount={selectedPending.size}
-                onDelete={() => confirmSoftDelete(selectedPending, 'Pending Locates')}
-                isMobile={isMobile}
-                additionalActions={
-                    <Box sx={{ width: isMobile ? '100%' : 'auto', mt: isMobile ? 1 : 0 }}>
-                        <SearchInput
-                            value={searchPending}
-                            onChange={setSearchPending}
-                            placeholder="Search pending locates..."
-                            color={BLUE_COLOR}
-                            fullWidth={isMobile}
-                        />
-                    </Box>
-                }
+            <Paper
+                elevation={0}
+                sx={{
+                    mb: 4,
+                    borderRadius: '6px',
+                    overflow: 'hidden',
+                    border: `1px solid ${alpha(BLUE_COLOR, 0.15)}`,
+                    bgcolor: 'white'
+                }}
             >
+                <Box
+                    sx={{
+                        p: isMobile ? 1 : 1.5,
+                        bgcolor: 'white',
+                        borderBottom: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexDirection: isMobile ? 'column' : 'row',
+                        gap: isMobile ? 1 : 0,
+                    }}
+                >
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        width: isMobile ? '100%' : 'auto',
+                        justifyContent: isMobile ? 'space-between' : 'flex-start'
+                    }}>
+                        <Typography
+                            sx={{
+                                fontSize: isMobile ? '0.85rem' : '0.9rem',
+                                color: TEXT_COLOR,
+                                fontWeight: 600,
+                            }}
+                        >
+                            Pending Locates
+                            <Chip
+                                size="small"
+                                label={allPending.length}
+                                sx={{
+                                    ml: 1,
+                                    bgcolor: alpha(BLUE_COLOR, 0.08),
+                                    color: TEXT_COLOR,
+                                    fontSize: '0.75rem',
+                                    fontWeight: 500,
+                                    height: '22px',
+                                    '& .MuiChip-label': {
+                                        px: 1,
+                                    },
+                                }}
+                            />
+                        </Typography>
+                        {selectedPending.size > 0 && (
+                            <OutlineButton
+                                size="small"
+                                onClick={() => confirmSoftDelete(selectedPending, 'Pending Locates')}
+                                startIcon={<Trash2 size={14} />}
+                            >
+                                Delete ({selectedPending.size})
+                            </OutlineButton>
+                        )}
+                    </Box>
+                    <Box sx={{
+                        display: { md: 'flex' },
+                        alignItems: 'center',
+                        gap: 1.5,
+                        width: isMobile ? '100%' : 'auto',
+                        justifyContent: isMobile ? 'space-between' : 'flex-end'
+                    }}>
+                        <Box sx={{
+                            display: 'flex',
+                            gap: 1,
+                            width: isMobile ? '100%' : 'auto',
+                            flexDirection: isMobile ? 'column' : 'row',
+                            mt: isMobile ? 1 : 0
+                        }}>
+                            <SearchInput
+                                value={searchPending}
+                                onChange={setSearchPending}
+                                placeholder="Search pending locates..."
+                                color={BLUE_COLOR}
+                                fullWidth={isMobile}
+                            />
+                        </Box>
+                    </Box>
+                </Box>
                 <LocateTable
                     items={pendingPageItems}
                     selected={selectedPending}
                     onToggleSelect={(id) => toggleSelection(setSelectedPending, id)}
-                    onToggleAll={() => setSelectedPending(toggleAllSelection(allPending, pendingPageItems, selectedPending))}
+                    onToggleAll={() => setSelectedPending(toggleAllSelection(filteredPending, pendingPageItems, selectedPending))}
                     onMarkCalled={handleMarkCalled}
                     color={BLUE_COLOR}
                     showCallAction
-                    totalCount={allPending.length}
+                    totalCount={filteredPending.length}
                     page={pagePending}
                     rowsPerPage={rowsPerPagePending}
                     onPageChange={handleChangePagePending}
@@ -1044,7 +1137,7 @@ const Locates = () => {
                     getCalledAtDate={getCalledAtDate}
                     isMobile={isMobile}
                 />
-            </Section>
+            </Paper>
 
             {/* In Progress */}
             <Paper
@@ -1160,13 +1253,13 @@ const Locates = () => {
                     items={inProgressPageItems}
                     selected={selectedInProgress}
                     onToggleSelect={(id) => toggleSelection(setSelectedInProgress, id)}
-                    onToggleAll={() => setSelectedInProgress(toggleAllSelection(inProgress, inProgressPageItems, selectedInProgress))}
+                    onToggleAll={() => setSelectedInProgress(toggleAllSelection(filteredInProgress, inProgressPageItems, selectedInProgress))}
                     onManualComplete={handleManualCompletion}
                     color={ORANGE_COLOR}
                     showTimerColumn
                     showCalledBy
                     showManualCompleteAction={true}
-                    totalCount={inProgress.length}
+                    totalCount={filteredInProgress.length}
                     page={pageInProgress}
                     rowsPerPage={rowsPerPageInProgress}
                     onPageChange={handleChangePageInProgress}
@@ -1179,34 +1272,102 @@ const Locates = () => {
             </Paper>
 
             {/* Completed */}
-            <Section
-                title="Completed"
-                color={GREEN_COLOR}
-                count={completed.length}
-                selectedCount={selectedCompleted.size}
-                onDelete={() => confirmSoftDelete(selectedCompleted, 'Completed')}
-                isMobile={isMobile}
-                additionalActions={
-                    <Box sx={{ width: isMobile ? '100%' : 'auto', mt: isMobile ? 1 : 0 }}>
-                        <SearchInput
-                            value={searchCompleted}
-                            onChange={setSearchCompleted}
-                            placeholder="Search completed..."
-                            color={GREEN_COLOR}
-                            fullWidth={isMobile}
-                        />
-                    </Box>
-                }
+            <Paper
+                elevation={0}
+                sx={{
+                    mb: 4,
+                    borderRadius: '6px',
+                    overflow: 'hidden',
+                    border: `1px solid ${alpha(GREEN_COLOR, 0.15)}`,
+                    bgcolor: 'white'
+                }}
             >
+                <Box
+                    sx={{
+                        p: isMobile ? 1 : 1.5,
+                        bgcolor: 'white',
+                        borderBottom: `1px solid ${alpha(GREEN_COLOR, 0.1)}`,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexDirection: isMobile ? 'column' : 'row',
+                        gap: isMobile ? 1 : 0,
+                    }}
+                >
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        width: isMobile ? '100%' : 'auto',
+                        justifyContent: isMobile ? 'space-between' : 'flex-start'
+                    }}>
+                        <Typography
+                            sx={{
+                                fontSize: isMobile ? '0.85rem' : '0.9rem',
+                                color: TEXT_COLOR,
+                                fontWeight: 600,
+                            }}
+                        >
+                            Completed
+                            <Chip
+                                size="small"
+                                label={completed.length}
+                                sx={{
+                                    ml: 1,
+                                    bgcolor: alpha(GREEN_COLOR, 0.08),
+                                    color: TEXT_COLOR,
+                                    fontSize: '0.75rem',
+                                    fontWeight: 500,
+                                    height: '22px',
+                                    '& .MuiChip-label': {
+                                        px: 1,
+                                    },
+                                }}
+                            />
+                        </Typography>
+                        {selectedCompleted.size > 0 && (
+                            <OutlineButton
+                                size="small"
+                                onClick={() => confirmSoftDelete(selectedCompleted, 'Completed')}
+                                startIcon={<Trash2 size={14} />}
+                            >
+                                Delete ({selectedCompleted.size})
+                            </OutlineButton>
+                        )}
+                    </Box>
+                    <Box sx={{
+                        display: { md: 'flex' },
+                        alignItems: 'center',
+                        gap: 1.5,
+                        width: isMobile ? '100%' : 'auto',
+                        justifyContent: isMobile ? 'space-between' : 'flex-end'
+                    }}>
+                        <Box sx={{
+                            display: 'flex',
+                            gap: 1,
+                            width: isMobile ? '100%' : 'auto',
+                            flexDirection: isMobile ? 'column' : 'row',
+                            mt: isMobile ? 1 : 0
+                        }}>
+                            <SearchInput
+                                value={searchCompleted}
+                                onChange={setSearchCompleted}
+                                placeholder="Search completed..."
+                                color={GREEN_COLOR}
+                                fullWidth={isMobile}
+                            />
+                        </Box>
+                    </Box>
+                </Box>
                 <LocateTable
                     items={completedPageItems}
                     selected={selectedCompleted}
                     onToggleSelect={(id) => toggleSelection(setSelectedCompleted, id)}
-                    onToggleAll={() => setSelectedCompleted(toggleAllSelection(completed, completedPageItems, selectedCompleted))}
+                    onToggleAll={() => setSelectedCompleted(toggleAllSelection(filteredCompleted, completedPageItems, selectedCompleted))}
                     color={GREEN_COLOR}
                     showCalledBy
                     showTimerColumn={false}
-                    totalCount={completed.length}
+                    totalCount={filteredCompleted.length}
                     page={pageCompleted}
                     rowsPerPage={rowsPerPageCompleted}
                     onPageChange={handleChangePageCompleted}
@@ -1215,7 +1376,7 @@ const Locates = () => {
                     getCalledAtDate={getCalledAtDate}
                     isMobile={isMobile}
                 />
-            </Section>
+            </Paper>
 
             {/* Recycle Bin Modal */}
             <Modal
@@ -1274,7 +1435,7 @@ const Locates = () => {
                                     fontSize: '0.85rem',
                                     color: GRAY_COLOR,
                                 }}>
-                                    {recycleBinItems.length} deleted item(s) • Restore or permanently delete
+                                    {filteredRecycleBinItems.length} deleted item(s) • Restore or permanently delete
                                 </Typography>
                             </Box>
                         </Box>
@@ -1393,7 +1554,7 @@ const Locates = () => {
                             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
                                 <CircularProgress size={24} sx={{ color: PURPLE_COLOR }} />
                             </Box>
-                        ) : recycleBinItems.length === 0 ? (
+                        ) : filteredRecycleBinItems.length === 0 ? (
                             <Box sx={{ textAlign: 'center', py: 8 }}>
                                 <History size={48} color={alpha(GRAY_COLOR, 0.3)} />
                                 <Typography variant="body2" sx={{
@@ -1588,7 +1749,7 @@ const Locates = () => {
                         )}
                     </Box>
 
-                    {recycleBinItems.length > 0 && (
+                    {filteredRecycleBinItems.length > 0 && (
                         <Box sx={{
                             borderTop: `1px solid ${alpha(PURPLE_COLOR, 0.1)}`,
                             p: 1,
@@ -1596,7 +1757,7 @@ const Locates = () => {
                             <TablePagination
                                 rowsPerPageOptions={[5, 10, 25, 50]}
                                 component="div"
-                                count={recycleBinItems.length}
+                                count={filteredRecycleBinItems.length}
                                 rowsPerPage={recycleBinRowsPerPage}
                                 page={recycleBinPage}
                                 onPageChange={handleChangeRecycleBinPage}
@@ -1750,60 +1911,6 @@ const Locates = () => {
             </Dialog>
 
             {/* Restore Dialog */}
-            <Dialog
-                open={restoreDialogOpen}
-                onClose={() => setRestoreDialogOpen(false)}
-                maxWidth="sm"
-                fullWidth
-                PaperProps={{
-                    sx: {
-                        bgcolor: 'white',
-                        borderRadius: '6px',
-                    }
-                }}
-            >
-                <DialogTitle>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <RotateCcw size={20} color={GREEN_COLOR} />
-                        <Typography variant="h6" sx={{ fontSize: '0.95rem', fontWeight: 600 }}>
-                            Restore Items
-                        </Typography>
-                    </Box>
-                </DialogTitle>
-                <DialogContent>
-                    <Typography variant="body2" sx={{ mb: 2 }}>
-                        Are you sure you want to restore {selectedRecycleBinItems.size} item(s) from the recycle bin?
-                    </Typography>
-                </DialogContent>
-                <DialogActions>
-                    <Button
-                        onClick={() => setRestoreDialogOpen(false)}
-                        variant='outlined'
-                        color='error'
-                        sx={{
-                            textTransform: 'none',
-                            fontSize: '0.85rem',
-                            fontWeight: 400,
-                        }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="contained"
-                        color="success"
-                        onClick={executeBulkRestore}
-                        disabled={bulkRestoreMutation.isPending}
-                        startIcon={<RotateCcw size={16} />}
-                        sx={{
-                            textTransform: 'none',
-                            fontSize: '0.85rem',
-                            fontWeight: 400,
-                        }}
-                    >
-                        {bulkRestoreMutation.isPending ? 'Restoring...' : 'Restore'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
             <Dialog
                 open={restoreDialogOpen}
                 onClose={() => setRestoreDialogOpen(false)}
@@ -2323,96 +2430,6 @@ const Locates = () => {
     );
 };
 
-const Section = ({
-    title,
-    color,
-    count,
-    selectedCount,
-    onDelete,
-    children,
-    showTimer = false,
-    additionalActions = null,
-    isMobile,
-}) => {
-    return (
-        <Paper
-            elevation={0}
-            sx={{
-                mb: 4,
-                borderRadius: '6px',
-                overflow: 'hidden',
-                border: `1px solid ${alpha(color, 0.15)}`,
-                bgcolor: 'white'
-            }}
-        >
-            <Box
-                sx={{
-                    p: isMobile ? 1 : 1.5,
-                    bgcolor: 'white',
-                    borderBottom: `1px solid ${alpha(color, 0.1)}`,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    gap: isMobile ? 1 : 0,
-                }}
-            >
-                <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    width: isMobile ? '100%' : 'auto',
-                    justifyContent: isMobile ? 'space-between' : 'flex-start'
-                }}>
-                    <Typography
-                        sx={{
-                            fontSize: isMobile ? '0.85rem' : '0.9rem',
-                            color: TEXT_COLOR,
-                            fontWeight: 600,
-                        }}
-                    >
-                        {title}
-                        <Chip
-                            size="small"
-                            label={count}
-                            sx={{
-                                ml: 1,
-                                bgcolor: alpha(color, 0.08),
-                                color: TEXT_COLOR,
-                                fontSize: '0.75rem',
-                                fontWeight: 500,
-                                height: '22px',
-                                '& .MuiChip-label': {
-                                    px: 1,
-                                },
-                            }}
-                        />
-                    </Typography>
-                    {selectedCount > 0 && (
-                        <OutlineButton
-                            size="small"
-                            onClick={onDelete}
-                            startIcon={<Trash2 size={14} />}
-                        >
-                            Delete ({selectedCount})
-                        </OutlineButton>
-                    )}
-                </Box>
-                <Box sx={{
-                    display: { md: 'flex' },
-                    alignItems: 'center',
-                    gap: 1.5,
-                    width: isMobile ? '100%' : 'auto',
-                    justifyContent: isMobile ? 'space-between' : 'flex-end'
-                }}>
-                    {additionalActions}
-                </Box>
-            </Box>
-            {children}
-        </Paper>
-    );
-};
-
 const LocateTable = ({
     items,
     selected,
@@ -2740,7 +2757,6 @@ const LocateTable = ({
                                                                 color: item.timeRemainingColor,
                                                                 fontSize: isMobile ? '0.8rem' : '0.85rem',
                                                                 fontWeight: item.timeRemainingText === 'EXPIRED' ? 600 : 400,
-                                                                fontFamily: item.callType === 'Emergency' || item.callType === 'EMERGENCY' ? 'monospace' : 'inherit',
                                                                 whiteSpace: 'nowrap',
                                                             }}
                                                         >

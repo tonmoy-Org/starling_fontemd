@@ -25,7 +25,6 @@ import {
     InputAdornment,
     TablePagination,
     Modal,
-    TextField,
     MenuItem,
     FormControl,
     InputLabel,
@@ -37,7 +36,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { alpha } from '@mui/material/styles';
 import axiosInstance from '../../../api/axios';
 import { useAuth } from '../../../auth/AuthProvider';
-import { format as formatTZ, toZonedTime } from 'date-fns-tz';
+import {
+    format,
+    parseISO,
+    addDays,
+    addHours,
+    isWeekend,
+    addBusinessDays,
+} from 'date-fns';
 import pen from '../../../public/icons/Edit.gif';
 import report from '../../../public/icons/report.gif';
 import locked from '../../../public/icons/locked.gif';
@@ -73,41 +79,93 @@ const GRAY_COLOR = '#6b7280';
 const PURPLE_COLOR = '#8b5cf6';
 const CYAN_COLOR = '#06b6d4';
 
-const TIMEZONE = 'America/Los_Angeles';
+const PACIFIC_TIMEZONE_OFFSET = -8; // PST offset in hours (UTC-8)
+const PACIFIC_DAYLIGHT_OFFSET = -7; // PDT offset in hours (UTC-7)
 
+// Helper function to check if we're in Daylight Saving Time
+const isDaylightSavingTime = (date) => {
+    const year = date.getFullYear();
+    // DST in US: Second Sunday in March to First Sunday in November
+    const march = new Date(year, 2, 1);
+    const november = new Date(year, 10, 1);
+    
+    // Find second Sunday in March
+    let dstStart = new Date(march);
+    while (dstStart.getDay() !== 0) {
+        dstStart.setDate(dstStart.getDate() + 1);
+    }
+    dstStart.setDate(dstStart.getDate() + 7); // Second Sunday
+    
+    // Find first Sunday in November
+    let dstEnd = new Date(november);
+    while (dstEnd.getDay() !== 0) {
+        dstEnd.setDate(dstEnd.getDate() + 1);
+    }
+    
+    return date >= dstStart && date < dstEnd;
+};
+
+// Convert UTC date to Pacific Time
 const toPacificTime = (dateString) => {
     if (!dateString) return null;
     try {
-        const date = new Date(dateString);
-        return toZonedTime(date, TIMEZONE);
+        // If dateString is already a Date object
+        const date = dateString instanceof Date ? dateString : new Date(dateString);
+
+        // Handle invalid dates
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date string:', dateString);
+            return null;
+        }
+
+        // Create a new date in UTC
+        const utcDate = new Date(date.toISOString());
+        
+        // Apply Pacific Time offset
+        const offset = isDaylightSavingTime(utcDate) ? PACIFIC_DAYLIGHT_OFFSET : PACIFIC_TIMEZONE_OFFSET;
+        const pacificTime = new Date(utcDate.getTime() + (offset * 60 * 60 * 1000));
+        
+        return pacificTime;
     } catch (e) {
-        console.error('Error converting to Pacific Time:', e);
+        console.error('Error converting to Pacific Time:', e, 'Date string:', dateString);
         return null;
     }
 };
 
+// Format date for display (Pacific Time)
 const formatDate = (dateString) => {
     const date = toPacificTime(dateString);
     if (!date) return '—';
-    return formatTZ(date, 'MMM dd, yyyy', { timeZone: TIMEZONE });
+    return format(date, 'MMM dd, yyyy');
 };
 
+// Format time for display (Pacific Time)
 const formatTime = (dateString) => {
     const date = toPacificTime(dateString);
     if (!date) return '—';
-    return formatTZ(date, 'h:mm a', { timeZone: TIMEZONE });
+    return format(date, 'h:mm a');
 };
 
+// Format short date with time (Pacific Time)
 const formatDateShort = (dateString) => {
     const date = toPacificTime(dateString);
     if (!date) return '—';
-    return formatTZ(date, 'MMM dd, HH:mm', { timeZone: TIMEZONE });
+    return format(date, 'MMM dd, h:mm a');
 };
 
+// Format date and time with timezone (Pacific Time)
+const formatDateTimeWithTZ = (dateString) => {
+    const date = toPacificTime(dateString); // or new Date(dateString)
+    if (!date) return '—';
+
+    return format(date, 'MMM dd, yyyy h:mm a');
+};
+
+// Calculate elapsed time in Pacific Time
 const calculateElapsedTime = (createdDate) => {
     if (!createdDate) return '—';
     try {
-        const now = toZonedTime(new Date(), TIMEZONE);
+        const now = new Date();
         const created = toPacificTime(createdDate);
         if (!created) return '—';
 
@@ -123,6 +181,7 @@ const calculateElapsedTime = (createdDate) => {
             return `${diffHours} HR${diffHours !== 1 ? 'S' : ''}`;
         }
     } catch (e) {
+        console.error('Error calculating elapsed time:', e);
         return '—';
     }
 };
@@ -130,7 +189,7 @@ const calculateElapsedTime = (createdDate) => {
 const getElapsedColor = (createdDate) => {
     if (!createdDate) return GRAY_COLOR;
     try {
-        const now = toZonedTime(new Date(), TIMEZONE);
+        const now = new Date();
         const created = toPacificTime(createdDate);
         if (!created) return GRAY_COLOR;
 
@@ -167,6 +226,15 @@ const parseDashboardAddress = (fullAddress) => {
         zip,
         original: fullAddress,
     };
+};
+
+// Get current Pacific Time as ISO string for database
+const getCurrentPacificTimeISO = () => {
+    const now = new Date();
+    const offset = isDaylightSavingTime(now) ? PACIFIC_DAYLIGHT_OFFSET : PACIFIC_TIMEZONE_OFFSET;
+    const pacificTime = new Date(now.getTime() + (offset * 60 * 60 * 1000));
+    // Convert back to UTC for database storage
+    return new Date(pacificTime.getTime() - (offset * 60 * 60 * 1000)).toISOString();
 };
 
 const PDFViewerModal = ({ open, onClose, pdfUrl }) => {
@@ -439,7 +507,7 @@ const RMEReports = () => {
         };
     }, [authUser]);
 
-    // Process data for different stages
+    // Process data for different stages with Pacific Time formatting
     const processedData = useMemo(() => {
         const reportNeeded = [];
         const reportSubmitted = [];
@@ -447,6 +515,7 @@ const RMEReports = () => {
         const finalized = [];
 
         workOrders.forEach(item => {
+            // Format all dates to Pacific Time for display
             const report = {
                 id: item.id.toString(),
                 woNumber: item.wo_number || 'N/A',
@@ -473,12 +542,16 @@ const RMEReports = () => {
                 isDeleted: item.is_deleted || false,
                 deletedBy: item.deleted_by,
                 deletedDate: item.deleted_date,
+                deletedDateFormatted: formatDateTimeWithTZ(item.deleted_date),
                 finalizedBy: item.finalized_by,
                 finalizedByEmail: item.finalized_by_email,
                 finalizedDate: item.finalized_date,
+                finalizedDateFormatted: formatDateTimeWithTZ(item.finalized_date),
                 reportId: item.report_id,
                 createdAt: item.scheduled_date,
                 timeCompleted: formatTime(item.scheduled_date),
+                scheduledDateFormatted: formatDateTimeWithTZ(item.scheduled_date),
+                movedToHoldingDateFormatted: formatDateTimeWithTZ(item.moved_to_holding_date),
                 rawData: item,
             };
 
@@ -489,6 +562,7 @@ const RMEReports = () => {
                     ...report,
                     action: 'deleted',
                     actionTime: item.finalized_date || item.updated_at || item.created_at,
+                    actionTimeFormatted: formatDateTimeWithTZ(item.finalized_date || item.updated_at || item.created_at),
                     by: item.finalized_by || 'System',
                     byEmail: item.finalized_by_email || '',
                     status: 'DELETED',
@@ -500,6 +574,7 @@ const RMEReports = () => {
                     ...report,
                     action: 'locked',
                     actionTime: item.finalized_date,
+                    actionTimeFormatted: formatDateTimeWithTZ(item.finalized_date),
                     by: item.finalized_by,
                     byEmail: item.finalized_by_email || '',
                     status: 'LOCKED',
@@ -607,7 +682,7 @@ const RMEReports = () => {
                     is_deleted: true,
                     deleted_by: currentUser.name,
                     deleted_by_email: currentUser.email,
-                    deleted_date: new Date().toISOString(),
+                    deleted_date: getCurrentPacificTimeISO(), // Use Pacific Time
                 })
             );
             await Promise.all(promises);
@@ -710,7 +785,7 @@ const RMEReports = () => {
             const response = await axiosInstance.patch(`/work-orders-today/${id}/`, {
                 finalized_by: currentUser.name,
                 finalized_by_email: currentUser.email,
-                finalized_date: new Date().toISOString(),
+                finalized_date: getCurrentPacificTimeISO(), // Use Pacific Time
                 rme_completed: true,
                 report_id: `RME-${new Date().getFullYear()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
                 tech_report_submitted: true,
@@ -730,7 +805,7 @@ const RMEReports = () => {
                 reason: reason,
                 notes: notes,
                 moved_created_by: currentUser.name,
-                moved_to_holding_date: new Date().toISOString(),
+                moved_to_holding_date: getCurrentPacificTimeISO(), // Use Pacific Time
                 tech_report_submitted: true,
                 status: 'HOLDING',
             });
@@ -746,7 +821,7 @@ const RMEReports = () => {
             const response = await axiosInstance.patch(`/work-orders-today/${id}/`, {
                 finalized_by: currentUser.name,
                 finalized_by_email: currentUser.email,
-                finalized_date: new Date().toISOString(),
+                finalized_date: getCurrentPacificTimeISO(), // Use Pacific Time
                 rme_completed: true,
                 status: 'DELETED',
             });
@@ -1125,7 +1200,7 @@ const RMEReports = () => {
                             letterSpacing: '-0.01em',
                         }}
                     >
-                        RME Report Tracking
+                        RME Report Tracking (Pacific Time)
                     </Typography>
                     <Typography
                         variant="body2"
@@ -1461,7 +1536,7 @@ const RMEReports = () => {
                                     fontSize: '0.85rem',
                                     color: GRAY_COLOR,
                                 }}>
-                                    {deletedWorkOrders.length} deleted item(s) • Restore or permanently delete
+                                    {deletedWorkOrders.length} deleted item(s)
                                 </Typography>
                             </Box>
                         </Box>
@@ -1628,7 +1703,7 @@ const RMEReports = () => {
                                             <TableCell sx={{ minWidth: 120 }}>Customer</TableCell>
                                             <TableCell sx={{ minWidth: 180 }}>Address</TableCell>
                                             <TableCell sx={{ minWidth: 120 }}>Deleted By</TableCell>
-                                            <TableCell sx={{ minWidth: 120 }}>Deleted At</TableCell>
+                                            <TableCell sx={{ minWidth: 150 }}>Deleted At </TableCell>
                                             <TableCell width={150} sx={{ minWidth: 120 }}>Actions</TableCell>
                                         </TableRow>
                                     </TableHead>
@@ -1709,12 +1784,6 @@ const RMEReports = () => {
                                                         }}>
                                                             {address.street || '—'}
                                                         </Typography>
-                                                        <Typography variant="caption" sx={{
-                                                            fontSize: '0.75rem',
-                                                            color: GRAY_COLOR,
-                                                        }}>
-                                                            {[address.city, address.state, address.zip].filter(Boolean).join(', ') || '—'}
-                                                        </Typography>
                                                     </TableCell>
                                                     <TableCell>
                                                         <Box>
@@ -1739,7 +1808,7 @@ const RMEReports = () => {
                                                             fontSize: isMobile ? '0.8rem' : '0.85rem',
                                                             color: TEXT_COLOR,
                                                         }}>
-                                                            {formatDateShort(item.deleted_date)}
+                                                            {formatDateTimeWithTZ(item.deleted_date)}
                                                         </Typography>
                                                     </TableCell>
                                                     <TableCell>
@@ -3995,7 +4064,7 @@ const FinalizedTable = ({
                             Address
                         </TableCell>
                         <TableCell sx={{ minWidth: 150 }}>
-                            Date
+                            Date 
                         </TableCell>
                         <TableCell sx={{ minWidth: 150 }}>
                             {isMobile ? 'Manager' : 'By Manager'}
