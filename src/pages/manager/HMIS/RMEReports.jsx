@@ -88,20 +88,20 @@ const isDaylightSavingTime = (date) => {
     // DST in US: Second Sunday in March to First Sunday in November
     const march = new Date(year, 2, 1);
     const november = new Date(year, 10, 1);
-    
+
     // Find second Sunday in March
     let dstStart = new Date(march);
     while (dstStart.getDay() !== 0) {
         dstStart.setDate(dstStart.getDate() + 1);
     }
     dstStart.setDate(dstStart.getDate() + 7); // Second Sunday
-    
+
     // Find first Sunday in November
     let dstEnd = new Date(november);
     while (dstEnd.getDay() !== 0) {
         dstEnd.setDate(dstEnd.getDate() + 1);
     }
-    
+
     return date >= dstStart && date < dstEnd;
 };
 
@@ -120,11 +120,11 @@ const toPacificTime = (dateString) => {
 
         // Create a new date in UTC
         const utcDate = new Date(date.toISOString());
-        
+
         // Apply Pacific Time offset
         const offset = isDaylightSavingTime(utcDate) ? PACIFIC_DAYLIGHT_OFFSET : PACIFIC_TIMEZONE_OFFSET;
         const pacificTime = new Date(utcDate.getTime() + (offset * 60 * 60 * 1000));
-        
+
         return pacificTime;
     } catch (e) {
         console.error('Error converting to Pacific Time:', e, 'Date string:', dateString);
@@ -766,7 +766,7 @@ const RMEReports = () => {
                     deleted_by_email: '',
                 })
             );
-            await Promise.all(promises);
+            return Promise.all(promises); // 👈 IMPORTANT
         },
         onSuccess: (responses) => {
             invalidateAndRefetch();
@@ -776,9 +776,13 @@ const RMEReports = () => {
         },
         onError: (err) => {
             console.error('Bulk restore error:', err);
-            showSnackbar(err?.response?.data?.message || 'Bulk restore failed', 'error');
+            showSnackbar(
+                err?.response?.data?.message || 'Bulk restore failed',
+                'error'
+            );
         },
     });
+
 
     const lockReportMutation = useMutation({
         mutationFn: async ({ id }) => {
@@ -4064,7 +4068,7 @@ const FinalizedTable = ({
                             Address
                         </TableCell>
                         <TableCell sx={{ minWidth: 150 }}>
-                            Date 
+                            Date
                         </TableCell>
                         <TableCell sx={{ minWidth: 150 }}>
                             {isMobile ? 'Manager' : 'By Manager'}

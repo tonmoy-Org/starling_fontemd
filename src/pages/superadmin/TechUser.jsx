@@ -3,39 +3,35 @@ import {
     Box,
     Typography,
     Paper,
-    Button,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
-    Select,
-    MenuItem,
-    FormControl,
-    InputLabel,
     Table,
     TableBody,
     TableCell,
     TableContainer,
     TableHead,
     TableRow,
-    IconButton,
     Chip,
-    Alert,
     Snackbar,
+    Alert,
     CircularProgress,
+    Button,
+    Tooltip,
+    IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TablePagination,
+    useMediaQuery,
+    useTheme,
     Switch,
     FormControlLabel,
-    Tooltip,
-    DialogContentText,
     alpha,
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '../../api/axios';
-import GradientButton from '../../components/ui/GradientButton';
-import OutlineButton from '../../components/ui/OutlineButton';
-import StyledTextField from '../../components/ui/StyledTextField';
 import { Helmet } from 'react-helmet-async';
+import DashboardLoader from '../../components/Loader/DashboardLoader';
+import OutlineButton from '../../components/ui/OutlineButton';
 
 // Import Lucide React icons
 import {
@@ -43,7 +39,6 @@ import {
     User,
     UserPlus,
     UserCog,
-    Shield,
     ShieldCheck,
     UserCheck,
     UserX,
@@ -51,42 +46,24 @@ import {
     XCircle,
     Edit,
     Trash2,
-    Filter,
-    MoreVertical,
-    AlertCircle,
     Mail,
-    Phone,
-    Calendar,
-    MapPin,
-    Clock,
-    ChevronRight,
-    ChevronLeft,
-    ChevronsLeft,
-    ChevronsRight,
-    Eye,
-    EyeOff,
-    Lock,
-    Unlock,
     RefreshCw,
+    X,
 } from 'lucide-react';
-import DashboardLoader from '../../components/Loader/DashboardLoader';
 
 // Define color constants
 const TEXT_COLOR = '#0F1115';
-const BLUE_LIGHT = '#A8C9E9';
 const BLUE_COLOR = '#1976d2';
-const BLUE_DARK = '#1565c0';
-const RED_COLOR = '#ef4444';
-const RED_DARK = '#dc2626';
 const GREEN_COLOR = '#10b981';
-const GREEN_DARK = '#059669';
+const RED_COLOR = '#ef4444';
+const ORANGE_COLOR = '#ed6c02';
 const GRAY_COLOR = '#6b7280';
-const GRAY_LIGHT = '#f3f4f6';
-const PURPLE_COLOR = '#8b5cf6';
-const ORANGE_COLOR = '#f97316';
 
 export const TechUser = () => {
     const queryClient = useQueryClient();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
     const [openDialog, setOpenDialog] = useState(false);
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
     const [openStatusDialog, setOpenStatusDialog] = useState(false);
@@ -99,7 +76,8 @@ export const TechUser = () => {
 
     // Pagination state
     const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [rowsPerPage, setRowsPerPage] = useState(isMobile ? 5 : 10);
+
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -109,11 +87,13 @@ export const TechUser = () => {
     });
 
     const { data: users = [], isLoading } = useQuery({
-        queryKey: ['users'],
+        queryKey: ['tech-users-management'],
         queryFn: async () => {
             const response = await axiosInstance.get('/users/tech');
-            return response.data.users || response.data.data || response.data;
+            return response.data.data || response.data.users || response.data;
         },
+        staleTime: 30000,
+        refetchInterval: 60000,
     });
 
     // Filter users based on search query
@@ -145,22 +125,31 @@ export const TechUser = () => {
         setPage(0);
     };
 
+    const showSnackbar = (message, severity = 'success') => {
+        if (severity === 'success') {
+            setSuccess(message);
+        } else {
+            setError(message);
+        }
+        setTimeout(() => {
+            severity === 'success' ? setSuccess('') : setError('');
+        }, 3000);
+    };
+
     const createUserMutation = useMutation({
         mutationFn: async (userData) => {
             const response = await axiosInstance.post('/users/', userData);
             return response.data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['users'] });
-            setSuccess('User created successfully!');
+            queryClient.invalidateQueries({ queryKey: ['tech-users-management'] });
+            showSnackbar('Tech user created successfully!', 'success');
             setOpenDialog(false);
             resetForm();
-            setTimeout(() => setSuccess(''), 3000);
             setPage(0);
         },
         onError: (err) => {
-            setError(err.response?.data?.message || 'Failed to create user');
-            setTimeout(() => setError(''), 3000);
+            showSnackbar(err.response?.data?.message || 'Failed to create tech user', 'error');
         },
     });
 
@@ -170,20 +159,18 @@ export const TechUser = () => {
             return response.data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['users'] });
-            setSuccess('User deleted successfully!');
+            queryClient.invalidateQueries({ queryKey: ['tech-users-management'] });
+            showSnackbar('Tech user deleted successfully!', 'success');
             setOpenDeleteDialog(false);
             setUserToDelete(null);
-            setTimeout(() => setSuccess(''), 3000);
             if (paginatedUsers.length === 1 && page > 0) {
                 setPage(page - 1);
             }
         },
         onError: (err) => {
-            setError(err.response?.data?.message || 'Failed to delete user');
+            showSnackbar(err.response?.data?.message || 'Failed to delete tech user', 'error');
             setOpenDeleteDialog(false);
             setUserToDelete(null);
-            setTimeout(() => setError(''), 3000);
         },
     });
 
@@ -193,15 +180,13 @@ export const TechUser = () => {
             return response.data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['users'] });
-            setSuccess('User updated successfully!');
+            queryClient.invalidateQueries({ queryKey: ['tech-users-management'] });
+            showSnackbar('Tech user updated successfully!', 'success');
             setOpenDialog(false);
             resetForm();
-            setTimeout(() => setSuccess(''), 3000);
         },
         onError: (err) => {
-            setError(err.response?.data?.message || 'Failed to update user');
-            setTimeout(() => setError(''), 3000);
+            showSnackbar(err.response?.data?.message || 'Failed to update tech user', 'error');
         },
     });
 
@@ -211,17 +196,15 @@ export const TechUser = () => {
             return response.data;
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['users'] });
-            setSuccess('User status updated successfully!');
+            queryClient.invalidateQueries({ queryKey: ['tech-users-management'] });
+            showSnackbar('Tech user status updated successfully!', 'success');
             setOpenStatusDialog(false);
             setUserToToggle(null);
-            setTimeout(() => setSuccess(''), 3000);
         },
         onError: (err) => {
-            setError(err.response?.data?.message || 'Failed to update user status');
+            showSnackbar(err.response?.data?.message || 'Failed to update tech user status', 'error');
             setOpenStatusDialog(false);
             setUserToToggle(null);
-            setTimeout(() => setError(''), 3000);
         },
     });
 
@@ -254,7 +237,7 @@ export const TechUser = () => {
 
     const handleDeleteConfirm = () => {
         if (userToDelete) {
-            deleteUserMutation.mutate(userToDelete.id);
+            deleteUserMutation.mutate(userToDelete.id || userToDelete._id);
         }
     };
 
@@ -265,7 +248,7 @@ export const TechUser = () => {
 
     const handleToggleStatusConfirm = () => {
         if (userToToggle) {
-            toggleUserStatusMutation.mutate(userToToggle.id);
+            toggleUserStatusMutation.mutate(userToToggle.id || userToToggle._id);
         }
     };
 
@@ -300,40 +283,34 @@ export const TechUser = () => {
             if (!updateData.password) {
                 delete updateData.password;
             }
-            updateUserMutation.mutate({ userId: selectedUser.id, userData: updateData });
+            updateUserMutation.mutate({ 
+                userId: selectedUser.id || selectedUser._id, 
+                userData: updateData 
+            });
         } else {
             createUserMutation.mutate(formData);
         }
     };
 
     const getRoleStyle = (role) => {
-        switch (role) {
-            case 'tech':
-                return {
-                    backgroundColor: alpha(GREEN_COLOR, 0.08),
-                    color: GREEN_DARK,
-                    border: `1px solid ${alpha(GREEN_COLOR, 0.3)}`,
-                };
-            default:
-                return {
-                    backgroundColor: alpha(GRAY_COLOR, 0.08),
-                    color: TEXT_COLOR,
-                    border: `1px solid ${alpha(GRAY_COLOR, 0.3)}`,
-                };
-        }
+        return {
+            backgroundColor: alpha(GREEN_COLOR, 0.08),
+            color: GREEN_COLOR,
+            border: `1px solid ${alpha(GREEN_COLOR, 0.3)}`,
+        };
     };
 
     const getStatusStyle = (isActive) => {
         if (isActive) {
             return {
                 backgroundColor: alpha(GREEN_COLOR, 0.08),
-                color: GREEN_DARK,
+                color: GREEN_COLOR,
                 border: `1px solid ${alpha(GREEN_COLOR, 0.3)}`,
             };
         } else {
             return {
                 backgroundColor: alpha(RED_COLOR, 0.08),
-                color: RED_DARK,
+                color: RED_COLOR,
                 border: `1px solid ${alpha(RED_COLOR, 0.3)}`,
             };
         }
@@ -352,160 +329,73 @@ export const TechUser = () => {
     };
 
     const getRoleIcon = (role) => {
-        switch (role) {
-            case 'superadmin':
-                return <ShieldCheck size={14} />;
-            case 'manager':
-                return <UserCog size={14} />;
-            case 'tech':
-                return <User size={14} />;
-            default:
-                return <User size={14} />;
-        }
+        return <UserCog size={14} />;
     };
 
-    // Custom pagination icons
-    const PaginationActions = ({ count, page, rowsPerPage, onPageChange }) => {
-        const handleFirstPageButtonClick = (event) => {
-            onPageChange(event, 0);
-        };
-
-        const handleBackButtonClick = (event) => {
-            onPageChange(event, page - 1);
-        };
-
-        const handleNextButtonClick = (event) => {
-            onPageChange(event, page + 1);
-        };
-
-        const handleLastPageButtonClick = (event) => {
-            onPageChange(event, Math.max(0, Math.ceil(count / rowsPerPage) - 1));
-        };
-
+    // Search input component (consistent with other components)
+    const SearchInput = ({ value, onChange, placeholder, color, fullWidth = false }) => {
         return (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Tooltip title="First Page">
-                    <Box
-                        component="button"
-                        onClick={handleFirstPageButtonClick}
-                        disabled={page === 0}
+            <Box sx={{ position: 'relative', width: fullWidth ? '100%' : 250 }}>
+                <Box
+                    component="input"
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    sx={{
+                        width: '100%',
+                        fontSize: '0.8rem',
+                        height: '36px',
+                        paddingLeft: '36px',
+                        paddingRight: value ? '36px' : '16px',
+                        border: `1px solid ${alpha(color, 0.2)}`,
+                        borderRadius: '4px',
+                        outline: 'none',
+                        '&:focus': {
+                            borderColor: color,
+                            boxShadow: `0 0 0 2px ${alpha(color, 0.1)}`,
+                        },
+                        '&::placeholder': {
+                            color: alpha(GRAY_COLOR, 0.6),
+                        },
+                    }}
+                />
+                <Search
+                    size={16}
+                    color={GRAY_COLOR}
+                    style={{
+                        position: 'absolute',
+                        left: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                    }}
+                />
+                {value && (
+                    <IconButton
+                        size="small"
+                        onClick={() => onChange('')}
                         sx={{
+                            position: 'absolute',
+                            right: '4px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
                             padding: '4px',
-                            border: 'none',
-                            background: 'transparent',
-                            cursor: page === 0 ? 'default' : 'pointer',
-                            color: page === 0 ? GRAY_COLOR : TEXT_COLOR,
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            '&:hover': page === 0 ? {} : {
-                                backgroundColor: alpha(BLUE_COLOR, 0.1),
-                            },
-                            '&:disabled': {
-                                opacity: 0.5,
-                                cursor: 'default',
-                            },
                         }}
                     >
-                        <ChevronsLeft size={16} />
-                    </Box>
-                </Tooltip>
-                <Tooltip title="Previous Page">
-                    <Box
-                        component="button"
-                        onClick={handleBackButtonClick}
-                        disabled={page === 0}
-                        sx={{
-                            padding: '4px',
-                            border: 'none',
-                            background: 'transparent',
-                            cursor: page === 0 ? 'default' : 'pointer',
-                            color: page === 0 ? GRAY_COLOR : TEXT_COLOR,
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            '&:hover': page === 0 ? {} : {
-                                backgroundColor: alpha(BLUE_COLOR, 0.1),
-                            },
-                            '&:disabled': {
-                                opacity: 0.5,
-                                cursor: 'default',
-                            },
-                        }}
-                    >
-                        <ChevronLeft size={16} />
-                    </Box>
-                </Tooltip>
-                <Tooltip title="Next Page">
-                    <Box
-                        component="button"
-                        onClick={handleNextButtonClick}
-                        disabled={page >= Math.ceil(count / rowsPerPage) - 1}
-                        sx={{
-                            padding: '4px',
-                            border: 'none',
-                            background: 'transparent',
-                            cursor: page >= Math.ceil(count / rowsPerPage) - 1 ? 'default' : 'pointer',
-                            color: page >= Math.ceil(count / rowsPerPage) - 1 ? GRAY_COLOR : TEXT_COLOR,
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            '&:hover': page >= Math.ceil(count / rowsPerPage) - 1 ? {} : {
-                                backgroundColor: alpha(BLUE_COLOR, 0.1),
-                            },
-                            '&:disabled': {
-                                opacity: 0.5,
-                                cursor: 'default',
-                            },
-                        }}
-                    >
-                        <ChevronRight size={16} />
-                    </Box>
-                </Tooltip>
-                <Tooltip title="Last Page">
-                    <Box
-                        component="button"
-                        onClick={handleLastPageButtonClick}
-                        disabled={page >= Math.ceil(count / rowsPerPage) - 1}
-                        sx={{
-                            padding: '4px',
-                            border: 'none',
-                            background: 'transparent',
-                            cursor: page >= Math.ceil(count / rowsPerPage) - 1 ? 'default' : 'pointer',
-                            color: page >= Math.ceil(count / rowsPerPage) - 1 ? GRAY_COLOR : TEXT_COLOR,
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            '&:hover': page >= Math.ceil(count / rowsPerPage) - 1 ? {} : {
-                                backgroundColor: alpha(BLUE_COLOR, 0.1),
-                            },
-                            '&:disabled': {
-                                opacity: 0.5,
-                                cursor: 'default',
-                            },
-                        }}
-                    >
-                        <ChevronsRight size={16} />
-                    </Box>
-                </Tooltip>
+                        <X size={16} />
+                    </IconButton>
+                )}
             </Box>
         );
     };
 
     if (isLoading) {
-        return (
-            <DashboardLoader />
-        );
+        return <DashboardLoader />;
     }
 
     return (
         <Box>
             <Helmet>
-                <title> Tech User Management | Sterling Septic & Plumbing LLC</title>
+                <title>Tech User Management | Sterling Septic & Plumbing LLC</title>
                 <meta name="description" content="Manage tech users and their roles" />
             </Helmet>
 
@@ -531,22 +421,25 @@ export const TechUser = () => {
                             fontWeight: 400,
                         }}
                     >
-                        Manage users and their roles
+                        Manage tech users and their roles
                     </Typography>
                 </Box>
-                <GradientButton
+                <Button
                     variant="contained"
                     startIcon={<UserPlus size={16} />}
                     onClick={() => handleOpenDialog()}
                     sx={{
-                        fontSize: '0.85rem',
+                        textTransform: 'none',
+                        fontSize: isMobile ? '0.75rem' : '0.85rem',
                         fontWeight: 500,
-                        px: 2,
-                        py: 0.8,
+                        backgroundColor: GREEN_COLOR,
+                        '&:hover': {
+                            backgroundColor: alpha(GREEN_COLOR, 0.9),
+                        },
                     }}
                 >
-                    Add User
-                </GradientButton>
+                    Add Tech User
+                </Button>
             </Box>
 
             {/* Main Table Section */}
@@ -556,128 +449,119 @@ export const TechUser = () => {
                     mb: 4,
                     borderRadius: '6px',
                     overflow: 'hidden',
-                    border: `1px solid ${alpha(BLUE_COLOR, 0.15)}`,
+                    border: `1px solid ${alpha(GREEN_COLOR, 0.15)}`,
                     bgcolor: 'white'
                 }}
             >
                 <Box
                     sx={{
-                        p: 1.5,
+                        p: isMobile ? 1 : 1.5,
                         bgcolor: 'white',
-                        borderBottom: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
+                        borderBottom: `1px solid ${alpha(GREEN_COLOR, 0.1)}`,
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
+                        flexDirection: isMobile ? 'column' : 'row',
+                        gap: isMobile ? 1 : 0,
                     }}
                 >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <UserCog size={18} color={BLUE_COLOR} />
-                            <Typography
-                                sx={{
-                                    fontSize: '0.9rem',
-                                    color: TEXT_COLOR,
-                                    fontWeight: 600,
-                                }}
-                            >
-                                Tech Users
-                            </Typography>
-                        </Box>
-                        <Chip
-                            size="small"
-                            label={filteredUsers.length}
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        width: isMobile ? '100%' : 'auto',
+                        justifyContent: isMobile ? 'space-between' : 'flex-start'
+                    }}>
+                        <Typography
                             sx={{
-                                bgcolor: alpha(BLUE_COLOR, 0.08),
+                                fontSize: isMobile ? '0.85rem' : '0.9rem',
                                 color: TEXT_COLOR,
-                                fontSize: '0.75rem',
-                                fontWeight: 500,
-                                height: '22px',
-                                '& .MuiChip-label': {
-                                    px: 1,
-                                },
+                                fontWeight: 600,
                             }}
-                        />
+                        >
+                            Tech Users
+                            <Chip
+                                size="small"
+                                label={filteredUsers.length}
+                                sx={{
+                                    ml: 1,
+                                    bgcolor: alpha(GREEN_COLOR, 0.08),
+                                    color: TEXT_COLOR,
+                                    fontSize: '0.75rem',
+                                    fontWeight: 500,
+                                    height: '22px',
+                                    '& .MuiChip-label': {
+                                        px: 1,
+                                    },
+                                }}
+                            />
+                        </Typography>
                     </Box>
-
-                    {/* Search Field in Header */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <StyledTextField
-                            size="small"
-                            placeholder="Search by name, email, or role..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            sx={{
-                                width: 280,
-                                '& .MuiInputBase-root': {
-                                    fontSize: '0.8rem',
-                                    height: '36px',
-                                },
-                            }}
-                            InputProps={{
-                                startAdornment: (
-                                    <Box sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        mr: 1,
-                                        color: BLUE_COLOR
-                                    }}>
-                                        <Search size={16} />
-                                    </Box>
-                                ),
-                            }}
-                        />
+                    <Box sx={{
+                        display: { md: 'flex' },
+                        alignItems: 'center',
+                        gap: 1.5,
+                        width: isMobile ? '100%' : 'auto',
+                        justifyContent: isMobile ? 'space-between' : 'flex-end'
+                    }}>
+                        <Box sx={{
+                            display: 'flex',
+                            gap: 1,
+                            width: isMobile ? '100%' : 'auto',
+                            flexDirection: isMobile ? 'column' : 'row',
+                            mt: isMobile ? 1 : 0
+                        }}>
+                            <SearchInput
+                                value={searchQuery}
+                                onChange={setSearchQuery}
+                                placeholder="Search tech users..."
+                                color={GREEN_COLOR}
+                                fullWidth={isMobile}
+                            />
+                        </Box>
                     </Box>
                 </Box>
 
-                <TableContainer>
-                    <Table size="small">
+                <TableContainer sx={{
+                    overflowX: 'auto',
+                    '&::-webkit-scrollbar': {
+                        height: '8px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                        backgroundColor: alpha(GREEN_COLOR, 0.05),
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: alpha(GREEN_COLOR, 0.2),
+                        borderRadius: '4px',
+                    },
+                }}>
+                    <Table size="small" sx={{ minWidth: isMobile ? 800 : 'auto' }}>
                         <TableHead>
                             <TableRow sx={{
-                                bgcolor: alpha(BLUE_COLOR, 0.04),
+                                bgcolor: alpha(GREEN_COLOR, 0.04),
                                 '& th': {
-                                    borderBottom: `2px solid ${alpha(BLUE_COLOR, 0.1)}`,
+                                    borderBottom: `2px solid ${alpha(GREEN_COLOR, 0.1)}`,
+                                    py: 1.5,
+                                    px: 1.5,
+                                    fontSize: isMobile ? '0.75rem' : '0.8rem',
+                                    fontWeight: 600,
+                                    color: TEXT_COLOR,
+                                    whiteSpace: 'nowrap',
                                 }
                             }}>
-                                <TableCell sx={{
-                                    fontWeight: 600,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    py: 1.5,
-                                    pl: 2.5,
-                                }}>
+                                <TableCell sx={{ pl: isMobile ? 1.5 : 2.5, minWidth: 150 }}>
                                     Name
                                 </TableCell>
-                                <TableCell sx={{
-                                    fontWeight: 600,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    py: 1.5,
-                                }}>
+                                <TableCell sx={{ minWidth: 180 }}>
                                     Email
                                 </TableCell>
-                                <TableCell sx={{
-                                    fontWeight: 600,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    py: 1.5,
-                                }}>
+                                <TableCell sx={{ minWidth: 100 }}>
                                     Role
                                 </TableCell>
-                                <TableCell sx={{
-                                    fontWeight: 600,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    py: 1.5,
-                                }}>
+                                <TableCell sx={{ minWidth: 100 }}>
                                     Status
                                 </TableCell>
-                                <TableCell align="right" sx={{
-                                    fontWeight: 600,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    py: 1.5,
-                                    pr: 2.5,
-                                }}>
+                                <TableCell align="right" sx={{ pr: isMobile ? 1.5 : 2.5, minWidth: 150 }}>
                                     Actions
                                 </TableCell>
                             </TableRow>
@@ -702,7 +586,7 @@ export const TechUser = () => {
                                                     fontWeight: 500,
                                                 }}
                                             >
-                                                {searchQuery ? 'No users found matching your search.' : 'No users found. Create one to get started.'}
+                                                {searchQuery ? 'No tech users found matching your search.' : 'No tech users found. Create one to get started.'}
                                             </Typography>
                                         </Box>
                                     </TableCell>
@@ -710,19 +594,19 @@ export const TechUser = () => {
                             ) : (
                                 paginatedUsers.map((user) => (
                                     <TableRow
-                                        key={user._id}
+                                        key={user._id || user.id}
                                         hover
                                         sx={{
                                             bgcolor: 'white',
                                             '&:hover': {
-                                                backgroundColor: alpha(BLUE_COLOR, 0.02),
+                                                backgroundColor: alpha(GREEN_COLOR, 0.05),
                                             },
                                             '&:last-child td': {
                                                 borderBottom: 'none',
                                             },
                                         }}
                                     >
-                                        <TableCell sx={{ pl: 2.5, py: 1.5 }}>
+                                        <TableCell sx={{ pl: isMobile ? 1.5 : 2.5, py: 1.5 }}>
                                             <Box display="flex" alignItems="center" gap={1.5}>
                                                 <Box sx={{
                                                     width: 32,
@@ -731,7 +615,7 @@ export const TechUser = () => {
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    background: `linear-gradient(135deg, ${BLUE_LIGHT} 0%, ${BLUE_COLOR} 100%)`,
+                                                    background: `linear-gradient(135deg, ${alpha(GREEN_COLOR, 0.8)} 0%, ${GREEN_COLOR} 100%)`,
                                                     color: 'white',
                                                     fontWeight: 600,
                                                     fontSize: '0.8rem',
@@ -741,10 +625,10 @@ export const TechUser = () => {
                                                 <Box>
                                                     <Typography
                                                         variant="body2"
-                                                        fontWeight="600"
                                                         sx={{
                                                             color: TEXT_COLOR,
-                                                            fontSize: '0.85rem',
+                                                            fontSize: isMobile ? '0.8rem' : '0.85rem',
+                                                            fontWeight: 600,
                                                             lineHeight: 1.2,
                                                         }}
                                                     >
@@ -754,11 +638,11 @@ export const TechUser = () => {
                                                         variant="caption"
                                                         sx={{
                                                             color: GRAY_COLOR,
-                                                            fontSize: '0.7rem',
+                                                            fontSize: '0.75rem',
                                                             fontWeight: 400,
                                                         }}
                                                     >
-                                                        ID: {user.id}
+                                                        ID: {user.id || user._id?.slice(-6)}
                                                     </Typography>
                                                 </Box>
                                             </Box>
@@ -770,7 +654,7 @@ export const TechUser = () => {
                                                     variant="body2"
                                                     sx={{
                                                         color: TEXT_COLOR,
-                                                        fontSize: '0.85rem',
+                                                        fontSize: isMobile ? '0.8rem' : '0.85rem',
                                                         fontWeight: 400,
                                                     }}
                                                 >
@@ -782,7 +666,7 @@ export const TechUser = () => {
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                 {getRoleIcon(user.role)}
                                                 <Chip
-                                                    label={user.role.toUpperCase()}
+                                                    label="TECH"
                                                     size="small"
                                                     sx={{
                                                         fontWeight: 500,
@@ -814,9 +698,9 @@ export const TechUser = () => {
                                                 />
                                             </Box>
                                         </TableCell>
-                                        <TableCell align="right" sx={{ pr: 2.5, py: 1.5 }}>
+                                        <TableCell align="right" sx={{ pr: isMobile ? 1.5 : 2.5, py: 1.5 }}>
                                             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                                                <Tooltip title="Edit User">
+                                                <Tooltip title="Edit Tech User">
                                                     <IconButton
                                                         size="small"
                                                         onClick={() => handleOpenDialog(user)}
@@ -832,7 +716,7 @@ export const TechUser = () => {
                                                         <Edit size={16} />
                                                     </IconButton>
                                                 </Tooltip>
-                                                <Tooltip title={user.isActive ? "Deactivate User" : "Activate User"}>
+                                                <Tooltip title={user.isActive ? "Deactivate Tech User" : "Activate Tech User"}>
                                                     <IconButton
                                                         size="small"
                                                         onClick={() => handleToggleStatusClick(user)}
@@ -850,13 +734,13 @@ export const TechUser = () => {
                                                         {user.isActive ? <UserX size={16} /> : <UserCheck size={16} />}
                                                     </IconButton>
                                                 </Tooltip>
-                                                <Tooltip title="Delete User">
+                                                <Tooltip title="Delete Tech User">
                                                     <IconButton
                                                         size="small"
                                                         onClick={() => handleDeleteClick(user)}
                                                         disabled={user.role === 'superadmin'}
                                                         sx={{
-                                                            color: RED_DARK,
+                                                            color: RED_COLOR,
                                                             padding: '4px',
                                                             '&:hover': {
                                                                 backgroundColor: alpha(RED_COLOR, 0.1),
@@ -874,83 +758,30 @@ export const TechUser = () => {
                         </TableBody>
                     </Table>
 
-                    {/* Pagination */}
                     {filteredUsers.length > 0 && (
-                        <Box sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            px: 2,
-                            py: 1.5,
-                            borderTop: `1px solid ${alpha(TEXT_COLOR, 0.08)}`,
-                            backgroundColor: alpha(BLUE_COLOR, 0.02),
-                        }}>
-                            <Typography
-                                variant="body2"
-                                sx={{
-                                    color: GRAY_COLOR,
-                                    fontSize: '0.8rem',
-                                    fontWeight: 400,
-                                }}
-                            >
-                                Showing {page * rowsPerPage + 1} to {Math.min((page + 1) * rowsPerPage, filteredUsers.length)} of {filteredUsers.length} users
-                            </Typography>
-
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Typography
-                                        variant="body2"
-                                        sx={{
-                                            color: GRAY_COLOR,
-                                            fontSize: '0.8rem',
-                                            fontWeight: 400,
-                                        }}
-                                    >
-                                        Rows per page:
-                                    </Typography>
-                                    <Box
-                                        component="select"
-                                        value={rowsPerPage}
-                                        onChange={handleChangeRowsPerPage}
-                                        sx={{
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
-                                            backgroundColor: 'white',
-                                            fontSize: '0.8rem',
-                                            color: TEXT_COLOR,
-                                            cursor: 'pointer',
-                                            '&:hover': {
-                                                borderColor: BLUE_COLOR,
-                                            },
-                                            '&:focus': {
-                                                outline: 'none',
-                                                borderColor: BLUE_COLOR,
-                                                boxShadow: `0 0 0 2px ${alpha(BLUE_COLOR, 0.1)}`,
-                                            },
-                                        }}
-                                    >
-                                        {[5, 10, 25, 50].map((option) => (
-                                            <option key={option} value={option}>
-                                                {option}
-                                            </option>
-                                        ))}
-                                    </Box>
-                                </Box>
-
-                                <PaginationActions
-                                    count={filteredUsers.length}
-                                    page={page}
-                                    rowsPerPage={rowsPerPage}
-                                    onPageChange={handleChangePage}
-                                />
-                            </Box>
-                        </Box>
+                        <TablePagination
+                            rowsPerPageOptions={isMobile ? [5, 10, 25] : [5, 10, 25, 50]}
+                            component="div"
+                            count={filteredUsers.length}
+                            rowsPerPage={rowsPerPage}
+                            page={page}
+                            onPageChange={handleChangePage}
+                            onRowsPerPageChange={handleChangeRowsPerPage}
+                            sx={{
+                                borderTop: `1px solid ${alpha(GREEN_COLOR, 0.1)}`,
+                                '& .MuiTablePagination-toolbar': {
+                                    minHeight: '44px',
+                                },
+                                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                                    fontSize: isMobile ? '0.75rem' : '0.8rem',
+                                },
+                            }}
+                        />
                     )}
                 </TableContainer>
             </Paper>
 
-            {/* Add/Edit User Dialog */}
+            {/* Add/Edit Tech User Dialog */}
             <Dialog
                 open={openDialog}
                 onClose={handleCloseDialog}
@@ -960,19 +791,19 @@ export const TechUser = () => {
                     sx: {
                         borderRadius: '8px',
                         bgcolor: 'white',
-                        border: `1px solid ${alpha(BLUE_COLOR, 0.15)}`,
+                        border: `1px solid ${alpha(GREEN_COLOR, 0.15)}`,
                     }
                 }}
             >
                 <DialogTitle sx={{
                     p: 2,
-                    borderBottom: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
+                    borderBottom: `1px solid ${alpha(GREEN_COLOR, 0.1)}`,
                     bgcolor: 'white',
                 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         {selectedUser ? (
                             <>
-                                <Edit size={18} color={BLUE_COLOR} />
+                                <Edit size={18} color={GREEN_COLOR} />
                                 <Typography
                                     sx={{
                                         fontSize: '0.95rem',
@@ -980,12 +811,12 @@ export const TechUser = () => {
                                         fontWeight: 600,
                                     }}
                                 >
-                                    Edit User
+                                    Edit Tech User
                                 </Typography>
                             </>
                         ) : (
                             <>
-                                <UserPlus size={18} color={BLUE_COLOR} />
+                                <UserPlus size={18} color={GREEN_COLOR} />
                                 <Typography
                                     sx={{
                                         fontSize: '0.95rem',
@@ -993,7 +824,7 @@ export const TechUser = () => {
                                         fontWeight: 600,
                                     }}
                                 >
-                                    Add New User
+                                    Add New Tech User
                                 </Typography>
                             </>
                         )}
@@ -1013,17 +844,25 @@ export const TechUser = () => {
                             >
                                 Name
                             </Typography>
-                            <StyledTextField
+                            <Box
+                                component="input"
                                 fullWidth
                                 name="name"
                                 value={formData.name}
                                 onChange={handleInputChange}
                                 required
-                                size="small"
                                 placeholder="Enter full name"
                                 sx={{
-                                    '& .MuiInputBase-root': {
-                                        fontSize: '0.85rem',
+                                    width: '100%',
+                                    fontSize: '0.85rem',
+                                    height: '40px',
+                                    padding: '0 12px',
+                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
+                                    borderRadius: '6px',
+                                    outline: 'none',
+                                    '&:focus': {
+                                        borderColor: GREEN_COLOR,
+                                        boxShadow: `0 0 0 2px ${alpha(GREEN_COLOR, 0.1)}`,
                                     },
                                 }}
                             />
@@ -1041,18 +880,26 @@ export const TechUser = () => {
                             >
                                 Email
                             </Typography>
-                            <StyledTextField
+                            <Box
+                                component="input"
                                 fullWidth
                                 name="email"
                                 type="email"
                                 value={formData.email}
                                 onChange={handleInputChange}
                                 required
-                                size="small"
                                 placeholder="Enter email address"
                                 sx={{
-                                    '& .MuiInputBase-root': {
-                                        fontSize: '0.85rem',
+                                    width: '100%',
+                                    fontSize: '0.85rem',
+                                    height: '40px',
+                                    padding: '0 12px',
+                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
+                                    borderRadius: '6px',
+                                    outline: 'none',
+                                    '&:focus': {
+                                        borderColor: GREEN_COLOR,
+                                        boxShadow: `0 0 0 2px ${alpha(GREEN_COLOR, 0.1)}`,
                                     },
                                 }}
                             />
@@ -1070,56 +917,29 @@ export const TechUser = () => {
                             >
                                 Password
                             </Typography>
-                            <StyledTextField
+                            <Box
+                                component="input"
                                 fullWidth
                                 name="password"
                                 type="password"
                                 value={formData.password}
                                 onChange={handleInputChange}
                                 required={!selectedUser}
-                                size="small"
                                 placeholder={selectedUser ? "Leave blank to keep current password" : "Enter password"}
                                 sx={{
-                                    '& .MuiInputBase-root': {
-                                        fontSize: '0.85rem',
+                                    width: '100%',
+                                    fontSize: '0.85rem',
+                                    height: '40px',
+                                    padding: '0 12px',
+                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
+                                    borderRadius: '6px',
+                                    outline: 'none',
+                                    '&:focus': {
+                                        borderColor: GREEN_COLOR,
+                                        boxShadow: `0 0 0 2px ${alpha(GREEN_COLOR, 0.1)}`,
                                     },
                                 }}
                             />
-                        </Box>
-
-                        <Box>
-                            <Typography
-                                variant="body2"
-                                sx={{
-                                    mb: 1,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    fontWeight: 500,
-                                }}
-                            >
-                                Role
-                            </Typography>
-                            <FormControl fullWidth size="small">
-                                <Select
-                                    name="role"
-                                    value={formData.role}
-                                    onChange={handleInputChange}
-                                    sx={{
-                                        fontSize: '0.85rem',
-                                        color: TEXT_COLOR,
-                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                            borderColor: BLUE_COLOR,
-                                        },
-                                    }}
-                                >
-                                    <MenuItem value="tech" sx={{ fontSize: '0.85rem' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <User size={14} />
-                                            Tech
-                                        </Box>
-                                    </MenuItem>
-                                </Select>
-                            </FormControl>
                         </Box>
 
                         {selectedUser && (
@@ -1169,7 +989,7 @@ export const TechUser = () => {
                     >
                         Cancel
                     </OutlineButton>
-                    <GradientButton
+                    <Button
                         onClick={handleSubmit}
                         variant="contained"
                         disabled={
@@ -1182,8 +1002,13 @@ export const TechUser = () => {
                         startIcon={selectedUser ? <Edit size={16} /> : <UserPlus size={16} />}
                         sx={{
                             fontSize: '0.85rem',
+                            fontWeight: 500,
                             px: 2,
                             py: 0.8,
+                            bgcolor: GREEN_COLOR,
+                            '&:hover': {
+                                bgcolor: alpha(GREEN_COLOR, 0.9),
+                            },
                         }}
                     >
                         {createUserMutation.isPending || updateUserMutation.isPending ? (
@@ -1192,9 +1017,9 @@ export const TechUser = () => {
                                 {selectedUser ? 'Updating...' : 'Creating...'}
                             </Box>
                         ) : (
-                            selectedUser ? 'Update User' : 'Create User'
+                            selectedUser ? 'Update Tech User' : 'Create Tech User'
                         )}
-                    </GradientButton>
+                    </Button>
                 </DialogActions>
             </Dialog>
 
@@ -1222,7 +1047,7 @@ export const TechUser = () => {
                         <Typography
                             sx={{
                                 fontSize: '0.95rem',
-                                color: RED_DARK,
+                                color: TEXT_COLOR,
                                 fontWeight: 600,
                             }}
                         >
@@ -1232,19 +1057,20 @@ export const TechUser = () => {
                 </DialogTitle>
                 <DialogContent sx={{ p: 2.5 }}>
                     <Box py={1}>
-                        <DialogContentText
+                        <Typography
+                            variant="body2"
                             sx={{
                                 color: TEXT_COLOR,
                                 fontSize: '0.85rem',
                                 lineHeight: 1.6,
                             }}
                         >
-                            Are you sure you want to delete the user <strong>"{userToDelete?.name}"</strong>?
+                            Are you sure you want to delete the tech user <strong>"{userToDelete?.name}"</strong>?
                             <br />
                             <span style={{ color: GRAY_COLOR, fontSize: '0.8rem' }}>
                                 This action cannot be undone.
                             </span>
-                        </DialogContentText>
+                        </Typography>
                     </Box>
                 </DialogContent>
                 <DialogActions sx={{ px: 2.5, pb: 2.5, pt: 0 }}>
@@ -1261,15 +1087,15 @@ export const TechUser = () => {
                     <Button
                         variant="contained"
                         sx={{
-                            background: `linear-gradient(135deg, ${RED_DARK} 0%, ${RED_COLOR} 100%)`,
                             color: 'white',
                             borderRadius: '6px',
                             padding: '6px 20px',
                             fontWeight: 500,
                             fontSize: '0.85rem',
                             textTransform: 'none',
+                            bgcolor: RED_COLOR,
                             '&:hover': {
-                                background: `linear-gradient(135deg, ${RED_COLOR} 0%, #b91c1c 100%)`,
+                                bgcolor: alpha(RED_COLOR, 0.9),
                             },
                         }}
                         onClick={handleDeleteConfirm}
@@ -1280,7 +1106,7 @@ export const TechUser = () => {
                             <Trash2 size={16} />
                         )}
                     >
-                        {deleteUserMutation.isPending ? 'Deleting...' : 'Delete User'}
+                        {deleteUserMutation.isPending ? 'Deleting...' : 'Delete Tech User'}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -1313,7 +1139,7 @@ export const TechUser = () => {
                         <Typography
                             sx={{
                                 fontSize: '0.95rem',
-                                color: userToToggle?.isActive ? RED_DARK : GREEN_DARK,
+                                color: TEXT_COLOR,
                                 fontWeight: 600,
                             }}
                         >
@@ -1323,7 +1149,8 @@ export const TechUser = () => {
                 </DialogTitle>
                 <DialogContent sx={{ p: 2.5 }}>
                     <Box py={1}>
-                        <DialogContentText
+                        <Typography
+                            variant="body2"
                             sx={{
                                 color: TEXT_COLOR,
                                 fontSize: '0.85rem',
@@ -1331,7 +1158,7 @@ export const TechUser = () => {
                             }}
                         >
                             Are you sure you want to {userToToggle?.isActive ? 'deactivate' : 'activate'}
-                            the user <strong>"{userToToggle?.name}"</strong>?
+                            the tech user <strong>"{userToToggle?.name}"</strong>?
                             <br />
                             <span style={{ color: GRAY_COLOR, fontSize: '0.8rem' }}>
                                 {userToToggle?.isActive
@@ -1339,7 +1166,7 @@ export const TechUser = () => {
                                     : "They will regain access to the system."
                                 }
                             </span>
-                        </DialogContentText>
+                        </Typography>
                     </Box>
                 </DialogContent>
                 <DialogActions sx={{ px: 2.5, pb: 2.5, pt: 0 }}>
@@ -1353,7 +1180,7 @@ export const TechUser = () => {
                     >
                         Cancel
                     </OutlineButton>
-                    <GradientButton
+                    <Button
                         variant="contained"
                         onClick={handleToggleStatusConfirm}
                         disabled={toggleUserStatusMutation.isPending}
@@ -1368,14 +1195,15 @@ export const TechUser = () => {
                             fontSize: '0.85rem',
                             px: 2,
                             py: 0.8,
-                            background: userToToggle?.isActive
-                                ? `linear-gradient(135deg, ${RED_DARK} 0%, ${RED_COLOR} 100%)`
-                                : undefined,
+                            bgcolor: userToToggle?.isActive ? RED_COLOR : GREEN_COLOR,
+                            '&:hover': {
+                                bgcolor: userToToggle?.isActive ? alpha(RED_COLOR, 0.9) : alpha(GREEN_COLOR, 0.9),
+                            },
                         }}
                     >
                         {toggleUserStatusMutation.isPending ? 'Updating...' :
-                            userToToggle?.isActive ? 'Deactivate User' : 'Activate User'}
-                    </GradientButton>
+                            userToToggle?.isActive ? 'Deactivate Tech User' : 'Activate Tech User'}
+                    </Button>
                 </DialogActions>
             </Dialog>
 
@@ -1392,21 +1220,18 @@ export const TechUser = () => {
                     sx={{
                         width: '100%',
                         borderRadius: '6px',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                        border: `1px solid ${alpha(GREEN_COLOR, 0.2)}`,
-                        backgroundColor: alpha(GREEN_COLOR, 0.08),
-                        color: GREEN_DARK,
+                        backgroundColor: alpha(GREEN_COLOR, 0.05),
+                        borderLeft: `4px solid ${GREEN_COLOR}`,
                         '& .MuiAlert-icon': {
-                            color: GREEN_DARK,
+                            color: GREEN_COLOR,
                         },
                     }}
-                    elevation={0}
                 >
                     <Typography
-                        fontWeight={500}
                         sx={{
-                            color: GREEN_DARK,
                             fontSize: '0.85rem',
+                            fontWeight: 500,
+                            color: TEXT_COLOR,
                         }}
                     >
                         {success}
@@ -1427,21 +1252,18 @@ export const TechUser = () => {
                     sx={{
                         width: '100%',
                         borderRadius: '6px',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                        border: `1px solid ${alpha(RED_COLOR, 0.2)}`,
-                        backgroundColor: alpha(RED_COLOR, 0.08),
-                        color: RED_DARK,
+                        backgroundColor: alpha(RED_COLOR, 0.05),
+                        borderLeft: `4px solid ${RED_COLOR}`,
                         '& .MuiAlert-icon': {
-                            color: RED_DARK,
+                            color: RED_COLOR,
                         },
                     }}
-                    elevation={0}
                 >
                     <Typography
-                        fontWeight={500}
                         sx={{
-                            color: RED_DARK,
                             fontSize: '0.85rem',
+                            fontWeight: 500,
+                            color: TEXT_COLOR,
                         }}
                     >
                         {error}
@@ -1473,3 +1295,5 @@ if (typeof document !== 'undefined') {
     styleSheet.innerText = styles;
     document.head.appendChild(styleSheet);
 }
+
+export default TechUser;

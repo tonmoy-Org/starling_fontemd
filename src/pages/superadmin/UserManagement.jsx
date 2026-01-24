@@ -3,37 +3,37 @@ import {
     Box,
     Typography,
     Paper,
-    Button,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Select,
-    MenuItem,
-    FormControl,
     Table,
     TableBody,
     TableCell,
     TableContainer,
     TableHead,
     TableRow,
-    IconButton,
     Chip,
-    Alert,
     Snackbar,
+    Alert,
     CircularProgress,
+    Button,
+    Tooltip,
+    IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TablePagination,
+    useMediaQuery,
+    useTheme,
+    Select,
+    MenuItem,
     Switch,
     FormControlLabel,
-    Tooltip,
-    DialogContentText,
     alpha,
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '../../api/axios';
-import GradientButton from '../../components/ui/GradientButton';
-import OutlineButton from '../../components/ui/OutlineButton';
-import StyledTextField from '../../components/ui/StyledTextField';
 import { Helmet } from 'react-helmet-async';
+import DashboardLoader from '../../components/Loader/DashboardLoader';
+import OutlineButton from '../../components/ui/OutlineButton';
 
 // Import Lucide React icons
 import {
@@ -49,27 +49,23 @@ import {
     Edit,
     Trash2,
     Mail,
-    ChevronRight,
-    ChevronLeft,
-    ChevronsLeft,
-    ChevronsRight,
     RefreshCw,
+    X,
 } from 'lucide-react';
-import DashboardLoader from '../../components/Loader/DashboardLoader';
 
 // Define color constants
 const TEXT_COLOR = '#0F1115';
-const BLUE_LIGHT = '#A8C9E9';
 const BLUE_COLOR = '#1976d2';
-const BLUE_DARK = '#1565c0';
-const RED_COLOR = '#ef4444';
-const RED_DARK = '#dc2626';
 const GREEN_COLOR = '#10b981';
-const GREEN_DARK = '#059669';
+const RED_COLOR = '#ef4444';
+const ORANGE_COLOR = '#ed6c02';
 const GRAY_COLOR = '#6b7280';
 
 export const UserManagement = () => {
     const queryClient = useQueryClient();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
     const [openDialog, setOpenDialog] = useState(false);
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
     const [openStatusDialog, setOpenStatusDialog] = useState(false);
@@ -82,7 +78,8 @@ export const UserManagement = () => {
 
     // Pagination state
     const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [rowsPerPage, setRowsPerPage] = useState(isMobile ? 5 : 10);
+
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -97,6 +94,8 @@ export const UserManagement = () => {
             const response = await axiosInstance.get('/users');
             return response.data.users || response.data.data || response.data;
         },
+        staleTime: 30000,
+        refetchInterval: 60000,
     });
 
     // Filter users based on search query
@@ -128,6 +127,17 @@ export const UserManagement = () => {
         setPage(0);
     };
 
+    const showSnackbar = (message, severity = 'success') => {
+        if (severity === 'success') {
+            setSuccess(message);
+        } else {
+            setError(message);
+        }
+        setTimeout(() => {
+            severity === 'success' ? setSuccess('') : setError('');
+        }, 3000);
+    };
+
     const createUserMutation = useMutation({
         mutationFn: async (userData) => {
             const response = await axiosInstance.post('/users/', userData);
@@ -135,15 +145,13 @@ export const UserManagement = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['users'] });
-            setSuccess('User created successfully!');
+            showSnackbar('User created successfully!', 'success');
             setOpenDialog(false);
             resetForm();
-            setTimeout(() => setSuccess(''), 3000);
             setPage(0);
         },
         onError: (err) => {
-            setError(err.response?.data?.message || 'Failed to create user');
-            setTimeout(() => setError(''), 3000);
+            showSnackbar(err.response?.data?.message || 'Failed to create user', 'error');
         },
     });
 
@@ -154,19 +162,17 @@ export const UserManagement = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['users'] });
-            setSuccess('User deleted successfully!');
+            showSnackbar('User deleted successfully!', 'success');
             setOpenDeleteDialog(false);
             setUserToDelete(null);
-            setTimeout(() => setSuccess(''), 3000);
             if (paginatedUsers.length === 1 && page > 0) {
                 setPage(page - 1);
             }
         },
         onError: (err) => {
-            setError(err.response?.data?.message || 'Failed to delete user');
+            showSnackbar(err.response?.data?.message || 'Failed to delete user', 'error');
             setOpenDeleteDialog(false);
             setUserToDelete(null);
-            setTimeout(() => setError(''), 3000);
         },
     });
 
@@ -177,14 +183,12 @@ export const UserManagement = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['users'] });
-            setSuccess('User updated successfully!');
+            showSnackbar('User updated successfully!', 'success');
             setOpenDialog(false);
             resetForm();
-            setTimeout(() => setSuccess(''), 3000);
         },
         onError: (err) => {
-            setError(err.response?.data?.message || 'Failed to update user');
-            setTimeout(() => setError(''), 3000);
+            showSnackbar(err.response?.data?.message || 'Failed to update user', 'error');
         },
     });
 
@@ -195,16 +199,14 @@ export const UserManagement = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['users'] });
-            setSuccess('User status updated successfully!');
+            showSnackbar('User status updated successfully!', 'success');
             setOpenStatusDialog(false);
             setUserToToggle(null);
-            setTimeout(() => setSuccess(''), 3000);
         },
         onError: (err) => {
-            setError(err.response?.data?.message || 'Failed to update user status');
+            showSnackbar(err.response?.data?.message || 'Failed to update user status', 'error');
             setOpenStatusDialog(false);
             setUserToToggle(null);
-            setTimeout(() => setError(''), 3000);
         },
     });
 
@@ -237,7 +239,7 @@ export const UserManagement = () => {
 
     const handleDeleteConfirm = () => {
         if (userToDelete) {
-            deleteUserMutation.mutate(userToDelete.id);
+            deleteUserMutation.mutate(userToDelete.id || userToDelete._id);
         }
     };
 
@@ -248,7 +250,7 @@ export const UserManagement = () => {
 
     const handleToggleStatusConfirm = () => {
         if (userToToggle) {
-            toggleUserStatusMutation.mutate(userToToggle.id);
+            toggleUserStatusMutation.mutate(userToToggle.id || userToToggle._id);
         }
     };
 
@@ -283,7 +285,10 @@ export const UserManagement = () => {
             if (!updateData.password) {
                 delete updateData.password;
             }
-            updateUserMutation.mutate({ userId: selectedUser.id, userData: updateData });
+            updateUserMutation.mutate({ 
+                userId: selectedUser.id || selectedUser._id, 
+                userData: updateData 
+            });
         } else {
             createUserMutation.mutate(formData);
         }
@@ -294,19 +299,19 @@ export const UserManagement = () => {
             case 'superadmin':
                 return {
                     backgroundColor: alpha(RED_COLOR, 0.08),
-                    color: RED_DARK,
+                    color: RED_COLOR,
                     border: `1px solid ${alpha(RED_COLOR, 0.3)}`,
                 };
             case 'manager':
                 return {
                     backgroundColor: alpha(BLUE_COLOR, 0.08),
-                    color: BLUE_DARK,
+                    color: BLUE_COLOR,
                     border: `1px solid ${alpha(BLUE_COLOR, 0.3)}`,
                 };
             case 'tech':
                 return {
                     backgroundColor: alpha(GREEN_COLOR, 0.08),
-                    color: GREEN_DARK,
+                    color: GREEN_COLOR,
                     border: `1px solid ${alpha(GREEN_COLOR, 0.3)}`,
                 };
             default:
@@ -322,13 +327,13 @@ export const UserManagement = () => {
         if (isActive) {
             return {
                 backgroundColor: alpha(GREEN_COLOR, 0.08),
-                color: GREEN_DARK,
+                color: GREEN_COLOR,
                 border: `1px solid ${alpha(GREEN_COLOR, 0.3)}`,
             };
         } else {
             return {
                 backgroundColor: alpha(RED_COLOR, 0.08),
-                color: RED_DARK,
+                color: RED_COLOR,
                 border: `1px solid ${alpha(RED_COLOR, 0.3)}`,
             };
         }
@@ -359,142 +364,64 @@ export const UserManagement = () => {
         }
     };
 
-    // Custom pagination icons
-    const PaginationActions = ({ count, page, rowsPerPage, onPageChange }) => {
-        const handleFirstPageButtonClick = (event) => {
-            onPageChange(event, 0);
-        };
-
-        const handleBackButtonClick = (event) => {
-            onPageChange(event, page - 1);
-        };
-
-        const handleNextButtonClick = (event) => {
-            onPageChange(event, page + 1);
-        };
-
-        const handleLastPageButtonClick = (event) => {
-            onPageChange(event, Math.max(0, Math.ceil(count / rowsPerPage) - 1));
-        };
-
+    // Search input component
+    const SearchInput = ({ value, onChange, placeholder, color, fullWidth = false }) => {
         return (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Tooltip title="First Page">
-                    <Box
-                        component="button"
-                        onClick={handleFirstPageButtonClick}
-                        disabled={page === 0}
+            <Box sx={{ position: 'relative', width: fullWidth ? '100%' : 250 }}>
+                <Box
+                    component="input"
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    sx={{
+                        width: '100%',
+                        fontSize: '0.8rem',
+                        height: '36px',
+                        paddingLeft: '36px',
+                        paddingRight: value ? '36px' : '16px',
+                        border: `1px solid ${alpha(color, 0.2)}`,
+                        borderRadius: '4px',
+                        outline: 'none',
+                        '&:focus': {
+                            borderColor: color,
+                            boxShadow: `0 0 0 2px ${alpha(color, 0.1)}`,
+                        },
+                        '&::placeholder': {
+                            color: alpha(GRAY_COLOR, 0.6),
+                        },
+                    }}
+                />
+                <Search
+                    size={16}
+                    color={GRAY_COLOR}
+                    style={{
+                        position: 'absolute',
+                        left: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                    }}
+                />
+                {value && (
+                    <IconButton
+                        size="small"
+                        onClick={() => onChange('')}
                         sx={{
+                            position: 'absolute',
+                            right: '4px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
                             padding: '4px',
-                            border: 'none',
-                            background: 'transparent',
-                            cursor: page === 0 ? 'default' : 'pointer',
-                            color: page === 0 ? GRAY_COLOR : TEXT_COLOR,
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            '&:hover': page === 0 ? {} : {
-                                backgroundColor: alpha(BLUE_COLOR, 0.1),
-                            },
-                            '&:disabled': {
-                                opacity: 0.5,
-                                cursor: 'default',
-                            },
                         }}
                     >
-                        <ChevronsLeft size={16} />
-                    </Box>
-                </Tooltip>
-                <Tooltip title="Previous Page">
-                    <Box
-                        component="button"
-                        onClick={handleBackButtonClick}
-                        disabled={page === 0}
-                        sx={{
-                            padding: '4px',
-                            border: 'none',
-                            background: 'transparent',
-                            cursor: page === 0 ? 'default' : 'pointer',
-                            color: page === 0 ? GRAY_COLOR : TEXT_COLOR,
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            '&:hover': page === 0 ? {} : {
-                                backgroundColor: alpha(BLUE_COLOR, 0.1),
-                            },
-                            '&:disabled': {
-                                opacity: 0.5,
-                                cursor: 'default',
-                            },
-                        }}
-                    >
-                        <ChevronLeft size={16} />
-                    </Box>
-                </Tooltip>
-                <Tooltip title="Next Page">
-                    <Box
-                        component="button"
-                        onClick={handleNextButtonClick}
-                        disabled={page >= Math.ceil(count / rowsPerPage) - 1}
-                        sx={{
-                            padding: '4px',
-                            border: 'none',
-                            background: 'transparent',
-                            cursor: page >= Math.ceil(count / rowsPerPage) - 1 ? 'default' : 'pointer',
-                            color: page >= Math.ceil(count / rowsPerPage) - 1 ? GRAY_COLOR : TEXT_COLOR,
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            '&:hover': page >= Math.ceil(count / rowsPerPage) - 1 ? {} : {
-                                backgroundColor: alpha(BLUE_COLOR, 0.1),
-                            },
-                            '&:disabled': {
-                                opacity: 0.5,
-                                cursor: 'default',
-                            },
-                        }}
-                    >
-                        <ChevronRight size={16} />
-                    </Box>
-                </Tooltip>
-                <Tooltip title="Last Page">
-                    <Box
-                        component="button"
-                        onClick={handleLastPageButtonClick}
-                        disabled={page >= Math.ceil(count / rowsPerPage) - 1}
-                        sx={{
-                            padding: '4px',
-                            border: 'none',
-                            background: 'transparent',
-                            cursor: page >= Math.ceil(count / rowsPerPage) - 1 ? 'default' : 'pointer',
-                            color: page >= Math.ceil(count / rowsPerPage) - 1 ? GRAY_COLOR : TEXT_COLOR,
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            '&:hover': page >= Math.ceil(count / rowsPerPage) - 1 ? {} : {
-                                backgroundColor: alpha(BLUE_COLOR, 0.1),
-                            },
-                            '&:disabled': {
-                                opacity: 0.5,
-                                cursor: 'default',
-                            },
-                        }}
-                    >
-                        <ChevronsRight size={16} />
-                    </Box>
-                </Tooltip>
+                        <X size={16} />
+                    </IconButton>
+                )}
             </Box>
         );
     };
 
     if (isLoading) {
-        return (
-            <DashboardLoader />
-        );
+        return <DashboardLoader />;
     }
 
     return (
@@ -529,19 +456,22 @@ export const UserManagement = () => {
                         Manage users and their roles
                     </Typography>
                 </Box>
-                <GradientButton
+                <Button
                     variant="contained"
                     startIcon={<UserPlus size={16} />}
                     onClick={() => handleOpenDialog()}
                     sx={{
-                        fontSize: '0.85rem',
+                        textTransform: 'none',
+                        fontSize: isMobile ? '0.75rem' : '0.85rem',
                         fontWeight: 500,
-                        px: 2,
-                        py: 0.8,
+                        backgroundColor: BLUE_COLOR,
+                        '&:hover': {
+                            backgroundColor: alpha(BLUE_COLOR, 0.9),
+                        },
                     }}
                 >
                     Add User
-                </GradientButton>
+                </Button>
             </Box>
 
             {/* Main Table Section */}
@@ -557,122 +487,113 @@ export const UserManagement = () => {
             >
                 <Box
                     sx={{
-                        p: 1.5,
+                        p: isMobile ? 1 : 1.5,
                         bgcolor: 'white',
                         borderBottom: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
+                        flexDirection: isMobile ? 'column' : 'row',
+                        gap: isMobile ? 1 : 0,
                     }}
                 >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <UserCog size={18} color={BLUE_COLOR} />
-                            <Typography
-                                sx={{
-                                    fontSize: '0.9rem',
-                                    color: TEXT_COLOR,
-                                    fontWeight: 600,
-                                }}
-                            >
-                                Users
-                            </Typography>
-                        </Box>
-                        <Chip
-                            size="small"
-                            label={filteredUsers.length}
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        width: isMobile ? '100%' : 'auto',
+                        justifyContent: isMobile ? 'space-between' : 'flex-start'
+                    }}>
+                        <Typography
                             sx={{
-                                bgcolor: alpha(BLUE_COLOR, 0.08),
+                                fontSize: isMobile ? '0.85rem' : '0.9rem',
                                 color: TEXT_COLOR,
-                                fontSize: '0.75rem',
-                                fontWeight: 500,
-                                height: '22px',
-                                '& .MuiChip-label': {
-                                    px: 1,
-                                },
+                                fontWeight: 600,
                             }}
-                        />
+                        >
+                            Users
+                            <Chip
+                                size="small"
+                                label={filteredUsers.length}
+                                sx={{
+                                    ml: 1,
+                                    bgcolor: alpha(BLUE_COLOR, 0.08),
+                                    color: TEXT_COLOR,
+                                    fontSize: '0.75rem',
+                                    fontWeight: 500,
+                                    height: '22px',
+                                    '& .MuiChip-label': {
+                                        px: 1,
+                                    },
+                                }}
+                            />
+                        </Typography>
                     </Box>
-
-                    {/* Search Field in Header */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <StyledTextField
-                            size="small"
-                            placeholder="Search by name, email, or role..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            sx={{
-                                width: 280,
-                                '& .MuiInputBase-root': {
-                                    fontSize: '0.8rem',
-                                    height: '36px',
-                                },
-                            }}
-                            InputProps={{
-                                startAdornment: (
-                                    <Box sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        mr: 1,
-                                        color: BLUE_COLOR
-                                    }}>
-                                        <Search size={16} />
-                                    </Box>
-                                ),
-                            }}
-                        />
+                    <Box sx={{
+                        display: { md: 'flex' },
+                        alignItems: 'center',
+                        gap: 1.5,
+                        width: isMobile ? '100%' : 'auto',
+                        justifyContent: isMobile ? 'space-between' : 'flex-end'
+                    }}>
+                        <Box sx={{
+                            display: 'flex',
+                            gap: 1,
+                            width: isMobile ? '100%' : 'auto',
+                            flexDirection: isMobile ? 'column' : 'row',
+                            mt: isMobile ? 1 : 0
+                        }}>
+                            <SearchInput
+                                value={searchQuery}
+                                onChange={setSearchQuery}
+                                placeholder="Search users..."
+                                color={BLUE_COLOR}
+                                fullWidth={isMobile}
+                            />
+                        </Box>
                     </Box>
                 </Box>
 
-                <TableContainer>
-                    <Table size="small">
+                <TableContainer sx={{
+                    overflowX: 'auto',
+                    '&::-webkit-scrollbar': {
+                        height: '8px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                        backgroundColor: alpha(BLUE_COLOR, 0.05),
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: alpha(BLUE_COLOR, 0.2),
+                        borderRadius: '4px',
+                    },
+                }}>
+                    <Table size="small" sx={{ minWidth: isMobile ? 800 : 'auto' }}>
                         <TableHead>
                             <TableRow sx={{
                                 bgcolor: alpha(BLUE_COLOR, 0.04),
                                 '& th': {
                                     borderBottom: `2px solid ${alpha(BLUE_COLOR, 0.1)}`,
+                                    py: 1.5,
+                                    px: 1.5,
+                                    fontSize: isMobile ? '0.75rem' : '0.8rem',
+                                    fontWeight: 600,
+                                    color: TEXT_COLOR,
+                                    whiteSpace: 'nowrap',
                                 }
                             }}>
-                                <TableCell sx={{
-                                    fontWeight: 600,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    py: 1.5,
-                                    pl: 2.5,
-                                }}>
+                                <TableCell sx={{ pl: isMobile ? 1.5 : 2.5, minWidth: 150 }}>
                                     Name
                                 </TableCell>
-                                <TableCell sx={{
-                                    fontWeight: 600,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    py: 1.5,
-                                }}>
+                                <TableCell sx={{ minWidth: 180 }}>
                                     Email
                                 </TableCell>
-                                <TableCell sx={{
-                                    fontWeight: 600,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    py: 1.5,
-                                }}>
+                                <TableCell sx={{ minWidth: 120 }}>
                                     Role
                                 </TableCell>
-                                <TableCell sx={{
-                                    fontWeight: 600,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    py: 1.5,
-                                }}>
+                                <TableCell sx={{ minWidth: 120 }}>
                                     Status
                                 </TableCell>
-                                <TableCell align="right" sx={{
-                                    fontWeight: 600,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    py: 1.5,
-                                    pr: 2.5,
-                                }}>
+                                <TableCell align="right" sx={{ pr: isMobile ? 1.5 : 2.5, minWidth: 150 }}>
                                     Actions
                                 </TableCell>
                             </TableRow>
@@ -705,19 +626,19 @@ export const UserManagement = () => {
                             ) : (
                                 paginatedUsers.map((user) => (
                                     <TableRow
-                                        key={user._id}
+                                        key={user._id || user.id}
                                         hover
                                         sx={{
                                             bgcolor: 'white',
                                             '&:hover': {
-                                                backgroundColor: alpha(BLUE_COLOR, 0.02),
+                                                backgroundColor: alpha(BLUE_COLOR, 0.05),
                                             },
                                             '&:last-child td': {
                                                 borderBottom: 'none',
                                             },
                                         }}
                                     >
-                                        <TableCell sx={{ pl: 2.5, py: 1.5 }}>
+                                        <TableCell sx={{ pl: isMobile ? 1.5 : 2.5, py: 1.5 }}>
                                             <Box display="flex" alignItems="center" gap={1.5}>
                                                 <Box sx={{
                                                     width: 32,
@@ -726,7 +647,7 @@ export const UserManagement = () => {
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    background: `linear-gradient(135deg, ${BLUE_LIGHT} 0%, ${BLUE_COLOR} 100%)`,
+                                                    background: `linear-gradient(135deg, ${alpha(BLUE_COLOR, 0.8)} 0%, ${BLUE_COLOR} 100%)`,
                                                     color: 'white',
                                                     fontWeight: 600,
                                                     fontSize: '0.8rem',
@@ -736,10 +657,10 @@ export const UserManagement = () => {
                                                 <Box>
                                                     <Typography
                                                         variant="body2"
-                                                        fontWeight="600"
                                                         sx={{
                                                             color: TEXT_COLOR,
-                                                            fontSize: '0.85rem',
+                                                            fontSize: isMobile ? '0.8rem' : '0.85rem',
+                                                            fontWeight: 600,
                                                             lineHeight: 1.2,
                                                         }}
                                                     >
@@ -749,11 +670,11 @@ export const UserManagement = () => {
                                                         variant="caption"
                                                         sx={{
                                                             color: GRAY_COLOR,
-                                                            fontSize: '0.7rem',
+                                                            fontSize: '0.75rem',
                                                             fontWeight: 400,
                                                         }}
                                                     >
-                                                        ID: {user.id}
+                                                        ID: {user.id || user._id?.slice(-6)}
                                                     </Typography>
                                                 </Box>
                                             </Box>
@@ -765,7 +686,7 @@ export const UserManagement = () => {
                                                     variant="body2"
                                                     sx={{
                                                         color: TEXT_COLOR,
-                                                        fontSize: '0.85rem',
+                                                        fontSize: isMobile ? '0.8rem' : '0.85rem',
                                                         fontWeight: 400,
                                                     }}
                                                 >
@@ -809,7 +730,7 @@ export const UserManagement = () => {
                                                 />
                                             </Box>
                                         </TableCell>
-                                        <TableCell align="right" sx={{ pr: 2.5, py: 1.5 }}>
+                                        <TableCell align="right" sx={{ pr: isMobile ? 1.5 : 2.5, py: 1.5 }}>
                                             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
                                                 <Tooltip title="Edit User">
                                                     <IconButton
@@ -851,7 +772,7 @@ export const UserManagement = () => {
                                                         onClick={() => handleDeleteClick(user)}
                                                         disabled={user.role === 'superadmin'}
                                                         sx={{
-                                                            color: RED_DARK,
+                                                            color: RED_COLOR,
                                                             padding: '4px',
                                                             '&:hover': {
                                                                 backgroundColor: alpha(RED_COLOR, 0.1),
@@ -869,78 +790,25 @@ export const UserManagement = () => {
                         </TableBody>
                     </Table>
 
-                    {/* Pagination */}
                     {filteredUsers.length > 0 && (
-                        <Box sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            px: 2,
-                            py: 1.5,
-                            borderTop: `1px solid ${alpha(TEXT_COLOR, 0.08)}`,
-                            backgroundColor: alpha(BLUE_COLOR, 0.02),
-                        }}>
-                            <Typography
-                                variant="body2"
-                                sx={{
-                                    color: GRAY_COLOR,
-                                    fontSize: '0.8rem',
-                                    fontWeight: 400,
-                                }}
-                            >
-                                Showing {page * rowsPerPage + 1} to {Math.min((page + 1) * rowsPerPage, filteredUsers.length)} of {filteredUsers.length} users
-                            </Typography>
-
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Typography
-                                        variant="body2"
-                                        sx={{
-                                            color: GRAY_COLOR,
-                                            fontSize: '0.8rem',
-                                            fontWeight: 400,
-                                        }}
-                                    >
-                                        Rows per page:
-                                    </Typography>
-                                    <Box
-                                        component="select"
-                                        value={rowsPerPage}
-                                        onChange={handleChangeRowsPerPage}
-                                        sx={{
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
-                                            backgroundColor: 'white',
-                                            fontSize: '0.8rem',
-                                            color: TEXT_COLOR,
-                                            cursor: 'pointer',
-                                            '&:hover': {
-                                                borderColor: BLUE_COLOR,
-                                            },
-                                            '&:focus': {
-                                                outline: 'none',
-                                                borderColor: BLUE_COLOR,
-                                                boxShadow: `0 0 0 2px ${alpha(BLUE_COLOR, 0.1)}`,
-                                            },
-                                        }}
-                                    >
-                                        {[5, 10, 25, 50].map((option) => (
-                                            <option key={option} value={option}>
-                                                {option}
-                                            </option>
-                                        ))}
-                                    </Box>
-                                </Box>
-
-                                <PaginationActions
-                                    count={filteredUsers.length}
-                                    page={page}
-                                    rowsPerPage={rowsPerPage}
-                                    onPageChange={handleChangePage}
-                                />
-                            </Box>
-                        </Box>
+                        <TablePagination
+                            rowsPerPageOptions={isMobile ? [5, 10, 25] : [5, 10, 25, 50]}
+                            component="div"
+                            count={filteredUsers.length}
+                            rowsPerPage={rowsPerPage}
+                            page={page}
+                            onPageChange={handleChangePage}
+                            onRowsPerPageChange={handleChangeRowsPerPage}
+                            sx={{
+                                borderTop: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
+                                '& .MuiTablePagination-toolbar': {
+                                    minHeight: '44px',
+                                },
+                                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                                    fontSize: isMobile ? '0.75rem' : '0.8rem',
+                                },
+                            }}
+                        />
                     )}
                 </TableContainer>
             </Paper>
@@ -1008,17 +876,25 @@ export const UserManagement = () => {
                             >
                                 Name
                             </Typography>
-                            <StyledTextField
+                            <Box
+                                component="input"
                                 fullWidth
                                 name="name"
                                 value={formData.name}
                                 onChange={handleInputChange}
                                 required
-                                size="small"
                                 placeholder="Enter full name"
                                 sx={{
-                                    '& .MuiInputBase-root': {
-                                        fontSize: '0.85rem',
+                                    width: '100%',
+                                    fontSize: '0.85rem',
+                                    height: '40px',
+                                    padding: '0 12px',
+                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
+                                    borderRadius: '6px',
+                                    outline: 'none',
+                                    '&:focus': {
+                                        borderColor: BLUE_COLOR,
+                                        boxShadow: `0 0 0 2px ${alpha(BLUE_COLOR, 0.1)}`,
                                     },
                                 }}
                             />
@@ -1036,18 +912,26 @@ export const UserManagement = () => {
                             >
                                 Email
                             </Typography>
-                            <StyledTextField
+                            <Box
+                                component="input"
                                 fullWidth
                                 name="email"
                                 type="email"
                                 value={formData.email}
                                 onChange={handleInputChange}
                                 required
-                                size="small"
                                 placeholder="Enter email address"
                                 sx={{
-                                    '& .MuiInputBase-root': {
-                                        fontSize: '0.85rem',
+                                    width: '100%',
+                                    fontSize: '0.85rem',
+                                    height: '40px',
+                                    padding: '0 12px',
+                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
+                                    borderRadius: '6px',
+                                    outline: 'none',
+                                    '&:focus': {
+                                        borderColor: BLUE_COLOR,
+                                        boxShadow: `0 0 0 2px ${alpha(BLUE_COLOR, 0.1)}`,
                                     },
                                 }}
                             />
@@ -1065,18 +949,26 @@ export const UserManagement = () => {
                             >
                                 Password
                             </Typography>
-                            <StyledTextField
+                            <Box
+                                component="input"
                                 fullWidth
                                 name="password"
                                 type="password"
                                 value={formData.password}
                                 onChange={handleInputChange}
                                 required={!selectedUser}
-                                size="small"
                                 placeholder={selectedUser ? "Leave blank to keep current password" : "Enter password"}
                                 sx={{
-                                    '& .MuiInputBase-root': {
-                                        fontSize: '0.85rem',
+                                    width: '100%',
+                                    fontSize: '0.85rem',
+                                    height: '40px',
+                                    padding: '0 12px',
+                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
+                                    borderRadius: '6px',
+                                    outline: 'none',
+                                    '&:focus': {
+                                        borderColor: BLUE_COLOR,
+                                        boxShadow: `0 0 0 2px ${alpha(BLUE_COLOR, 0.1)}`,
                                     },
                                 }}
                             />
@@ -1094,33 +986,33 @@ export const UserManagement = () => {
                             >
                                 Role
                             </Typography>
-                            <FormControl fullWidth size="small">
-                                <Select
-                                    name="role"
-                                    value={formData.role}
-                                    onChange={handleInputChange}
-                                    sx={{
-                                        fontSize: '0.85rem',
-                                        color: TEXT_COLOR,
-                                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                            borderColor: BLUE_COLOR,
-                                        },
-                                    }}
-                                >
-                                    <MenuItem value="manager" sx={{ fontSize: '0.85rem' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <UserCog size={14} />
-                                            Manager
-                                        </Box>
-                                    </MenuItem>
-                                    <MenuItem value="tech" sx={{ fontSize: '0.85rem' }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <User size={14} />
-                                            Tech
-                                        </Box>
-                                    </MenuItem>
-                                </Select>
-                            </FormControl>
+                            <Box
+                                component="select"
+                                name="role"
+                                value={formData.role}
+                                onChange={handleInputChange}
+                                sx={{
+                                    width: '100%',
+                                    fontSize: '0.85rem',
+                                    height: '40px',
+                                    padding: '0 12px',
+                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
+                                    borderRadius: '6px',
+                                    outline: 'none',
+                                    cursor: 'pointer',
+                                    '&:focus': {
+                                        borderColor: BLUE_COLOR,
+                                        boxShadow: `0 0 0 2px ${alpha(BLUE_COLOR, 0.1)}`,
+                                    },
+                                }}
+                            >
+                                <option value="manager">
+                                    Manager
+                                </option>
+                                <option value="tech">
+                                    Tech
+                                </option>
+                            </Box>
                         </Box>
 
                         {selectedUser && (
@@ -1170,7 +1062,7 @@ export const UserManagement = () => {
                     >
                         Cancel
                     </OutlineButton>
-                    <GradientButton
+                    <Button
                         onClick={handleSubmit}
                         variant="contained"
                         disabled={
@@ -1183,8 +1075,13 @@ export const UserManagement = () => {
                         startIcon={selectedUser ? <Edit size={16} /> : <UserPlus size={16} />}
                         sx={{
                             fontSize: '0.85rem',
+                            fontWeight: 500,
                             px: 2,
                             py: 0.8,
+                            bgcolor: BLUE_COLOR,
+                            '&:hover': {
+                                bgcolor: alpha(BLUE_COLOR, 0.9),
+                            },
                         }}
                     >
                         {createUserMutation.isPending || updateUserMutation.isPending ? (
@@ -1195,7 +1092,7 @@ export const UserManagement = () => {
                         ) : (
                             selectedUser ? 'Update User' : 'Create User'
                         )}
-                    </GradientButton>
+                    </Button>
                 </DialogActions>
             </Dialog>
 
@@ -1223,7 +1120,7 @@ export const UserManagement = () => {
                         <Typography
                             sx={{
                                 fontSize: '0.95rem',
-                                color: RED_DARK,
+                                color: TEXT_COLOR,
                                 fontWeight: 600,
                             }}
                         >
@@ -1233,7 +1130,8 @@ export const UserManagement = () => {
                 </DialogTitle>
                 <DialogContent sx={{ p: 2.5 }}>
                     <Box py={1}>
-                        <DialogContentText
+                        <Typography
+                            variant="body2"
                             sx={{
                                 color: TEXT_COLOR,
                                 fontSize: '0.85rem',
@@ -1245,7 +1143,7 @@ export const UserManagement = () => {
                             <span style={{ color: GRAY_COLOR, fontSize: '0.8rem' }}>
                                 This action cannot be undone.
                             </span>
-                        </DialogContentText>
+                        </Typography>
                     </Box>
                 </DialogContent>
                 <DialogActions sx={{ px: 2.5, pb: 2.5, pt: 0 }}>
@@ -1262,15 +1160,15 @@ export const UserManagement = () => {
                     <Button
                         variant="contained"
                         sx={{
-                            background: `linear-gradient(135deg, ${RED_DARK} 0%, ${RED_COLOR} 100%)`,
                             color: 'white',
                             borderRadius: '6px',
                             padding: '6px 20px',
                             fontWeight: 500,
                             fontSize: '0.85rem',
                             textTransform: 'none',
+                            bgcolor: RED_COLOR,
                             '&:hover': {
-                                background: `linear-gradient(135deg, ${RED_COLOR} 0%, #b91c1c 100%)`,
+                                bgcolor: alpha(RED_COLOR, 0.9),
                             },
                         }}
                         onClick={handleDeleteConfirm}
@@ -1314,7 +1212,7 @@ export const UserManagement = () => {
                         <Typography
                             sx={{
                                 fontSize: '0.95rem',
-                                color: userToToggle?.isActive ? RED_DARK : GREEN_DARK,
+                                color: TEXT_COLOR,
                                 fontWeight: 600,
                             }}
                         >
@@ -1324,7 +1222,8 @@ export const UserManagement = () => {
                 </DialogTitle>
                 <DialogContent sx={{ p: 2.5 }}>
                     <Box py={1}>
-                        <DialogContentText
+                        <Typography
+                            variant="body2"
                             sx={{
                                 color: TEXT_COLOR,
                                 fontSize: '0.85rem',
@@ -1340,7 +1239,7 @@ export const UserManagement = () => {
                                     : "They will regain access to the system."
                                 }
                             </span>
-                        </DialogContentText>
+                        </Typography>
                     </Box>
                 </DialogContent>
                 <DialogActions sx={{ px: 2.5, pb: 2.5, pt: 0 }}>
@@ -1354,7 +1253,7 @@ export const UserManagement = () => {
                     >
                         Cancel
                     </OutlineButton>
-                    <GradientButton
+                    <Button
                         variant="contained"
                         onClick={handleToggleStatusConfirm}
                         disabled={toggleUserStatusMutation.isPending}
@@ -1369,14 +1268,15 @@ export const UserManagement = () => {
                             fontSize: '0.85rem',
                             px: 2,
                             py: 0.8,
-                            background: userToToggle?.isActive
-                                ? `linear-gradient(135deg, ${RED_DARK} 0%, ${RED_COLOR} 100%)`
-                                : undefined,
+                            bgcolor: userToToggle?.isActive ? RED_COLOR : GREEN_COLOR,
+                            '&:hover': {
+                                bgcolor: userToToggle?.isActive ? alpha(RED_COLOR, 0.9) : alpha(GREEN_COLOR, 0.9),
+                            },
                         }}
                     >
                         {toggleUserStatusMutation.isPending ? 'Updating...' :
                             userToToggle?.isActive ? 'Deactivate User' : 'Activate User'}
-                    </GradientButton>
+                    </Button>
                 </DialogActions>
             </Dialog>
 
@@ -1393,21 +1293,18 @@ export const UserManagement = () => {
                     sx={{
                         width: '100%',
                         borderRadius: '6px',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                        border: `1px solid ${alpha(GREEN_COLOR, 0.2)}`,
-                        backgroundColor: alpha(GREEN_COLOR, 0.08),
-                        color: GREEN_DARK,
+                        backgroundColor: alpha(GREEN_COLOR, 0.05),
+                        borderLeft: `4px solid ${GREEN_COLOR}`,
                         '& .MuiAlert-icon': {
-                            color: GREEN_DARK,
+                            color: GREEN_COLOR,
                         },
                     }}
-                    elevation={0}
                 >
                     <Typography
-                        fontWeight={500}
                         sx={{
-                            color: GREEN_DARK,
                             fontSize: '0.85rem',
+                            fontWeight: 500,
+                            color: TEXT_COLOR,
                         }}
                     >
                         {success}
@@ -1428,21 +1325,18 @@ export const UserManagement = () => {
                     sx={{
                         width: '100%',
                         borderRadius: '6px',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                        border: `1px solid ${alpha(RED_COLOR, 0.2)}`,
-                        backgroundColor: alpha(RED_COLOR, 0.08),
-                        color: RED_DARK,
+                        backgroundColor: alpha(RED_COLOR, 0.05),
+                        borderLeft: `4px solid ${RED_COLOR}`,
                         '& .MuiAlert-icon': {
-                            color: RED_DARK,
+                            color: RED_COLOR,
                         },
                     }}
-                    elevation={0}
                 >
                     <Typography
-                        fontWeight={500}
                         sx={{
-                            color: RED_DARK,
                             fontSize: '0.85rem',
+                            fontWeight: 500,
+                            color: TEXT_COLOR,
                         }}
                     >
                         {error}
@@ -1474,3 +1368,5 @@ if (typeof document !== 'undefined') {
     styleSheet.innerText = styles;
     document.head.appendChild(styleSheet);
 }
+
+export default UserManagement;

@@ -36,7 +36,6 @@ import {
     addDays,
     format,
     parseISO,
-    differenceInMilliseconds,
     isAfter,
 } from 'date-fns';
 
@@ -563,7 +562,7 @@ const Locates = () => {
             const promises = ids.map(id =>
                 axiosInstance.delete(`/locates/${id}/`)
             );
-            await Promise.all(promises);
+            return Promise.all(promises); // 👈 RETURN THIS
         },
         onSuccess: (responses) => {
             invalidateAndRefetch();
@@ -573,9 +572,13 @@ const Locates = () => {
         },
         onError: (err) => {
             console.error('Bulk permanent delete error:', err);
-            showSnackbar(err?.response?.data?.message || 'Bulk permanent delete failed', 'error');
+            showSnackbar(
+                err?.response?.data?.message || 'Bulk permanent delete failed',
+                'error'
+            );
         },
     });
+
 
     const processed = useMemo(() => {
         return rawData

@@ -23,22 +23,13 @@ import {
     X,
 } from 'lucide-react';
 
-const colors = {
-    primary: '#3182ce',
-    primaryLight: '#ebf8ff',
-    primaryDark: '#2c5282',
-    activeBg: '#ebf8ff',
-    activeText: '#3182ce',
-    activeBorder: '#3182ce',
-    drawerBg: '#ffffff',
-    textPrimary: '#2d3748',
-    textSecondary: '#718096',
-    textTertiary: '#a0aec0',
-    borderLight: '#e2e8f0',
-    hoverBg: '#f7fafc',
-    white: '#ffffff',
-    black: '#000000',
-};
+// Color constants matching your other components
+const TEXT_COLOR = '#0F1115';
+const BLUE_COLOR = '#1976d2';
+const GREEN_COLOR = '#10b981';
+const RED_COLOR = '#ef4444';
+const ORANGE_COLOR = '#ed6c02';
+const GRAY_COLOR = '#6b7280';
 
 const ProfileDialog = ({ open, onClose, user, userRole }) => {
     const navigate = useNavigate();
@@ -63,13 +54,13 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
         switch (role?.toUpperCase()) {
             case 'SUPERADMIN':
             case 'SUPER-ADMIN':
-                return '#dc2626';
+                return RED_COLOR;
             case 'MANAGER':
-                return '#059669';
+                return BLUE_COLOR;
             case 'TECH':
-                return '#2563eb';
+                return GREEN_COLOR;
             default:
-                return '#6b7280';
+                return GRAY_COLOR;
         }
     };
 
@@ -91,13 +82,13 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
         switch (role?.toUpperCase()) {
             case 'SUPERADMIN':
             case 'SUPER-ADMIN':
-                return <ShieldCheck size={18} />;
+                return <ShieldCheck size={16} />;
             case 'MANAGER':
-                return <Briefcase size={18} />;
+                return <Briefcase size={16} />;
             case 'TECH':
-                return <UserCog size={18} />;
+                return <UserCog size={16} />;
             default:
-                return <User size={18} />;
+                return <User size={16} />;
         }
     };
 
@@ -120,77 +111,80 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
                 sx: {
                     bgcolor: '#ffffff',
                     borderRadius: '8px',
-                    border: '1px solid rgba(0,0,0,0.08)',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                    border: `1px solid ${alpha(BLUE_COLOR, 0.15)}`,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                 }
             }}
         >
             <DialogTitle sx={{
-                borderBottom: '1px solid rgba(0,0,0,0.06)',
+                borderBottom: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
                 pb: 2,
                 position: 'relative',
+                bgcolor: 'white',
+                p: 2.5,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
             }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: '8px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: alpha(colors.primary, 0.1),
-                            color: colors.primary,
-                        }}>
-                            <User size={20} />
-                        </Box>
-                        <Box>
-                            <Typography variant="h6" sx={{
-                                color: colors.textPrimary,
-                                fontSize: '1rem',
-                                fontWeight: 600,
-                                lineHeight: 1.2,
-                            }}>
-                                User Profile
-                            </Typography>
-                            <Typography variant="caption" sx={{
-                                color: colors.textSecondary,
-                                fontSize: '0.75rem',
-                                fontWeight: 400,
-                            }}>
-                                View and manage your profile information
-                            </Typography>
-                        </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: alpha(BLUE_COLOR, 0.1),
+                        color: BLUE_COLOR,
+                    }}>
+                        <User size={18} />
                     </Box>
-                    <IconButton
-                        onClick={onClose}
-                        size="small"
-                        sx={{
-                            color: colors.textSecondary,
-                            '&:hover': {
-                                backgroundColor: alpha(colors.textSecondary, 0.1),
-                                color: colors.textPrimary,
-                            },
-                        }}
-                    >
-                        <X size={18} />
-                    </IconButton>
+                    <Box>
+                        <Typography variant="h6" sx={{
+                            color: TEXT_COLOR,
+                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                            lineHeight: 1.2,
+                        }}>
+                            User Profile
+                        </Typography>
+                        <Typography variant="caption" sx={{
+                            color: GRAY_COLOR,
+                            fontSize: '0.75rem',
+                            fontWeight: 400,
+                        }}>
+                            View and manage your profile information
+                        </Typography>
+                    </Box>
                 </Box>
+                <IconButton
+                    onClick={onClose}
+                    size="small"
+                    sx={{
+                        color: GRAY_COLOR,
+                        '&:hover': {
+                            backgroundColor: alpha(GRAY_COLOR, 0.1),
+                            color: TEXT_COLOR,
+                        },
+                    }}
+                >
+                    <X size={18} />
+                </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ pt: 3, pb: 2 }}>
+            <DialogContent sx={{ pt: 3, pb: 2, px: 2.5 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
-                    <Box sx={{ position: 'relative', mb: 0 }}>
+                    <Box sx={{ position: 'relative', mb: 2 }}>
                         <Avatar
                             sx={{
-                                width: 100,
-                                height: 100,
-                                bgcolor: colors.primary,
-                                color: colors.white,
-                                fontSize: '2rem',
+                                width: 80,
+                                height: 80,
+                                bgcolor: BLUE_COLOR,
+                                color: '#ffffff',
+                                fontSize: '1.5rem',
                                 fontWeight: 600,
-                                border: '4px solid #ffffff',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                border: '3px solid #ffffff',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                             }}
                         >
                             {getInitials(user?.name)}
@@ -198,10 +192,10 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
                     </Box>
 
                     <Typography variant="h5" sx={{
-                        color: colors.textPrimary,
-                        fontSize: '1.25rem',
+                        color: TEXT_COLOR,
+                        fontSize: '1.1rem',
                         fontWeight: 600,
-                        mb: 0.5,
+                        mb: 1,
                         textAlign: 'center',
                     }}>
                         {user?.name || 'Jenny Wilson'}
@@ -210,33 +204,39 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
                     <Chip
                         icon={getRoleIcon(userRole)}
                         label={getRoleLabel(userRole)}
+                        size="small"
                         sx={{
-                            backgroundColor: alpha(getRoleColor(userRole), 0.1),
+                            backgroundColor: alpha(getRoleColor(userRole), 0.08),
                             color: getRoleColor(userRole),
                             border: `1px solid ${alpha(getRoleColor(userRole), 0.3)}`,
                             fontSize: '0.75rem',
-                            fontWeight: 600,
-                            height: '28px',
-                            mb: 3,
+                            fontWeight: 500,
+                            height: '24px',
+                            mb: 2,
                             '& .MuiChip-icon': {
                                 color: getRoleColor(userRole),
-                                marginLeft: '8px',
+                                marginLeft: '6px',
+                                marginRight: '-4px',
+                            },
+                            '& .MuiChip-label': {
+                                px: 1,
                             },
                         }}
                     />
                 </Box>
 
                 <Box sx={{
-                    backgroundColor: colors.hoverBg,
-                    borderRadius: '8px',
-                    p: 2.5,
+                    backgroundColor: alpha(BLUE_COLOR, 0.03),
+                    borderRadius: '6px',
+                    p: 2,
                     mb: 2,
+                    border: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
                 }}>
                     <Typography variant="subtitle2" sx={{
-                        color: colors.textSecondary,
+                        color: GRAY_COLOR,
                         fontSize: '0.8rem',
                         fontWeight: 600,
-                        mb: 2,
+                        mb: 1.5,
                         display: 'flex',
                         alignItems: 'center',
                         gap: 0.75,
@@ -245,10 +245,10 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
                         Personal Information
                     </Typography>
 
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                         <Box>
                             <Typography variant="caption" sx={{
-                                color: colors.textTertiary,
+                                color: GRAY_COLOR,
                                 fontSize: '0.7rem',
                                 fontWeight: 500,
                                 mb: 0.5,
@@ -256,10 +256,10 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
                             }}>
                                 Email Address
                             </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Mail size={14} color={colors.textTertiary} />
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                <Mail size={14} color={GRAY_COLOR} />
                                 <Typography variant="body2" sx={{
-                                    color: colors.textPrimary,
+                                    color: TEXT_COLOR,
                                     fontSize: '0.85rem',
                                     fontWeight: 500,
                                     wordBreak: 'break-word',
@@ -271,7 +271,7 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
 
                         <Box>
                             <Typography variant="caption" sx={{
-                                color: colors.textTertiary,
+                                color: GRAY_COLOR,
                                 fontSize: '0.7rem',
                                 fontWeight: 500,
                                 mb: 0.5,
@@ -279,10 +279,10 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
                             }}>
                                 Account Role
                             </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Shield size={14} color={colors.textTertiary} />
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                <Shield size={14} color={GRAY_COLOR} />
                                 <Typography variant="body2" sx={{
-                                    color: colors.textPrimary,
+                                    color: TEXT_COLOR,
                                     fontSize: '0.85rem',
                                     fontWeight: 500,
                                 }}>
@@ -293,7 +293,7 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
 
                         <Box>
                             <Typography variant="caption" sx={{
-                                color: colors.textTertiary,
+                                color: GRAY_COLOR,
                                 fontSize: '0.7rem',
                                 fontWeight: 500,
                                 mb: 0.5,
@@ -301,10 +301,10 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
                             }}>
                                 Member Since
                             </Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <Calendar size={14} color={colors.textTertiary} />
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                <Calendar size={14} color={GRAY_COLOR} />
                                 <Typography variant="body2" sx={{
-                                    color: colors.textPrimary,
+                                    color: TEXT_COLOR,
                                     fontSize: '0.85rem',
                                     fontWeight: 500,
                                 }}>
@@ -321,24 +321,23 @@ const ProfileDialog = ({ open, onClose, user, userRole }) => {
             </DialogContent>
 
             <DialogActions sx={{
-                p: 2.5,
-                pt: 2,
-                borderTop: '1px solid rgba(0,0,0,0.06)',
-                justifyContent: 'space-between',
+                p: 2,
+                pt: 1.5,
+                borderTop: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
             }}>
                 <Button
                     onClick={handleEditProfile}
-                    variant="outlined"
+                    variant="contained"
                     startIcon={<Edit size={16} />}
                     sx={{
                         textTransform: 'none',
                         fontSize: '0.85rem',
                         fontWeight: 500,
-                        color: colors.primary,
-                        borderColor: colors.borderLight,
+                        px: 2,
+                        py: 0.8,
+                        bgcolor: BLUE_COLOR,
                         '&:hover': {
-                            borderColor: colors.primary,
-                            backgroundColor: alpha(colors.primary, 0.04),
+                            bgcolor: alpha(BLUE_COLOR, 0.9),
                         },
                     }}
                 >

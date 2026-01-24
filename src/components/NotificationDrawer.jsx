@@ -14,29 +14,25 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '../api/axios';
 import { useAuth } from '../auth/AuthProvider';
-import {
-    Bell,
-    X,
-    ExternalLink,
-    Clock,
-    Calendar,
-    MapPin,
-    Wrench,
-    ArrowRight,
-} from 'lucide-react';
+import { Bell, X, Clock, MapPin, Wrench, ArrowRight, Check } from 'lucide-react';
+import { useNotifications } from '../hook/useNotifications';
+
+const GREEN_COLOR = '#10b981';
 
 // Notification-specific colors
 const NOTIFICATION_COLORS = {
     primary: "#1976d2",
+    success: "#10b981",
     bg: "#ffffff",
     textPrimary: "#2d3748",
     textSecondary: "#718096",
     textTertiary: "#a0aec0",
     borderLight: "#e2e8f0",
     gray: "#6b7280",
+    grayLight: "#f8fafc",
 };
 
 const NotificationScrollableBox = styled(Box)({
@@ -44,34 +40,84 @@ const NotificationScrollableBox = styled(Box)({
     overflowY: 'auto',
     overflowX: 'hidden',
     '&::-webkit-scrollbar': {
-        width: '4px',
+        width: '6px',
     },
     '&::-webkit-scrollbar-track': {
         background: '#f1f5f9',
-        borderRadius: '2px',
+        borderRadius: '4px',
     },
     '&::-webkit-scrollbar-thumb': {
         background: '#cbd5e0',
-        borderRadius: '2px',
+        borderRadius: '4px',
         '&:hover': {
-            background: '#a0aec0',
+            background: '#94a3b8',
         },
     },
 });
 
-// Helper functions for notifications
+// Helpers
 const formatDate = (dateString) => {
     if (!dateString) return '—';
     try {
         const date = new Date(dateString);
+        const now = new Date();
+        const diffInHours = (now - date) / (1000 * 60 * 60);
+        const diffInDays = Math.floor(diffInHours / 24);
+
+        // For dates within last 7 days
+        if (diffInDays === 0) {
+            return `Today at ${date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+            })}`;
+        } else if (diffInDays === 1) {
+            return `Yesterday at ${date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+            })}`;
+        } else if (diffInDays < 7) {
+            return `${date.toLocaleDateString('en-US', {
+                weekday: 'short',
+            })} at ${date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true,
+            })}`;
+        }
+
+        // For older dates
         return date.toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit',
-        });
+            hour12: true,
+        }).replace(',', '');
     } catch (e) {
+        console.error('Error formatting detailed date:', e);
         return '—';
+    }
+};
+
+const formatGroupDate = (dateString) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+        return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday';
+    } else {
+        return date.toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+        });
     }
 };
 
@@ -85,75 +131,99 @@ const parseDashboardAddress = (fullAddress) => {
     const zip = zipMatch ? zipMatch[0] : '';
     const withoutZip = remaining.replace(zip, '').trim();
     const cityState = withoutZip.split(',').map(s => s.trim());
-    return {
-        street,
-        city: cityState[0] || '',
-        state: cityState[1] || '',
-        zip,
-        original: fullAddress,
-    };
+    return { street, city: cityState[0] || '', state: cityState[1] || '', zip, original: fullAddress };
 };
 
 const NotificationDrawer = ({ onClose }) => {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const queryClient = useQueryClient();
+    const { notifications, isLoading, error, refetch } = useNotifications();
 
-    // Fetch combined data for notifications
-    const { data: combinedData, isLoading, error } = useQuery({
-        queryKey: ['notifications-data'],
-        queryFn: async () => {
-            try {
-                const [locatesResponse, workOrdersResponse] = await Promise.all([
-                    axiosInstance.get('/locates/'),
-                    axiosInstance.get('/work-orders-today/'),
-                ]);
+    // Single mutation for marking notifications as seen
+    const markAsSeenMutation = useMutation({
+        mutationFn: async (notification) => {
+            // Prepare data in the required format
+            const requestData = {
+                work_orders: [],
+                locates: []
+            };
 
-                const locatesData = Array.isArray(locatesResponse.data)
-                    ? locatesResponse.data
-                    : locatesResponse.data?.data || [];
-
-                const workOrdersData = Array.isArray(workOrdersResponse.data)
-                    ? workOrdersResponse.data
-                    : [];
-
-                return {
-                    locates: locatesData,
-                    workOrders: workOrdersData,
-                    timestamp: new Date().toISOString(),
-                };
-            } catch (err) {
-                console.error('Error fetching notifications data:', err);
-                throw err;
+            if (notification.type === 'RME') {
+                requestData.work_orders.push({
+                    id: notification.rawData.id,
+                    is_seen: true
+                });
+            } else if (notification.type === 'locate') {
+                requestData.locates.push({
+                    id: notification.rawData.id,
+                    is_seen: true
+                });
             }
+
+            await axiosInstance.patch('/bulk-update/', requestData);
         },
-        staleTime: 30000,
-        refetchInterval: 60000,
+        onSuccess: () => {
+            queryClient.invalidateQueries(['notifications-data', user?.role]);
+        },
+        onError: (error) => {
+            console.error('Error marking notification as seen:', error);
+        }
     });
 
-    // Process notifications
-    const notifications = React.useMemo(() => {
-        if (!combinedData) return [];
+    // Bulk mark all as seen
+    const markAllAsSeenMutation = useMutation({
+        mutationFn: async (notifications) => {
+            // Prepare data in the required format
+            const requestData = {
+                work_orders: [],
+                locates: []
+            };
 
-        const { locates = [], workOrders = [] } = combinedData;
+            notifications.forEach(notification => {
+                if (notification.type === 'RME') {
+                    requestData.work_orders.push({
+                        id: notification.rawData.id,
+                        is_seen: true
+                    });
+                } else if (notification.type === 'locate') {
+                    requestData.locates.push({
+                        id: notification.rawData.id,
+                        is_seen: true
+                    });
+                }
+            });
+
+            await axiosInstance.patch('/bulk-update/', requestData);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(['notifications-data', user?.role]);
+        },
+        onError: (error) => {
+            console.error('Error marking all notifications as seen:', error);
+        }
+    });
+
+    // Process notifications - Get only latest 10 new ones
+    const latestNotifications = React.useMemo(() => {
+        if (!notifications) return [];
+        const { locates = [], workOrders = [] } = notifications;
         const oneMonthAgo = new Date();
         oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
         const allNotifications = [];
 
-        // Process locates data
+        // Locates
         locates.forEach((locate) => {
-            const createdAt = locate.created_at || locate.created_date;
-            if (!createdAt) return;
-
+            const createdAt = locate.created_at;
+            if (!createdAt || locate.is_seen) return;
             const createdDate = new Date(createdAt);
             if (createdDate >= oneMonthAgo) {
                 const addr = parseDashboardAddress(locate.customer_address || '');
-
                 allNotifications.push({
                     id: `locate-${locate.id}`,
                     type: 'locate',
                     title: 'New Locate Request',
-                    description: `New locate request added for address: "${addr.street || 'unknown address'}"`,
+                    description: `New locate request for ${addr.street || 'unknown address'}`,
                     address: addr.original || 'Unknown address',
                     workOrderNumber: locate.work_order_number || 'N/A',
                     customerName: locate.customer_name || 'Unknown',
@@ -166,68 +236,73 @@ const NotificationDrawer = ({ onClose }) => {
             }
         });
 
-        // Process work orders data (RME)
+        // Work Orders (RME)
         workOrders.forEach((workOrder) => {
             const elapsedTime = workOrder.elapsed_time;
-            if (!elapsedTime) return;
-
-            try {
-                const elapsedDate = new Date(elapsedTime);
-
-                if (elapsedDate >= oneMonthAgo) {
-                    const address = workOrder.full_address || workOrder.full_address || 'Unknown address';
-                    const addr = parseDashboardAddress(address);
-
-                    allNotifications.push({
-                        id: `rme-${workOrder.id}`,
-                        type: 'RME',
-                        title: 'New RME Added',
-                        description: `New RME created for address: "${addr.street || 'unknown address'}"`,
-                        address: addr.original || 'Unknown address',
-                        rmeNumber: workOrder.wo_number || workOrder.wo_number || workOrder.id || 'N/A',
-                        customerName: workOrder.customer_name || 'Unknown',
-                        timestamp: elapsedDate,
-                        formattedTime: formatDate(elapsedTime),
-                        icon: Wrench,
-                        color: NOTIFICATION_COLORS.primary,
-                        rawData: workOrder,
-                    });
-                }
-            } catch (e) {
-                console.error('Error parsing work order elapsed_time:', e);
+            if (!elapsedTime || workOrder.is_seen) return;
+            const elapsedDate = new Date(elapsedTime);
+            if (elapsedDate >= oneMonthAgo) {
+                const addr = parseDashboardAddress(workOrder.full_address || '');
+                allNotifications.push({
+                    id: `rme-${workOrder.id}`,
+                    type: 'RME',
+                    title: 'New RME Added',
+                    description: `New RME created for ${addr.street || 'unknown address'}`,
+                    address: addr.original || 'Unknown address',
+                    rmeNumber: workOrder.wo_number || workOrder.id || 'N/A',
+                    customerName: workOrder.customer_name || 'Unknown',
+                    timestamp: elapsedDate,
+                    formattedTime: formatDate(elapsedTime),
+                    icon: Wrench,
+                    color: NOTIFICATION_COLORS.success,
+                    rawData: workOrder,
+                });
             }
         });
 
-        // Sort by timestamp (newest first)
-        return allNotifications.sort((a, b) => b.timestamp - a.timestamp);
-    }, [combinedData]);
-
-    // Get only latest 10 notifications
-    const latestNotifications = React.useMemo(() => {
-        return notifications.slice(0, 10);
+        // Sort by newest first and take only latest 10
+        return allNotifications
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .slice(0, 10);
     }, [notifications]);
 
-    // Group latest 10 notifications by date
-    const groupedNotifications = React.useMemo(() => {
-        const groups = {};
+    // Get total count for badge display
+    const totalNotificationCount = React.useMemo(() => {
+        if (!notifications) return 0;
+        const { locates = [], workOrders = [] } = notifications;
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-        latestNotifications.forEach((notification) => {
-            const dateKey = notification.timestamp.toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-            });
+        let count = 0;
 
-            if (!groups[dateKey]) {
-                groups[dateKey] = [];
-            }
-            groups[dateKey].push(notification);
+        // Count locates
+        locates.forEach((locate) => {
+            const createdAt = locate.created_at || locate.created_date;
+            if (!createdAt || locate.is_seen) return;
+            const createdDate = new Date(createdAt);
+            if (createdDate >= oneMonthAgo) count++;
         });
 
+        // Count work orders
+        workOrders.forEach((workOrder) => {
+            const elapsedTime = workOrder.elapsed_time;
+            if (!elapsedTime || workOrder.is_seen) return;
+            const elapsedDate = new Date(elapsedTime);
+            if (elapsedDate >= oneMonthAgo) count++;
+        });
+
+        return count;
+    }, [notifications]);
+
+    const groupedNotifications = React.useMemo(() => {
+        const groups = {};
+        latestNotifications.forEach((n) => {
+            const dateKey = formatGroupDate(n.timestamp);
+            if (!groups[dateKey]) groups[dateKey] = [];
+            groups[dateKey].push(n);
+        });
         return groups;
     }, [latestNotifications]);
-
 
     const getDashboardBasePath = () => {
         switch (user?.role?.toUpperCase()) {
@@ -249,31 +324,38 @@ const NotificationDrawer = ({ onClose }) => {
         navigate(`${basePath}/notifications`);
     };
 
-    if (isLoading) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-                <CircularProgress size={24} />
-            </Box>
-        );
-    }
+    const handleMarkAllSeen = () => {
+        if (latestNotifications.length) {
+            markAllAsSeenMutation.mutate(latestNotifications);
+        }
+    };
 
-    if (error) {
-        return (
-            <Box sx={{ p: 2 }}>
-                <Alert severity="error" sx={{ mb: 2 }}>
-                    Error loading notifications: {error.message}
-                </Alert>
-                <Button
-                    onClick={() => window.location.reload()}
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                >
-                    Retry
-                </Button>
-            </Box>
-        );
-    }
+    const handleSingleSeen = (notification, e) => {
+        e.stopPropagation();
+        markAsSeenMutation.mutate(notification);
+    };
+
+    if (isLoading) return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', minHeight: '300px' }}>
+            <CircularProgress size={32} />
+        </Box>
+    );
+
+    if (error) return (
+        <Box sx={{ p: 3 }}>
+            <Alert severity="error" sx={{ mb: 2 }}>
+                Error loading notifications: {error.message}
+            </Alert>
+            <Button
+                onClick={() => queryClient.invalidateQueries(['notifications-data', user?.role])}
+                variant="outlined"
+                size="small"
+                fullWidth
+            >
+                Retry
+            </Button>
+        </Box>
+    );
 
     return (
         <Box sx={{
@@ -281,7 +363,7 @@ const NotificationDrawer = ({ onClose }) => {
             display: 'flex',
             flexDirection: 'column',
             backgroundColor: NOTIFICATION_COLORS.bg,
-            color: NOTIFICATION_COLORS.textPrimary,
+            color: NOTIFICATION_COLORS.textPrimary
         }}>
             {/* Header */}
             <Box sx={{
@@ -290,46 +372,82 @@ const NotificationDrawer = ({ onClose }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                flexShrink: 0,
-                backgroundColor: NOTIFICATION_COLORS.bg,
+                flexShrink: 0
             }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <Box sx={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: '8px',
+                        width: 40,
+                        height: 40,
+                        borderRadius: '10px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         backgroundColor: alpha(NOTIFICATION_COLORS.primary, 0.1),
-                        color: NOTIFICATION_COLORS.primary,
+                        color: NOTIFICATION_COLORS.primary
                     }}>
-                        <Bell size={18} />
+                        <Bell size={20} />
                     </Box>
                     <Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: NOTIFICATION_COLORS.textPrimary }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 700, color: NOTIFICATION_COLORS.textPrimary, fontSize: '0.85rem' }}>
                             Notifications
                         </Typography>
-                        {notifications.length > 0 && (
-                            <Typography variant="caption" sx={{ color: NOTIFICATION_COLORS.textSecondary }}>
-                                {notifications.length} total notifications
+                        {totalNotificationCount > 0 && (
+                            <Typography variant="caption" sx={{
+                                color: NOTIFICATION_COLORS.textSecondary,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5
+                            }}>
+                                <Box sx={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: '50%',
+                                    backgroundColor: NOTIFICATION_COLORS.primary
+                                }} />
+                                {totalNotificationCount} new
                             </Typography>
                         )}
                     </Box>
                 </Box>
-                <IconButton
-                    onClick={onClose}
-                    size="small"
-                    sx={{
-                        color: NOTIFICATION_COLORS.textSecondary,
-                        '&:hover': {
-                            backgroundColor: alpha(NOTIFICATION_COLORS.textSecondary, 0.1),
-                            color: NOTIFICATION_COLORS.textPrimary,
-                        },
-                    }}
-                >
-                    <X size={16} />
-                </IconButton>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    {latestNotifications.length > 0 && (
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<Check size={14} />}
+                            onClick={handleMarkAllSeen}
+                            disabled={markAllAsSeenMutation.isLoading}
+                            sx={{
+                                textTransform: 'none',
+                                fontSize: '0.75rem',
+                                color: GREEN_COLOR,
+                                borderColor: alpha(GREEN_COLOR, 0.3),
+                                '&:hover': {
+                                    borderColor: GREEN_COLOR,
+                                    backgroundColor: alpha(GREEN_COLOR, 0.05),
+                                },
+                                '&.Mui-disabled': {
+                                    color: alpha(GREEN_COLOR, 0.5),
+                                    borderColor: alpha(GREEN_COLOR, 0.2),
+                                }
+                            }}
+                        >
+                            Mark all read
+                        </Button>
+                    )}
+                    <IconButton
+                        onClick={onClose}
+                        size="small"
+                        sx={{
+                            color: NOTIFICATION_COLORS.textSecondary,
+                            '&:hover': {
+                                backgroundColor: alpha(NOTIFICATION_COLORS.gray, 0.1)
+                            }
+                        }}
+                    >
+                        <X size={18} />
+                    </IconButton>
+                </Box>
             </Box>
 
             {/* Notifications List */}
@@ -337,135 +455,172 @@ const NotificationDrawer = ({ onClose }) => {
                 {latestNotifications.length === 0 ? (
                     <Box sx={{
                         textAlign: 'center',
-                        py: 6,
+                        py: 8,
                         px: 2,
-                        backgroundColor: NOTIFICATION_COLORS.bg,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                     }}>
-                        <Bell size={32} color={alpha(NOTIFICATION_COLORS.gray, 0.3)} />
-                        <Typography variant="body1" sx={{ mt: 2, color: NOTIFICATION_COLORS.textSecondary, fontWeight: 500 }}>
-                            No recent activity
+                        <Bell size={48} color={alpha(NOTIFICATION_COLORS.gray, 0.3)} />
+                        <Typography variant="body1" sx={{
+                            mt: 2,
+                            color: NOTIFICATION_COLORS.textSecondary,
+                            fontWeight: 600
+                        }}>
+                            No new notifications
                         </Typography>
-                        <Typography variant="caption" sx={{ color: NOTIFICATION_COLORS.textTertiary, mt: 1, display: 'block' }}>
-                            No new locates or RME in the last 30 days
+                        <Typography variant="caption" sx={{
+                            color: NOTIFICATION_COLORS.textTertiary,
+                            mt: 1,
+                            display: 'block',
+                            maxWidth: '80%'
+                        }}>
+                            You're all caught up! No new locates or RMEs in the last 30 days.
                         </Typography>
                     </Box>
                 ) : (
-                    <Box sx={{ backgroundColor: NOTIFICATION_COLORS.bg }}>
-                        {Object.entries(groupedNotifications).map(([date, dateNotifications]) => (
-                            <Box key={date} sx={{ backgroundColor: NOTIFICATION_COLORS.bg }}>
-                                {/* Date Header */}
-                                <Box sx={{
-                                    p: 1.5,
-                                    px: 2,
-                                    bgcolor: alpha(NOTIFICATION_COLORS.gray, 0.03),
-                                    borderBottom: `1px solid ${alpha(NOTIFICATION_COLORS.gray, 0.1)}`,
-                                    borderTop: `1px solid ${alpha(NOTIFICATION_COLORS.gray, 0.1)}`,
+                    Object.entries(groupedNotifications).map(([date, dateNotifications]) => (
+                        <Box key={date}>
+                            <Box sx={{
+                                p: 1,
+                                bgcolor: NOTIFICATION_COLORS.grayLight,
+                                borderBottom: `1px solid ${alpha(NOTIFICATION_COLORS.gray, 0.1)}`,
+                                position: 'sticky',
+                                top: 0,
+                                zIndex: 1
+                            }}>
+                                <Typography variant="caption" sx={{
+                                    color: NOTIFICATION_COLORS.textSecondary,
+                                    fontWeight: 600,
+                                    fontSize: '0.65rem',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px'
                                 }}>
-                                    <Typography variant="caption" sx={{ color: NOTIFICATION_COLORS.textSecondary, fontWeight: 600, fontSize: '0.75rem' }}>
-                                        {date}
-                                    </Typography>
-                                </Box>
-
-                                {/* Notifications for this date */}
-                                <List disablePadding sx={{ backgroundColor: NOTIFICATION_COLORS.bg }}>
-                                    {dateNotifications.map((notification, index) => {
-                                        const Icon = notification.icon;
-                                        const isLast = index === dateNotifications.length - 1;
-
-                                        return (
-                                            <React.Fragment key={notification.id}>
-                                                <ListItem
+                                    {date}
+                                </Typography>
+                            </Box>
+                            <List disablePadding>
+                                {dateNotifications.map((notification, index) => {
+                                    const Icon = notification.icon;
+                                    const isLast = index === dateNotifications.length - 1;
+                                    return (
+                                        <React.Fragment key={notification.id}>
+                                            <ListItem
+                                                sx={{
+                                                    p: 2,
+                                                    backgroundColor: NOTIFICATION_COLORS.bg,
+                                                    cursor: 'pointer',
+                                                    '&:hover': {
+                                                        bgcolor: alpha(notification.color, 0.03)
+                                                    },
+                                                    transition: 'background-color 0.2s ease'
+                                                }}
+                                            >
+                                                <ListItemIcon sx={{ minWidth: 44 }}>
+                                                    <Box sx={{
+                                                        width: 36,
+                                                        height: 36,
+                                                        borderRadius: '8px',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        backgroundColor: alpha(notification.color, 0.1),
+                                                        color: notification.color
+                                                    }}>
+                                                        <Icon size={16} />
+                                                    </Box>
+                                                </ListItemIcon>
+                                                <ListItemText
+                                                    primary={
+                                                        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 0.5 }}>
+                                                            <Typography variant="body2" sx={{
+                                                                color: NOTIFICATION_COLORS.textPrimary,
+                                                                fontWeight: 600,
+                                                                fontSize: '0.75rem',
+                                                                lineHeight: 1.3
+                                                            }}>
+                                                                {notification.description}
+                                                            </Typography>
+                                                            <Chip
+                                                                label={notification.type === 'locate' ? 'Locate' : 'RME'}
+                                                                size="small"
+                                                                sx={{
+                                                                    height: '20px',
+                                                                    fontSize: '0.65rem',
+                                                                    fontWeight: 600,
+                                                                    backgroundColor: alpha(notification.color, 0.1),
+                                                                    color: notification.color,
+                                                                    border: `1px solid ${alpha(notification.color, 0.2)}`
+                                                                }}
+                                                            />
+                                                        </Box>
+                                                    }
+                                                    secondary={
+                                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                                                            <Typography variant="caption" sx={{
+                                                                color: NOTIFICATION_COLORS.textSecondary,
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: 0.5,
+                                                                fontSize: '0.75rem'
+                                                            }}>
+                                                                <Clock size={12} />
+                                                                {notification.type === 'locate' ? `WO: ${notification.workOrderNumber}` : `WO: ${notification.rmeNumber}`}
+                                                                <Box sx={{ mx: 0.5 }}>•</Box>
+                                                                {notification.formattedTime}
+                                                            </Typography>
+                                                        </Box>
+                                                    }
+                                                    sx={{ m: 0 }}
+                                                />
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={(e) => handleSingleSeen(notification, e)}
+                                                    disabled={markAsSeenMutation.isLoading}
                                                     sx={{
-                                                        p: 1.5,
-                                                        px: 2,
-                                                        backgroundColor: NOTIFICATION_COLORS.bg,
+                                                        ml: 1,
+                                                        color: NOTIFICATION_COLORS.textTertiary,
                                                         '&:hover': {
-                                                            bgcolor: alpha(notification.color, 0.03),
+                                                            color: NOTIFICATION_COLORS.textPrimary,
+                                                            backgroundColor: alpha(NOTIFICATION_COLORS.gray, 0.1)
                                                         },
+                                                        '&.Mui-disabled': {
+                                                            color: alpha(NOTIFICATION_COLORS.textTertiary, 0.5),
+                                                        }
                                                     }}
                                                 >
-                                                    <ListItemIcon sx={{ minWidth: 36 }}>
-                                                        <Box sx={{
-                                                            width: 28,
-                                                            height: 28,
-                                                            borderRadius: '6px',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            backgroundColor: alpha(notification.color, 0.1),
-                                                            color: notification.color,
-                                                        }}>
-                                                            <Icon size={14} />
-                                                        </Box>
-                                                    </ListItemIcon>
-                                                    <ListItemText
-                                                        primary={
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
-                                                                <Typography variant="body2" sx={{ color: NOTIFICATION_COLORS.textPrimary, fontWeight: 600, fontSize: '0.8rem' }}>
-                                                                    {notification.description}
-                                                                </Typography>
-                                                                <Chip
-                                                                    label={notification.type === 'locate' ? 'Locate' : 'RME'}
-                                                                    size="small"
-                                                                    sx={{
-                                                                        height: '18px',
-                                                                        fontSize: '0.6rem',
-                                                                        fontWeight: 500,
-                                                                        backgroundColor: alpha(notification.color, 0.1),
-                                                                        color: notification.color,
-                                                                        border: `1px solid ${alpha(notification.color, 0.2)}`,
-                                                                    }}
-                                                                />
-                                                            </Box>
-                                                        }
-                                                        secondary={
-                                                            <Box sx={{ backgroundColor: 'transparent' }}>
-                                                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                                                                    <Typography variant="caption" sx={{ color: NOTIFICATION_COLORS.textSecondary, display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem' }}>
-                                                                        <Clock size={10} />
-                                                                        {notification.type === 'locate' ? 'WO' : 'WO'}: {notification.type === 'locate' ? notification.workOrderNumber : notification.rmeNumber}
-                                                                    </Typography>
-                                                                    <Typography variant="caption" sx={{ color: NOTIFICATION_COLORS.textSecondary, display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem' }}>
-                                                                        <Calendar size={10} />
-                                                                        {notification.formattedTime}
-                                                                    </Typography>
-                                                                </Box>
-                                                            </Box>
-                                                        }
-                                                    />
-                                                    <IconButton size="small" sx={{ ml: 1 }}>
-                                                        <ExternalLink size={12} />
-                                                    </IconButton>
-                                                </ListItem>
-                                                {!isLast && <Divider sx={{ mx: 2 }} />}
-                                            </React.Fragment>
-                                        );
-                                    })}
-                                </List>
-                            </Box>
-                        ))}
-                    </Box>
+                                                    <X size={14} />
+                                                </IconButton>
+                                            </ListItem>
+                                            {!isLast && (
+                                                <Divider
+                                                    sx={{
+                                                        mx: 2,
+                                                        borderColor: alpha(NOTIFICATION_COLORS.borderLight, 0.5)
+                                                    }}
+                                                />
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </List>
+                        </Box>
+                    ))
                 )}
             </NotificationScrollableBox>
 
-            {/* Summary and View All Button */}
+            {/* Footer */}
             <Box sx={{
                 p: 2,
                 borderTop: `1px solid ${NOTIFICATION_COLORS.borderLight}`,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 1,
+                gap: 1.5,
                 flexShrink: 0,
-                backgroundColor: NOTIFICATION_COLORS.bg,
+                backgroundColor: NOTIFICATION_COLORS.grayLight
             }}>
-                {notifications.length > 0 && (
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="caption" sx={{ color: NOTIFICATION_COLORS.textTertiary }}>
-                            Showing {Math.min(10, notifications.length)} of {notifications.length} notifications
-                        </Typography>
-                    </Box>
-                )}
-                {notifications.length > 10 && (
+                {totalNotificationCount > 10 && (
                     <Button
                         onClick={handleViewAll}
                         variant="outlined"

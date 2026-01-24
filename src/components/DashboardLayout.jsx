@@ -9,21 +9,12 @@ import CssBaseline from '@mui/material/CssBaseline';
 import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
 import Avatar from '@mui/material/Avatar';
-import Tooltip from '@mui/material/Tooltip';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import InputBase from '@mui/material/InputBase';
 import Badge from '@mui/material/Badge';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import Button from '@mui/material/Button';
 import SwipeableDrawer from '@mui/material/SwipeableDrawer';
 import { useAuth } from '../auth/AuthProvider';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -39,20 +30,18 @@ import {
   LogOut,
   User,
   Menu as MenuIcon,
-  ChevronDown,
-  ChevronUp,
   Search,
   Bell,
   ChevronLeft,
   ChevronRight,
-  Edit,
   X,
 } from 'lucide-react';
+import { useNotifications } from '../hook/useNotifications';
 
 const drawerWidth = 250;
 const closedDrawerWidth = 60;
 const mobileDrawerWidth = 280;
-const notificationDrawerWidth = 400;
+const notificationDrawerWidth = 450;
 
 // Updated color variables
 const colors = {
@@ -314,44 +303,7 @@ const MobilePageTitle = styled(Typography)(({ theme }) => ({
     maxWidth: '120px',
   },
 }));
-
-const HoverMenu = styled(Box)(({ theme }) => ({
-  position: 'fixed',
-  backgroundColor: colors.appBarBg,
-  backdropFilter: 'blur(10px)',
-  borderRadius: '6px',
-  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-  border: `1px solid ${alpha('#ffffff', 0.2)}`,
-  zIndex: theme.zIndex.drawer + 20,
-  overflow: 'hidden',
-  animation: 'fadeIn 0.15s ease-out',
-  '@keyframes fadeIn': {
-    from: { opacity: 0, transform: 'translateX(-5px)' },
-    to: { opacity: 1, transform: 'translateX(0)' },
-  },
-}));
-
-const HoverMenuItem = styled(Box)(({ theme }) => ({
-  padding: '8px 12px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '10px',
-  fontSize: '0.8rem',
-  fontWeight: 500,
-  color: colors.textPrimary,
-  transition: 'all 0.2s ease',
-  backgroundColor: 'transparent',
-  '&:hover': {
-    backgroundColor: alpha('#ffffff', 0.15),
-    color: colors.primary,
-  },
-  '&.active': {
-    backgroundColor: alpha(colors.primary, 0.2),
-    color: colors.primary,
-    borderLeft: `2px solid ${colors.activeBorder}`,
-  },
-}));
+;
 
 const DrawerCloseButton = styled(IconButton)(({ theme }) => ({
   position: 'absolute',
@@ -437,6 +389,8 @@ const DashboardLayout = ({ children, title, menuItems }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const { badgeCount } = useNotifications();
 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -906,8 +860,8 @@ const DashboardLayout = ({ children, title, menuItems }) => {
                 backgroundColor: alpha('#ffffff', 0.1),
                 borderRadius: '5px',
                 border: `1px solid ${alpha('#ffffff', 0.3)}`,
-                width: 32,
-                height: 32,
+                width: 38,
+                height: 38,
                 '&:hover': {
                   backgroundColor: alpha('#ffffff', 0.2),
                   color: colors.primary,
@@ -915,17 +869,18 @@ const DashboardLayout = ({ children, title, menuItems }) => {
               }}
             >
               <Badge
-                badgeContent={3}
+                badgeContent={badgeCount}
                 color="error"
                 sx={{
                   '& .MuiBadge-badge': {
                     fontSize: '0.55rem',
                     height: '14px',
                     minWidth: '14px',
+                    bgcolor: colors.red,
                   }
                 }}
               >
-                <Bell size={16} />
+                <Bell size={18} />
               </Badge>
             </IconButton>
 
