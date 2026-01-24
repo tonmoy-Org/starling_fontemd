@@ -61,6 +61,7 @@ import { SubmitHealthReport } from '../pages/tech/SubmitHealthReport';
 import { TechRiskManagement } from '../pages/tech/RiskManagement';
 import { SubmitRiskAssessment } from '../pages/tech/SubmitRiskAssessment';
 import { Courses } from '../pages/tech/Courses';
+import Notifications from '../components/Notification/Notifications';
 
 
 export const AppRoutes = () => {
@@ -132,6 +133,9 @@ export const AppRoutes = () => {
 
           {/* Locates */}
           <Route path="locates" element={<Locates />} />
+
+          {/* Notifications */}
+          <Route path="notifications" element={<Notifications />} />
         </Route>
 
         {/* ===================== Manager Routes ===================== */}

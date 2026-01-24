@@ -25,9 +25,14 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import SwipeableDrawer from '@mui/material/SwipeableDrawer';
 import { useAuth } from '../auth/AuthProvider';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { useQuery } from '@tanstack/react-query';
+import axiosInstance from '../api/axios';
 import logo from '../public/favicon/logo.png';
 import miniLogo from '../public/favicon/favicon.ico';
 import DashboardFooter from './DashboardFooter';
@@ -50,11 +55,17 @@ import {
   Edit,
   ShieldCheck,
   Briefcase,
+  MapPin,
+  Wrench,
+  Clock,
+  ExternalLink,
+  ArrowRight,
 } from 'lucide-react';
 
 const drawerWidth = 250;
 const closedDrawerWidth = 60;
 const mobileDrawerWidth = 280;
+const notificationDrawerWidth = 400;
 
 // Updated color variables
 const colors = {
@@ -75,7 +86,16 @@ const colors = {
   sidebarHover: '#f1f5f9',
   sidebarActive: '#e6f7ff',
   appBarBg: 'rgba(255, 255, 255, 0.1)',
+  blue: '#1976d2',
+  green: '#10b981',
+  red: '#ef4444',
+  orange: '#ed6c02',
+  gray: '#6b7280',
+  purple: '#8b5cf6',
 };
+
+// Notification-specific colors
+const NOTIFICATION_COLORS = "#1976d2"
 
 const openedMixin = (theme) => ({
   width: drawerWidth,
@@ -138,10 +158,6 @@ const AppBar = styled(MuiAppBar, {
   ...(open && {
     marginLeft: drawerWidth,
     width: `calc(100% - ${drawerWidth}px)`,
-    transition: theme.transitions.create(['width', 'margin', 'background-color'], {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
   }),
 }));
 
@@ -182,6 +198,444 @@ const ScrollableBox = styled(Box)({
   scrollbarWidth: 'none',
 });
 
+const NotificationScrollableBox = styled(Box)({
+  flex: 1,
+  overflowY: 'auto',
+  overflowX: 'hidden',
+  '&::-webkit-scrollbar': {
+    width: '4px',
+  },
+  '&::-webkit-scrollbar-track': {
+    background: '#f1f5f9',
+    borderRadius: '2px',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    background: '#cbd5e0',
+    borderRadius: '2px',
+    '&:hover': {
+      background: '#a0aec0',
+    },
+  },
+});
+
+// Helper functions for notifications
+const formatDate = (dateString) => {
+  if (!dateString) return '—';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch (e) {
+    return '—';
+  }
+};
+
+const parseDashboardAddress = (fullAddress) => {
+  if (!fullAddress) return { street: '', city: '', state: '', zip: '', original: '' };
+  const parts = fullAddress.split(' - ');
+  if (parts.length < 2) return { street: fullAddress, city: '', state: '', zip: '', original: fullAddress };
+  const street = parts[0].trim();
+  const remaining = parts[1].trim();
+  const zipMatch = remaining.match(/\b\d{5}\b/);
+  const zip = zipMatch ? zipMatch[0] : '';
+  const withoutZip = remaining.replace(zip, '').trim();
+  const cityState = withoutZip.split(',').map(s => s.trim());
+  return {
+    street,
+    city: cityState[0] || '',
+    state: cityState[1] || '',
+    zip,
+    original: fullAddress,
+  };
+};
+
+// Notification Drawer Component
+const NotificationDrawerContent = ({ onClose }) => {
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Fetch combined data for notifications
+  const { data: combinedData, isLoading, error } = useQuery({
+    queryKey: ['notifications-data'],
+    queryFn: async () => {
+      try {
+        const [locatesResponse, workOrdersResponse] = await Promise.all([
+          axiosInstance.get('/locates/'),
+          axiosInstance.get('/work-orders-today/'),
+        ]);
+
+        const locatesData = Array.isArray(locatesResponse.data)
+          ? locatesResponse.data
+          : locatesResponse.data?.data || [];
+
+        const workOrdersData = Array.isArray(workOrdersResponse.data)
+          ? workOrdersResponse.data
+          : [];
+
+        return {
+          locates: locatesData,
+          workOrders: workOrdersData,
+          timestamp: new Date().toISOString(),
+        };
+      } catch (err) {
+        console.error('Error fetching notifications data:', err);
+        throw err;
+      }
+    },
+    staleTime: 30000,
+    refetchInterval: 60000,
+  });
+
+  // Process notifications
+  const notifications = React.useMemo(() => {
+    if (!combinedData) return [];
+
+    const { locates = [], workOrders = [] } = combinedData;
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    const allNotifications = [];
+
+    // Process locates data
+    locates.forEach((locate) => {
+      const createdAt = locate.created_at || locate.created_date;
+      if (!createdAt) return;
+
+      const createdDate = new Date(createdAt);
+      if (createdDate >= oneMonthAgo) {
+        const addr = parseDashboardAddress(locate.customer_address || '');
+
+        allNotifications.push({
+          id: `locate-${locate.id}`,
+          type: 'locate',
+          title: 'New Locate Request',
+          description: `New locate request added for address: "${addr.street || 'unknown address'}"`,
+          address: addr.original || 'Unknown address',
+          workOrderNumber: locate.work_order_number || 'N/A',
+          customerName: locate.customer_name || 'Unknown',
+          timestamp: createdDate,
+          formattedTime: formatDate(createdAt),
+          icon: MapPin,
+          color: NOTIFICATION_COLORS,
+          rawData: locate,
+        });
+      }
+    });
+
+    // Process work orders data (RME)
+    workOrders.forEach((workOrder) => {
+      const elapsedTime = workOrder.elapsed_time;
+      if (!elapsedTime) return;
+
+      try {
+        const elapsedDate = new Date(elapsedTime);
+
+        if (elapsedDate >= oneMonthAgo) {
+          const address = workOrder.full_address || workOrder.full_address || 'Unknown address';
+          const addr = parseDashboardAddress(address);
+
+          allNotifications.push({
+            id: `rme-${workOrder.id}`,
+            type: 'RME',
+            title: 'New RME Added',
+            description: `New RME created for address: "${addr.street || 'unknown address'}"`,
+            address: addr.original || 'Unknown address',
+            rmeNumber: workOrder.wo_number || workOrder.wo_number || workOrder.id || 'N/A',
+            customerName: workOrder.customer_name || 'Unknown',
+            timestamp: elapsedDate,
+            formattedTime: formatDate(elapsedTime),
+            icon: Wrench,
+            color: NOTIFICATION_COLORS,
+            rawData: workOrder,
+          });
+        }
+      } catch (e) {
+        console.error('Error parsing work order elapsed_time:', e);
+      }
+    });
+
+    // Sort by timestamp (newest first)
+    return allNotifications.sort((a, b) => b.timestamp - a.timestamp);
+  }, [combinedData]);
+
+  // Get only latest 10 notifications
+  const latestNotifications = React.useMemo(() => {
+    return notifications.slice(0, 10);
+  }, [notifications]);
+
+  // Group latest 10 notifications by date
+  const groupedNotifications = React.useMemo(() => {
+    const groups = {};
+
+    latestNotifications.forEach((notification) => {
+      const dateKey = notification.timestamp.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+      groups[dateKey].push(notification);
+    });
+
+    return groups;
+  }, [latestNotifications]);
+
+  // Get counts based on ALL notifications (not just latest 10)
+  const counts = React.useMemo(() => {
+    const locateCount = notifications.filter(n => n.type === 'locate').length;
+    const rmeCount = notifications.filter(n => n.type === 'RME').length;
+
+    return {
+      total: notifications.length,
+      locateCount,
+      rmeCount,
+    };
+  }, [notifications]);
+
+  const handleViewAll = () => {
+    onClose(); // Close the drawer first
+    navigate('/notifications'); // Navigate to notifications page
+  };
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+        <CircularProgress size={24} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Error loading notifications: {error.message}
+        </Alert>
+        <Button
+          onClick={() => window.location.reload()}
+          variant="outlined"
+          size="small"
+          fullWidth
+        >
+          Retry
+        </Button>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      backgroundColor: colors.white,
+      color: colors.textPrimary,
+    }}>
+      {/* Header */}
+      <Box sx={{
+        p: 2,
+        borderBottom: `1px solid ${colors.borderLight}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0,
+        backgroundColor: colors.white,
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{
+            width: 36,
+            height: 36,
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: alpha(NOTIFICATION_COLORS, 0.1),
+            color: NOTIFICATION_COLORS,
+          }}>
+            <Bell size={18} />
+          </Box>
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, color: colors.textPrimary }}>
+              Notifications
+            </Typography>
+          </Box>
+        </Box>
+        <IconButton
+          onClick={onClose}
+          size="small"
+          sx={{
+            color: colors.textSecondary,
+            '&:hover': {
+              backgroundColor: alpha(colors.textSecondary, 0.1),
+              color: colors.textPrimary,
+            },
+          }}
+        >
+          <X size={16} />
+        </IconButton>
+      </Box>
+      {/* Notifications List */}
+      <NotificationScrollableBox sx={{ backgroundColor: colors.white }}>
+        {latestNotifications.length === 0 ? (
+          <Box sx={{
+            textAlign: 'center',
+            py: 6,
+            px: 2,
+            backgroundColor: colors.white,
+          }}>
+            <Bell size={32} color={alpha(colors.gray, 0.3)} />
+            <Typography variant="body1" sx={{ mt: 2, color: colors.textSecondary, fontWeight: 500 }}>
+              No recent activity
+            </Typography>
+            <Typography variant="caption" sx={{ color: colors.textTertiary, mt: 1, display: 'block' }}>
+              No new locates or RME in the last 30 days
+            </Typography>
+          </Box>
+        ) : (
+          <Box sx={{ backgroundColor: colors.white }}>
+            {Object.entries(groupedNotifications).map(([date, dateNotifications]) => (
+              <Box key={date} sx={{ backgroundColor: colors.white }}>
+                {/* Date Header */}
+                <Box sx={{
+                  p: 1.5,
+                  px: 2,
+                  bgcolor: alpha(colors.gray, 0.03),
+                  borderBottom: `1px solid ${alpha(colors.gray, 0.1)}`,
+                  borderTop: `1px solid ${alpha(colors.gray, 0.1)}`,
+                }}>
+                  <Typography variant="caption" sx={{ color: colors.textSecondary, fontWeight: 600, fontSize: '0.75rem' }}>
+                    {date}
+                  </Typography>
+                </Box>
+
+                {/* Notifications for this date */}
+                <List disablePadding sx={{ backgroundColor: colors.white }}>
+                  {dateNotifications.map((notification, index) => {
+                    const Icon = notification.icon;
+                    const isLast = index === dateNotifications.length - 1;
+
+                    return (
+                      <React.Fragment key={notification.id}>
+                        <ListItem
+                          sx={{
+                            p: 1.5,
+                            px: 2,
+                            backgroundColor: colors.white,
+                            '&:hover': {
+                              bgcolor: alpha(notification.color, 0.03),
+                            },
+                          }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 36 }}>
+                            <Box sx={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: alpha(notification.color, 0.1),
+                              color: notification.color,
+                            }}>
+                              <Icon size={14} />
+                            </Box>
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.25 }}>
+                                <Typography variant="body2" sx={{ color: colors.textPrimary, fontWeight: 600, fontSize: '0.8rem' }}>
+                                  {notification.description}
+                                </Typography>
+                                <Chip
+                                  label={notification.type === 'locate' ? 'Locate' : 'RME'}
+                                  size="small"
+                                  sx={{
+                                    height: '18px',
+                                    fontSize: '0.6rem',
+                                    fontWeight: 500,
+                                    backgroundColor: alpha(notification.color, 0.1),
+                                    color: notification.color,
+                                    border: `1px solid ${alpha(notification.color, 0.2)}`,
+                                  }}
+                                />
+                              </Box>
+                            }
+                            secondary={
+                              <Box sx={{ backgroundColor: 'transparent' }}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  <Typography variant="caption" sx={{ color: colors.textSecondary, display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem' }}>
+                                    <Clock size={10} />
+                                    {notification.type === 'locate' ? 'WO' : 'WO'}: {notification.type === 'locate' ? notification.workOrderNumber : notification.rmeNumber}
+                                  </Typography>
+                                  <Typography variant="caption" sx={{ color: colors.textSecondary, display: 'flex', alignItems: 'center', gap: 0.5, fontSize: '0.7rem' }}>
+                                    <Calendar size={10} />
+                                    {notification.formattedTime}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            }
+                          />
+                          <IconButton size="small" sx={{ ml: 1 }}>
+                            <ExternalLink size={12} />
+                          </IconButton>
+                        </ListItem>
+                        {!isLast && <Divider sx={{ mx: 2 }} />}
+                      </React.Fragment>
+                    );
+                  })}
+                </List>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </NotificationScrollableBox>
+
+      {/* Summary and View All Button */}
+      <Box sx={{
+        p: 2,
+        borderTop: `1px solid ${colors.borderLight}`,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1,
+        flexShrink: 0,
+        backgroundColor: colors.white,
+      }}>
+        {notifications.length > 10 && (
+          <Button
+            onClick={handleViewAll}
+            variant="outlined"
+            fullWidth
+            endIcon={<ArrowRight size={14} />}
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              color: colors.primary,
+              borderColor: colors.borderLight,
+              '&:hover': {
+                borderColor: colors.primary,
+                backgroundColor: alpha(colors.primary, 0.04),
+              },
+            }}
+          >
+            View All Notifications
+          </Button>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+// Rest of the code remains the same (SearchContainer, MobileSearchBackdrop, etc.)
 const SearchContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
@@ -826,7 +1280,7 @@ const NestedMenuItem = ({ item, level = 0, isDrawerOpen, getActiveStyles, handle
 
     // If item has a path (navigation item), handle navigation
     if (item.path) {
-      // Check if it's an external URL (starts with http:// or https://)
+      // Check if it's an external URL (starts with http:// or https://))
       if (item.path.startsWith('http://') || item.path.startsWith('https://')) {
         // Open external link in new tab
         window.open(item.path, '_blank');
@@ -1113,6 +1567,7 @@ export default function DashboardLayout({ children, title, menuItems }) {
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
   const [open, setOpen] = React.useState(!isMobile);
+  const [notificationOpen, setNotificationOpen] = React.useState(false);
   const [menuAnchorEl, setMenuAnchorEl] = React.useState(null);
   const [profileDialogOpen, setProfileDialogOpen] = React.useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = React.useState(false);
@@ -1124,6 +1579,22 @@ export default function DashboardLayout({ children, title, menuItems }) {
 
   const handleDrawerToggle = () => setOpen(!open);
   const handleDrawerClose = () => setOpen(false);
+
+  const toggleNotificationDrawer = (open) => (event) => {
+    if (
+      event &&
+      event.type === 'keydown' &&
+      (event.key === 'Tab' || event.key === 'Shift')
+    ) {
+      return;
+    }
+
+    setNotificationOpen(open);
+  };
+
+  const handleNotificationClose = () => {
+    setNotificationOpen(false);
+  };
 
   const getInitials = (name) =>
     name?.split(' ').map((n) => n[0]).join('').toUpperCase() || 'U';
@@ -1230,7 +1701,7 @@ export default function DashboardLayout({ children, title, menuItems }) {
 
   const handleNavigation = (path) => {
     if (path) {
-      // Check if it's an external URL (starts with http:// or https://)
+      // Check if it's an external URL (starts with http:// or https://))
       if (path.startsWith('http://') || path.startsWith('https://')) {
         // Open external link in new tab
         window.open(path, '_blank');
@@ -1322,21 +1793,21 @@ export default function DashboardLayout({ children, title, menuItems }) {
           alignItems: 'center',
           justifyContent: open ? 'flex-start' : 'center',
           width: '100%',
-          px: open ? 2 : 1,
         }}>
           {open ? (
             <img
               src={logo}
               alt="Logo"
               style={{
-                width: '140px',
+                width: '150px',
                 height: 'auto',
+                padding: '0.75rem',
               }}
             />
           ) : (
             <Box sx={{
-              width: 36,
-              height: 36,
+              width: 40,
+              height: 40,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1345,8 +1816,8 @@ export default function DashboardLayout({ children, title, menuItems }) {
                 src={miniLogo}
                 alt="Logo"
                 style={{
-                  width: '28px',
-                  height: '28px',
+                  width: '40px',
+                  height: '40px',
                   objectFit: 'contain',
                 }}
               />
@@ -1547,12 +2018,13 @@ export default function DashboardLayout({ children, title, menuItems }) {
             <SearchContainer sx={{ width: '280px' }}>
               <Search size={16} color={alpha(colors.textPrimary, 0.7)} />
               <SearchInput
-                placeholder="Q Search"
+                placeholder="Search"
                 inputProps={{ 'aria-label': 'search' }}
               />
             </SearchContainer>
 
             <IconButton
+              onClick={toggleNotificationDrawer(true)}
               sx={{
                 color: colors.textPrimary,
                 backgroundColor: alpha('#ffffff', 0.1),
@@ -1702,6 +2174,7 @@ export default function DashboardLayout({ children, title, menuItems }) {
             </MobileSearchButton>
 
             <IconButton
+              onClick={toggleNotificationDrawer(true)}
               sx={{
                 color: colors.textPrimary,
                 backgroundColor: alpha('#ffffff', 0.1),
@@ -1949,6 +2422,10 @@ export default function DashboardLayout({ children, title, menuItems }) {
           backgroundColor: '#f7fafc',
           width: '100%',
           overflow: 'hidden',
+          transition: theme.transitions.create('margin', {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
         }}
       >
         <DrawerHeader />
@@ -2014,6 +2491,40 @@ export default function DashboardLayout({ children, title, menuItems }) {
           <DashboardFooter />
         </Box>
       </Box>
+
+      {/* Notification Drawer - Swipeable on mobile, regular on desktop */}
+      <SwipeableDrawer
+        anchor="right"
+        open={notificationOpen}
+        onClose={toggleNotificationDrawer(false)}
+        onOpen={toggleNotificationDrawer(true)}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: notificationDrawerWidth,
+            backgroundColor: colors.white,
+            borderLeft: `1px solid ${colors.borderLight}`,
+            color: colors.textPrimary,
+            '&::-webkit-scrollbar': {
+              width: '4px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: '#f1f5f9',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#cbd5e0',
+              borderRadius: '2px',
+              '&:hover': {
+                background: '#a0aec0',
+              },
+            },
+            [theme.breakpoints.down('sm')]: {
+              width: '100%',
+            },
+          },
+        }}
+      >
+        <NotificationDrawerContent onClose={handleNotificationClose} />
+      </SwipeableDrawer>
 
       <ProfileDialog
         open={profileDialogOpen}
