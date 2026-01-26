@@ -1,4 +1,4 @@
-// NotificationDrawer.jsx
+// NotificationDrawer.jsx - Modified to show 10 most recent notifications
 import React from 'react';
 import { styled, alpha } from '@mui/material/styles';
 import Box from '@mui/material/Box';
@@ -15,10 +15,10 @@ import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axiosInstance from '../api/axios';
-import { useAuth } from '../auth/AuthProvider';
+import axiosInstance from '../../api/axios';
+import { useAuth } from '../../auth/AuthProvider';
 import { Bell, X, Clock, MapPin, Wrench, ArrowRight, Check } from 'lucide-react';
-import { useNotifications } from '../hook/useNotifications';
+import { useNotifications } from '../../hook/useNotifications';
 
 const GREEN_COLOR = '#10b981';
 
@@ -203,7 +203,7 @@ const NotificationDrawer = ({ onClose }) => {
         }
     });
 
-    // Process notifications - Get only latest 10 new ones
+    // Process notifications - Get only latest 10 (both seen and unseen)
     const latestNotifications = React.useMemo(() => {
         if (!notifications) return [];
         const { locates = [], workOrders = [] } = notifications;
@@ -211,18 +211,18 @@ const NotificationDrawer = ({ onClose }) => {
         oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
         const allNotifications = [];
 
-        // Locates
+        // Locates - Include both seen and unseen
         locates.forEach((locate) => {
             const createdAt = locate.created_at;
-            if (!createdAt || locate.is_seen) return;
+            if (!createdAt) return;
             const createdDate = new Date(createdAt);
             if (createdDate >= oneMonthAgo) {
                 const addr = parseDashboardAddress(locate.customer_address || '');
                 allNotifications.push({
                     id: `locate-${locate.id}`,
                     type: 'locate',
-                    title: 'New Locate Request',
-                    description: `New locate request for ${addr.street || 'unknown address'}`,
+                    title: 'Locate Request',
+                    description: `Locate request for ${addr.street || 'unknown address'}`,
                     address: addr.original || 'Unknown address',
                     workOrderNumber: locate.work_order_number || 'N/A',
                     customerName: locate.customer_name || 'Unknown',
@@ -237,18 +237,18 @@ const NotificationDrawer = ({ onClose }) => {
             }
         });
 
-        // Work Orders (RME)
+        // Work Orders (RME) - Include both seen and unseen
         workOrders.forEach((workOrder) => {
             const elapsedTime = workOrder.elapsed_time;
-            if (!elapsedTime || workOrder.is_seen) return;
+            if (!elapsedTime) return;
             const elapsedDate = new Date(elapsedTime);
             if (elapsedDate >= oneMonthAgo) {
                 const addr = parseDashboardAddress(workOrder.full_address || '');
                 allNotifications.push({
                     id: `rme-${workOrder.id}`,
                     type: 'RME',
-                    title: 'New RME Added',
-                    description: `New RME created for ${addr.street || 'unknown address'}`,
+                    title: 'RME Added',
+                    description: `RME created for ${addr.street || 'unknown address'}`,
                     address: addr.original || 'Unknown address',
                     rmeNumber: workOrder.wo_number || workOrder.id || 'N/A',
                     customerName: workOrder.customer_name || 'Unknown',
@@ -263,13 +263,13 @@ const NotificationDrawer = ({ onClose }) => {
             }
         });
 
-        // Sort by newest first and take only latest 10
+        // Sort by newest first and take only latest 10 (both seen and unseen)
         return allNotifications
             .sort((a, b) => b.timestamp - a.timestamp)
             .slice(0, 10);
     }, [notifications]);
 
-    // Get total count for badge display
+    // Get total count for badge display (only unseen)
     const totalNotificationCount = React.useMemo(() => {
         if (!notifications) return 0;
         const { locates = [], workOrders = [] } = notifications;
@@ -278,7 +278,7 @@ const NotificationDrawer = ({ onClose }) => {
 
         let count = 0;
 
-        // Count locates
+        // Count only unseen locates
         locates.forEach((locate) => {
             const createdAt = locate.created_at || locate.created_date;
             if (!createdAt || locate.is_seen) return;
@@ -286,7 +286,7 @@ const NotificationDrawer = ({ onClose }) => {
             if (createdDate >= oneMonthAgo) count++;
         });
 
-        // Count work orders
+        // Count only unseen work orders
         workOrders.forEach((workOrder) => {
             const elapsedTime = workOrder.elapsed_time;
             if (!elapsedTime || workOrder.is_seen) return;
@@ -328,14 +328,19 @@ const NotificationDrawer = ({ onClose }) => {
     };
 
     const handleMarkAllSeen = () => {
-        if (latestNotifications.length) {
-            markAllAsSeenMutation.mutate(latestNotifications);
+        // Filter only unseen notifications to mark as seen
+        const unseenNotifications = latestNotifications.filter(n => !n.is_seen);
+        if (unseenNotifications.length) {
+            markAllAsSeenMutation.mutate(unseenNotifications);
         }
     };
 
     const handleSingleSeen = (notification, e) => {
         e.stopPropagation();
-        markAsSeenMutation.mutate(notification);
+        // Only mark as seen if it's currently unseen
+        if (!notification.is_seen) {
+            markAsSeenMutation.mutate(notification);
+        }
     };
 
     const handleNotificationClick = (notification) => {
@@ -420,7 +425,7 @@ const NotificationDrawer = ({ onClose }) => {
                     </Box>
                     <Box>
                         <Typography variant="subtitle1" sx={{ fontWeight: 700, color: NOTIFICATION_COLORS.textPrimary, fontSize: '0.85rem' }}>
-                            Notifications
+                            Recent Notifications
                         </Typography>
                         {totalNotificationCount > 0 && (
                             <Typography variant="caption" sx={{
@@ -438,10 +443,18 @@ const NotificationDrawer = ({ onClose }) => {
                                 {totalNotificationCount} new
                             </Typography>
                         )}
+                        <Typography variant="caption" sx={{
+                            color: NOTIFICATION_COLORS.textTertiary,
+                            display: 'block',
+                            fontSize: '0.7rem',
+                            mt: 0.25
+                        }}>
+                            Showing 10 most recent
+                        </Typography>
                     </Box>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                    {latestNotifications.length > 0 && (
+                    {totalNotificationCount > 0 && (
                         <Button
                             variant="outlined"
                             size="small"
@@ -499,7 +512,7 @@ const NotificationDrawer = ({ onClose }) => {
                             color: NOTIFICATION_COLORS.textSecondary,
                             fontWeight: 600
                         }}>
-                            No new notifications
+                            No notifications
                         </Typography>
                         <Typography variant="caption" sx={{
                             color: NOTIFICATION_COLORS.textTertiary,
@@ -507,7 +520,7 @@ const NotificationDrawer = ({ onClose }) => {
                             display: 'block',
                             maxWidth: '80%'
                         }}>
-                            You're all caught up! No new locates or RMEs in the last 30 days.
+                            No locates or RMEs found in the last 30 days.
                         </Typography>
                     </Box>
                 ) : (
@@ -541,10 +554,12 @@ const NotificationDrawer = ({ onClose }) => {
                                                 onClick={() => handleNotificationClick(notification)}
                                                 sx={{
                                                     p: 2,
-                                                    backgroundColor: NOTIFICATION_COLORS.bg,
+                                                    backgroundColor: notification.is_seen 
+                                                        ? NOTIFICATION_COLORS.bg 
+                                                        : alpha(notification.color, 0.03),
                                                     cursor: 'pointer',
                                                     '&:hover': {
-                                                        bgcolor: alpha(notification.color, 0.03)
+                                                        bgcolor: alpha(notification.color, notification.is_seen ? 0.03 : 0.06)
                                                     },
                                                     transition: 'background-color 0.2s ease',
                                                     position: 'relative'
@@ -568,8 +583,10 @@ const NotificationDrawer = ({ onClose }) => {
                                                     primary={
                                                         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 0.5 }}>
                                                             <Typography variant="body2" sx={{
-                                                                color: NOTIFICATION_COLORS.textPrimary,
-                                                                fontWeight: 600,
+                                                                color: notification.is_seen 
+                                                                    ? NOTIFICATION_COLORS.textSecondary 
+                                                                    : NOTIFICATION_COLORS.textPrimary,
+                                                                fontWeight: notification.is_seen ? 500 : 600,
                                                                 fontSize: '0.75rem',
                                                                 lineHeight: 1.3
                                                             }}>
@@ -592,7 +609,9 @@ const NotificationDrawer = ({ onClose }) => {
                                                     secondary={
                                                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                                                             <Typography variant="caption" sx={{
-                                                                color: NOTIFICATION_COLORS.textSecondary,
+                                                                color: notification.is_seen 
+                                                                    ? NOTIFICATION_COLORS.textTertiary 
+                                                                    : NOTIFICATION_COLORS.textSecondary,
                                                                 display: 'flex',
                                                                 alignItems: 'center',
                                                                 gap: 0.5,
@@ -617,24 +636,26 @@ const NotificationDrawer = ({ onClose }) => {
                                                         flexShrink: 0
                                                     }} />
                                                 )}
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={(e) => handleSingleSeen(notification, e)}
-                                                    disabled={markAsSeenMutation.isLoading}
-                                                    sx={{
-                                                        ml: 1,
-                                                        color: NOTIFICATION_COLORS.textTertiary,
-                                                        '&:hover': {
-                                                            color: NOTIFICATION_COLORS.textPrimary,
-                                                            backgroundColor: alpha(NOTIFICATION_COLORS.gray, 0.1)
-                                                        },
-                                                        '&.Mui-disabled': {
-                                                            color: alpha(NOTIFICATION_COLORS.textTertiary, 0.5),
-                                                        }
-                                                    }}
-                                                >
-                                                    <X size={14} />
-                                                </IconButton>
+                                                {!notification.is_seen && (
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={(e) => handleSingleSeen(notification, e)}
+                                                        disabled={markAsSeenMutation.isLoading}
+                                                        sx={{
+                                                            ml: 1,
+                                                            color: NOTIFICATION_COLORS.textTertiary,
+                                                            '&:hover': {
+                                                                color: NOTIFICATION_COLORS.textPrimary,
+                                                                backgroundColor: alpha(NOTIFICATION_COLORS.gray, 0.1)
+                                                            },
+                                                            '&.Mui-disabled': {
+                                                                color: alpha(NOTIFICATION_COLORS.textTertiary, 0.5),
+                                                            }
+                                                        }}
+                                                    >
+                                                        <X size={14} />
+                                                    </IconButton>
+                                                )}
                                             </ListItem>
                                             {!isLast && (
                                                 <Divider

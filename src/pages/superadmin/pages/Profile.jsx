@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box } from '@mui/material';
 import { Helmet } from 'react-helmet-async';
-import { ProfilePage } from '../../../components/ProfilePage';
+import { ProfilePage } from '../../../components/profile/ProfilePage';
 
 export const SuperAdminProfile = () => {
     return (

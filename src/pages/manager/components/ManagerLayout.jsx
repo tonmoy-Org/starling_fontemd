@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import DashboardLayout from '../../../components/DashboardLayout';
+import DashboardLayout from '../../../components/layout/DashboardLayout';
 import { ManagerMenuComponent } from './ManagerMenuComponent';
 
 export const ManagerLayout = () => {

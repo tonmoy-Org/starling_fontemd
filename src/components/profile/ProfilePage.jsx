@@ -20,8 +20,8 @@ import {
     Button,
     Tooltip,
 } from '@mui/material';
-import axiosInstance from '../api/axios';
-import { useAuth } from '../auth/AuthProvider';
+import axiosInstance from '../../api/axios';
+import { useAuth } from '../../auth/AuthProvider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 // Import Lucide React icons
@@ -44,10 +44,10 @@ import {
     Shield,
 } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
-import DashboardLoader from './Loader/DashboardLoader';
-import OutlineButton from './ui/OutlineButton';
-import DeviceList from './DeviceList'; // Add this import
-import GradientButton from './ui/GradientButton';
+import DashboardLoader from '../Loader/DashboardLoader';
+import OutlineButton from '../ui/OutlineButton';
+import DeviceList from '../DeviceList'; // Add this import
+import GradientButton from '../ui/GradientButton';
 
 // Define color constants (matching your other components)
 const TEXT_COLOR = '#0F1115';
