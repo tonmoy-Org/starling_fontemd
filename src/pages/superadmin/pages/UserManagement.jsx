@@ -25,6 +25,7 @@ import {
     Switch,
     FormControlLabel,
     alpha,
+    MenuItem,
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '../../../api/axios';
@@ -51,6 +52,8 @@ import {
 import GradientButton from '../../../components/ui/GradientButton';
 import OutlineButton from '../../../components/ui/OutlineButton';
 import DashboardLoader from '../../../components/Loader/DashboardLoader';
+import StyledSelect from '../../../components/ui/StyledSelect';
+import StyledTextField from '../../../components/ui/StyledTextField';
 
 // Define color constants
 const TEXT_COLOR = '#0F1115';
@@ -854,160 +857,104 @@ export const UserManagement = () => {
                 </DialogTitle>
                 <DialogContent sx={{ p: 2.5 }}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {/* Name */}
                         <Box>
                             <Typography
                                 variant="body2"
-                                sx={{
-                                    mb: 1,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    fontWeight: 500,
-                                }}
+                                sx={{ mb: 1, fontSize: '0.8rem', fontWeight: 500, color: TEXT_COLOR }}
                             >
                                 Name
                             </Typography>
-                            <Box
-                                component="input"
+
+                            <StyledTextField
                                 fullWidth
                                 name="name"
                                 value={formData.name}
                                 onChange={handleInputChange}
-                                required
                                 placeholder="Enter full name"
-                                sx={{
-                                    width: '100%',
-                                    fontSize: '0.85rem',
-                                    height: '40px',
-                                    padding: '0 12px',
-                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
-                                    borderRadius: '6px',
-                                    outline: 'none',
-                                    '&:focus': {
-                                        borderColor: BLUE_COLOR,
-                                        boxShadow: `0 0 0 2px ${alpha(BLUE_COLOR, 0.1)}`,
-                                    },
-                                }}
+                                variant="outlined"
+                                size="small"
+                                required
                             />
                         </Box>
 
+                        {/* Email */}
                         <Box>
                             <Typography
                                 variant="body2"
-                                sx={{
-                                    mb: 1,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    fontWeight: 500,
-                                }}
+                                sx={{ mb: 1, fontSize: '0.8rem', fontWeight: 500, color: TEXT_COLOR }}
                             >
                                 Email
                             </Typography>
-                            <Box
-                                component="input"
+
+                            <StyledTextField
                                 fullWidth
                                 name="email"
                                 type="email"
                                 value={formData.email}
                                 onChange={handleInputChange}
-                                required
                                 placeholder="Enter email address"
-                                sx={{
-                                    width: '100%',
-                                    fontSize: '0.85rem',
-                                    height: '40px',
-                                    padding: '0 12px',
-                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
-                                    borderRadius: '6px',
-                                    outline: 'none',
-                                    '&:focus': {
-                                        borderColor: BLUE_COLOR,
-                                        boxShadow: `0 0 0 2px ${alpha(BLUE_COLOR, 0.1)}`,
-                                    },
-                                }}
+                                variant="outlined"
+                                size="small"
+                                required
                             />
                         </Box>
 
+                        {/* Password */}
                         <Box>
                             <Typography
                                 variant="body2"
-                                sx={{
-                                    mb: 1,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    fontWeight: 500,
-                                }}
+                                sx={{ mb: 1, fontSize: '0.8rem', fontWeight: 500, color: TEXT_COLOR }}
                             >
                                 Password
                             </Typography>
-                            <Box
-                                component="input"
+
+                            <StyledTextField
                                 fullWidth
                                 name="password"
                                 type="password"
                                 value={formData.password}
                                 onChange={handleInputChange}
+                                placeholder={
+                                    selectedUser
+                                        ? 'Leave blank to keep current password'
+                                        : 'Enter password'
+                                }
+                                variant="outlined"
+                                size="small"
                                 required={!selectedUser}
-                                placeholder={selectedUser ? "Leave blank to keep current password" : "Enter password"}
-                                sx={{
-                                    width: '100%',
-                                    fontSize: '0.85rem',
-                                    height: '40px',
-                                    padding: '0 12px',
-                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
-                                    borderRadius: '6px',
-                                    outline: 'none',
-                                    '&:focus': {
-                                        borderColor: BLUE_COLOR,
-                                        boxShadow: `0 0 0 2px ${alpha(BLUE_COLOR, 0.1)}`,
-                                    },
-                                }}
                             />
                         </Box>
 
+                        {/* Role */}
                         <Box>
                             <Typography
                                 variant="body2"
-                                sx={{
-                                    mb: 1,
-                                    color: TEXT_COLOR,
-                                    fontSize: '0.8rem',
-                                    fontWeight: 500,
-                                }}
+                                sx={{ mb: 1, fontSize: '0.8rem', fontWeight: 500, color: TEXT_COLOR }}
                             >
                                 Role
                             </Typography>
-                            <Box
-                                component="select"
-                                name="role"
-                                value={formData.role}
-                                onChange={handleInputChange}
-                                sx={{
-                                    width: '100%',
-                                    fontSize: '0.85rem',
-                                    height: '40px',
-                                    padding: '0 12px',
-                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
-                                    borderRadius: '6px',
-                                    outline: 'none',
-                                    cursor: 'pointer',
-                                    '&:focus': {
-                                        borderColor: BLUE_COLOR,
-                                        boxShadow: `0 0 0 2px ${alpha(BLUE_COLOR, 0.1)}`,
-                                    },
-                                }}
+
+                            <StyledSelect
+                                value={formData.role || ''}
+                                onChange={(e) =>
+                                    handleInputChange('role', e.target.value)
+                                }
+                                displayEmpty
+                                fullWidth
+                                variant="outlined"
+                                size="small"
                             >
-                                <option value="manager">
-                                    Manager
-                                </option>
-                                <option value="superadmin">
-                                    Supper Admin
-                                </option>
-                                <option value="tech">
-                                    Tech
-                                </option>
-                            </Box>
+                                <MenuItem value="">
+                                    <em>Select role</em>
+                                </MenuItem>
+                                <MenuItem value="manager">Manager</MenuItem>
+                                <MenuItem value="superadmin">Super Admin</MenuItem>
+                                <MenuItem value="tech">Tech</MenuItem>
+                            </StyledSelect>
                         </Box>
 
+                        {/* Active Switch */}
                         {selectedUser && (
                             <Box>
                                 <FormControlLabel
@@ -1015,7 +962,6 @@ export const UserManagement = () => {
                                         <Switch
                                             checked={formData.isActive}
                                             onChange={handleSwitchChange}
-                                            name="isActive"
                                             size="small"
                                             sx={{
                                                 '& .MuiSwitch-switchBase.Mui-checked': {
@@ -1031,9 +977,9 @@ export const UserManagement = () => {
                                         <Typography
                                             variant="body2"
                                             sx={{
-                                                color: TEXT_COLOR,
                                                 fontSize: '0.85rem',
                                                 fontWeight: 500,
+                                                color: TEXT_COLOR,
                                             }}
                                         >
                                             {formData.isActive ? 'Active' : 'Inactive'}

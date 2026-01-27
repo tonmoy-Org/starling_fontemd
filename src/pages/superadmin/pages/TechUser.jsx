@@ -49,6 +49,7 @@ import {
 import OutlineButton from '../../../components/ui/OutlineButton';
 import GradientButton from '../../../components/ui/GradientButton';
 import DashboardLoader from '../../../components/Loader/DashboardLoader';
+import StyledTextField from '../../../components/ui/StyledTextField';
 
 // Define color constants
 const TEXT_COLOR = '#0F1115';
@@ -831,6 +832,7 @@ export const TechUser = () => {
                 </DialogTitle>
                 <DialogContent sx={{ p: 2.5 }}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {/* Name */}
                         <Box>
                             <Typography
                                 variant="body2"
@@ -843,30 +845,29 @@ export const TechUser = () => {
                             >
                                 Name
                             </Typography>
-                            <Box
-                                component="input"
+
+                            <StyledTextField
                                 fullWidth
                                 name="name"
                                 value={formData.name}
                                 onChange={handleInputChange}
                                 required
                                 placeholder="Enter full name"
-                                sx={{
-                                    width: '100%',
-                                    fontSize: '0.85rem',
-                                    height: '40px',
-                                    padding: '0 12px',
-                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
-                                    borderRadius: '6px',
-                                    outline: 'none',
-                                    '&:focus': {
-                                        borderColor: GREEN_COLOR,
-                                        boxShadow: `0 0 0 2px ${alpha(GREEN_COLOR, 0.1)}`,
+                                variant="outlined"
+                                size="small"
+                                InputProps={{
+                                    sx: {
+                                        fontSize: '0.85rem',
+                                        height: '40px',
+                                        '&.Mui-focused fieldset': {
+                                            borderColor: GREEN_COLOR,
+                                        },
                                     },
                                 }}
                             />
                         </Box>
 
+                        {/* Email */}
                         <Box>
                             <Typography
                                 variant="body2"
@@ -879,8 +880,8 @@ export const TechUser = () => {
                             >
                                 Email
                             </Typography>
-                            <Box
-                                component="input"
+
+                            <StyledTextField
                                 fullWidth
                                 name="email"
                                 type="email"
@@ -888,22 +889,21 @@ export const TechUser = () => {
                                 onChange={handleInputChange}
                                 required
                                 placeholder="Enter email address"
-                                sx={{
-                                    width: '100%',
-                                    fontSize: '0.85rem',
-                                    height: '40px',
-                                    padding: '0 12px',
-                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
-                                    borderRadius: '6px',
-                                    outline: 'none',
-                                    '&:focus': {
-                                        borderColor: GREEN_COLOR,
-                                        boxShadow: `0 0 0 2px ${alpha(GREEN_COLOR, 0.1)}`,
+                                variant="outlined"
+                                size="small"
+                                InputProps={{
+                                    sx: {
+                                        fontSize: '0.85rem',
+                                        height: '40px',
+                                        '&.Mui-focused fieldset': {
+                                            borderColor: GREEN_COLOR,
+                                        },
                                     },
                                 }}
                             />
                         </Box>
 
+                        {/* Password */}
                         <Box>
                             <Typography
                                 variant="body2"
@@ -916,31 +916,34 @@ export const TechUser = () => {
                             >
                                 Password
                             </Typography>
-                            <Box
-                                component="input"
+
+                            <StyledTextField
                                 fullWidth
                                 name="password"
                                 type="password"
                                 value={formData.password}
                                 onChange={handleInputChange}
                                 required={!selectedUser}
-                                placeholder={selectedUser ? "Leave blank to keep current password" : "Enter password"}
-                                sx={{
-                                    width: '100%',
-                                    fontSize: '0.85rem',
-                                    height: '40px',
-                                    padding: '0 12px',
-                                    border: `1px solid ${alpha(TEXT_COLOR, 0.1)}`,
-                                    borderRadius: '6px',
-                                    outline: 'none',
-                                    '&:focus': {
-                                        borderColor: GREEN_COLOR,
-                                        boxShadow: `0 0 0 2px ${alpha(GREEN_COLOR, 0.1)}`,
+                                placeholder={
+                                    selectedUser
+                                        ? 'Leave blank to keep current password'
+                                        : 'Enter password'
+                                }
+                                variant="outlined"
+                                size="small"
+                                InputProps={{
+                                    sx: {
+                                        fontSize: '0.85rem',
+                                        height: '40px',
+                                        '&.Mui-focused fieldset': {
+                                            borderColor: GREEN_COLOR,
+                                        },
                                     },
                                 }}
                             />
                         </Box>
 
+                        {/* Active Switch */}
                         {selectedUser && (
                             <Box>
                                 <FormControlLabel

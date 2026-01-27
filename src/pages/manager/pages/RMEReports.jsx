@@ -12,8 +12,6 @@ import {
     Chip,
     Snackbar,
     Alert,
-    Avatar,
-    Stack,
     Checkbox,
     Button,
     Tooltip,
@@ -27,7 +25,6 @@ import {
     MenuItem,
     FormControl,
     InputLabel,
-    Select,
     useMediaQuery,
     useTheme,
 } from '@mui/material';
@@ -61,7 +58,12 @@ import { Helmet } from 'react-helmet-async';
 import DashboardLoader from '../../../components/Loader/DashboardLoader';
 import StyledTextField from '../../../components/ui/StyledTextField';
 import OutlineButton from '../../../components/ui/OutlineButton';
-import RmeRecycleBinModal from '../../../components/ui/Modal/RmeRecycleBinModal'; // Import the RecycleBinModal
+import RmeRecycleBinModal from '../../../components/ui/Modal/RmeRecycleBinModal';
+
+// Import the RME JSON data
+import rmeFormData from '../../../../rme.json';
+import StyledSelect from '../../../components/ui/StyledSelect';
+import GradientButton from '../../../components/ui/GradientButton';
 
 const TEXT_COLOR = '#0F1115';
 const BLUE_COLOR = '#1976d2';
@@ -72,24 +74,20 @@ const GRAY_COLOR = '#6b7280';
 const PURPLE_COLOR = '#8b5cf6';
 const CYAN_COLOR = '#06b6d4';
 
-const PACIFIC_TIMEZONE_OFFSET = -8; // PST offset in hours (UTC-8)
-const PACIFIC_DAYLIGHT_OFFSET = -7; // PDT offset in hours (UTC-7)
+const PACIFIC_TIMEZONE_OFFSET = -8;
+const PACIFIC_DAYLIGHT_OFFSET = -7;
 
-// Helper function to check if we're in Daylight Saving Time
 const isDaylightSavingTime = (date) => {
     const year = date.getFullYear();
-    // DST in US: Second Sunday in March to First Sunday in November
     const march = new Date(year, 2, 1);
     const november = new Date(year, 10, 1);
 
-    // Find second Sunday in March
     let dstStart = new Date(march);
     while (dstStart.getDay() !== 0) {
         dstStart.setDate(dstStart.getDate() + 1);
     }
-    dstStart.setDate(dstStart.getDate() + 7); // Second Sunday
+    dstStart.setDate(dstStart.getDate() + 7);
 
-    // Find first Sunday in November
     let dstEnd = new Date(november);
     while (dstEnd.getDay() !== 0) {
         dstEnd.setDate(dstEnd.getDate() + 1);
@@ -98,26 +96,18 @@ const isDaylightSavingTime = (date) => {
     return date >= dstStart && date < dstEnd;
 };
 
-// Convert UTC date to Pacific Time
 const toPacificTime = (dateString) => {
     if (!dateString) return null;
     try {
-        // If dateString is already a Date object
         const date = dateString instanceof Date ? dateString : new Date(dateString);
-
-        // Handle invalid dates
         if (isNaN(date.getTime())) {
             console.warn('Invalid date string:', dateString);
             return null;
         }
 
-        // Create a new date in UTC
         const utcDate = new Date(date.toISOString());
-
-        // Apply Pacific Time offset
         const offset = isDaylightSavingTime(utcDate) ? PACIFIC_DAYLIGHT_OFFSET : PACIFIC_TIMEZONE_OFFSET;
         const pacificTime = new Date(utcDate.getTime() + (offset * 60 * 60 * 1000));
-
         return pacificTime;
     } catch (e) {
         console.error('Error converting to Pacific Time:', e, 'Date string:', dateString);
@@ -125,35 +115,24 @@ const toPacificTime = (dateString) => {
     }
 };
 
-// Format date for display (Pacific Time)
 const formatDate = (dateString) => {
     const date = toPacificTime(dateString);
     if (!date) return '—';
     return format(date, 'MMM dd, yyyy');
 };
 
-// Format time for display (Pacific Time)
 const formatTime = (dateString) => {
     const date = toPacificTime(dateString);
     if (!date) return '—';
     return format(date, 'h:mm a');
 };
 
-// Format short date with time (Pacific Time)
-const formatDateShort = (dateString) => {
-    const date = toPacificTime(dateString);
-    if (!date) return '—';
-    return format(date, 'MMM dd, h:mm a');
-};
-
-// Format date and time with timezone (Pacific Time)
 const formatDateTimeWithTZ = (dateString) => {
     const date = toPacificTime(dateString);
     if (!date) return '—';
     return format(date, 'MMM dd, yyyy h:mm a');
 };
 
-// Calculate elapsed time in Pacific Time
 const calculateElapsedTime = (createdDate) => {
     if (!createdDate) return '—';
     try {
@@ -201,31 +180,10 @@ const getTechnicianInitial = (technicianName) => {
     return technicianName.charAt(0).toUpperCase();
 };
 
-const parseDashboardAddress = (fullAddress) => {
-    if (!fullAddress) return { street: '', city: '', state: '', zip: '', original: '' };
-    const parts = fullAddress.split(' - ');
-    if (parts.length < 2) return { street: fullAddress, city: '', state: '', zip: '', original: fullAddress };
-    const street = parts[0].trim();
-    const remaining = parts[1].trim();
-    const zipMatch = remaining.match(/\b\d{5}\b/);
-    const zip = zipMatch ? zipMatch[0] : '';
-    const withoutZip = remaining.replace(zip, '').trim();
-    const cityState = withoutZip.split(',').map(s => s.trim());
-    return {
-        street,
-        city: cityState[0] || '',
-        state: cityState[1] || '',
-        zip,
-        original: fullAddress,
-    };
-};
-
-// Get current Pacific Time as ISO string for database
 const getCurrentPacificTimeISO = () => {
     const now = new Date();
     const offset = isDaylightSavingTime(now) ? PACIFIC_DAYLIGHT_OFFSET : PACIFIC_TIMEZONE_OFFSET;
     const pacificTime = new Date(now.getTime() + (offset * 60 * 60 * 1000));
-    // Convert back to UTC for database storage
     return new Date(pacificTime.getTime() - (offset * 60 * 60 * 1000)).toISOString();
 };
 
@@ -342,6 +300,360 @@ const PDFViewerModal = ({ open, onClose, pdfUrl }) => {
     );
 };
 
+// Edit Form Modal Component
+const EditFormModal = ({ open, onClose, workOrderData, onSave }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+    // State for form data
+    const [formData, setFormData] = useState({});
+
+    // Initialize form data when modal opens or workOrderData changes
+    useEffect(() => {
+        if (workOrderData) {
+            // Initialize form with default values from JSON structure
+            const initialData = {};
+            rmeFormData.forEach(field => {
+                if (field.type === 'select') {
+                    initialData[field.name] = field.selected || '';
+                } else if (field.type === 'text') {
+                    initialData[field.name] = field.value || '';
+                } else if (field.type === 'textarea') {
+                    initialData[field.name] = field.value || '';
+                }
+            });
+            setFormData(initialData);
+        }
+    }, [workOrderData, open]);
+
+    const handleInputChange = (fieldName, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [fieldName]: value
+        }));
+    };
+
+    const handleSubmit = () => {
+        // Here you would typically save the form data
+        console.log('Form data to save:', formData);
+        if (onSave) {
+            onSave(formData);
+        }
+        // onClose();
+    };
+
+    const renderFormField = (field, index) => {
+        // Create a unique key by combining field.name with index
+        const uniqueKey = `${field.name}-${index}`;
+
+        switch (field.type) {
+            case 'select':
+                return (
+                    <TableRow key={uniqueKey}>
+                        <TableCell sx={{
+                            py: 1.5,
+                            borderBottom: index === rmeFormData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                            width: isMobile ? '40%' : '60%',
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                            color: TEXT_COLOR,
+                            bgcolor: alpha(BLUE_COLOR, 0.02),
+                        }}>
+                            {field.name}
+                        </TableCell>
+                        <TableCell sx={{
+                            py: 1.5,
+                            borderBottom: index === rmeFormData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                        }}>
+                            <FormControl fullWidth size="small">
+                                <StyledSelect
+                                    value={formData[field.name] || ''}
+                                    onChange={(e) => handleInputChange(field.name, e.target.value)}
+                                    displayEmpty
+                                    sx={{
+                                        '& .MuiSelect-select': {
+                                            fontSize: '0.9rem',
+                                            padding: '8px 12px',
+                                            borderColor: "#1976d2",
+                                        }
+                                    }}
+                                >
+                                    <MenuItem value="">
+                                        <em>Select {field.name}</em>
+                                    </MenuItem>
+                                    {field.options.map((option) => (
+                                        <MenuItem key={option} value={option}>
+                                            {option}
+                                        </MenuItem>
+                                    ))}
+                                </StyledSelect>
+                            </FormControl>
+                        </TableCell>
+                    </TableRow>
+                );
+
+            case 'text':
+                return (
+                    <TableRow key={uniqueKey}>
+                        <TableCell sx={{
+                            py: 1.5,
+                            borderBottom: index === rmeFormData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                            width: isMobile ? '40%' : '60%',
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                            color: TEXT_COLOR,
+                            bgcolor: alpha(BLUE_COLOR, 0.02),
+                        }}>
+                            {field.name}
+                        </TableCell>
+                        <TableCell sx={{
+                            py: 1.5,
+                            borderBottom: index === rmeFormData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                        }}>
+                            <StyledTextField
+                                value={formData[field.name] || ''}
+                                onChange={(e) => handleInputChange(field.name, e.target.value)}
+                                fullWidth
+                                size="small"
+                                sx={{
+                                    '& .MuiInputBase-input': {
+                                        fontSize: '0.9rem',
+                                        padding: '8px 12px',
+                                    }
+                                }}
+                            />
+                        </TableCell>
+                    </TableRow>
+                );
+
+            case 'textarea':
+                return (
+                    <TableRow key={uniqueKey}>
+                        <TableCell sx={{
+                            py: 1.5,
+                            borderBottom: index === rmeFormData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                            width: isMobile ? '40%' : '60%',
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                            color: TEXT_COLOR,
+                            bgcolor: alpha(BLUE_COLOR, 0.02),
+                            verticalAlign: 'top',
+                        }}>
+                            {field.name}
+                        </TableCell>
+                        <TableCell sx={{
+                            py: 1.5,
+                            borderBottom: index === rmeFormData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                        }}>
+                            <StyledTextField
+                                value={formData[field.name] || ''}
+                                onChange={(e) => handleInputChange(field.name, e.target.value)}
+                                fullWidth
+                                multiline
+                                rows={3}
+                                size="small"
+                                sx={{
+                                    '& .MuiInputBase-input': {
+                                        fontSize: '0.9rem',
+                                        lineHeight: 1.5,
+                                    }
+                                }}
+                            />
+                        </TableCell>
+                    </TableRow>
+                );
+
+            default:
+                return null;
+        }
+    };
+
+    return (
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth="xl"
+            fullWidth
+            fullScreen={isMobile}
+            PaperProps={{
+                sx: {
+                    bgcolor: 'white',
+                    borderRadius: isMobile ? 0 : '8px',
+                    maxHeight: isMobile ? '100%' : '90vh',
+                    width: isMobile ? '100%' : '1200px',
+                }
+            }}
+        >
+            <DialogTitle sx={{
+                borderBottom: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
+                bgcolor: alpha(BLUE_COLOR, 0.03),
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                py: 1.4,
+                position: 'sticky',
+                top: 0,
+                zIndex: 1,
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: alpha(BLUE_COLOR, 0.1),
+                        color: BLUE_COLOR,
+                    }}>
+                        <img
+                            src={pen}
+                            alt="edit"
+                            style={{
+                                width: '20px',
+                                height: '20px',
+                            }}
+                        />
+                    </Box>
+                    <Box>
+                        <Typography variant="h6" sx={{
+                            fontSize: '1.1rem',
+                            fontWeight: 600,
+                            color: TEXT_COLOR,
+                            mb: 0,
+                        }}>
+                            Edit RME Form
+                        </Typography>
+                        <Typography variant="body2" sx={{
+                            fontSize: '0.85rem',
+                            color: GRAY_COLOR,
+                        }}>
+                            {workOrderData?.street || 'Work Order'}
+                        </Typography>
+                    </Box>
+                </Box>
+                <IconButton
+                    size="small"
+                    onClick={onClose}
+                    sx={{
+                        color: GRAY_COLOR,
+                        '&:hover': {
+                            backgroundColor: alpha(GRAY_COLOR, 0.1),
+                        },
+                    }}
+                >
+                    <X size={20} />
+                </IconButton>
+            </DialogTitle>
+
+            <DialogContent sx={{ p: 3, overflowY: 'auto' }}>
+                <Box sx={{ mb: 3 }}>
+                    <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 1, color: TEXT_COLOR }}>
+                        Work Order Details
+                    </Typography>
+                    <Box sx={{
+                        display: 'flex',
+                        gap: 2,
+                        flexWrap: 'wrap',
+                        p: 2,
+                        borderRadius: '6px',
+                        backgroundColor: alpha(GRAY_COLOR, 0.03),
+                        border: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                        mb: 3,
+                    }}>
+                        <Box>
+                            <Typography variant="body2" sx={{ fontSize: '0.8rem', color: GRAY_COLOR, mb: 0.5 }}>
+                                Work Order #
+                            </Typography>
+                            <Typography variant="body1" sx={{ fontSize: '0.9rem', fontWeight: 600, color: TEXT_COLOR }}>
+                                {workOrderData?.woNumber || 'N/A'}
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="body2" sx={{ fontSize: '0.8rem', color: GRAY_COLOR, mb: 0.5 }}>
+                                Address
+                            </Typography>
+                            <Typography variant="body1" sx={{ fontSize: '0.9rem', fontWeight: 600, color: TEXT_COLOR }}>
+                                {workOrderData?.street || 'N/A'}
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="body2" sx={{ fontSize: '0.8rem', color: GRAY_COLOR, mb: 0.5 }}>
+                                Technician
+                            </Typography>
+                            <Typography variant="body1" sx={{ fontSize: '0.9rem', fontWeight: 600, color: TEXT_COLOR }}>
+                                {workOrderData?.technician || 'N/A'}
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="body2" sx={{ fontSize: '0.8rem', color: GRAY_COLOR, mb: 0.5 }}>
+                                Date
+                            </Typography>
+                            <Typography variant="body1" sx={{ fontSize: '0.9rem', fontWeight: 600, color: TEXT_COLOR }}>
+                                {workOrderData?.date || 'N/A'}
+                            </Typography>
+                        </Box>
+                    </Box>
+                </Box>
+
+                <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 2, color: TEXT_COLOR }}>
+                    RME Form Fields
+                </Typography>
+
+                <TableContainer sx={{
+                    borderRadius: '6px',
+                    border: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                    maxHeight: '400px',
+                    overflowY: 'auto',
+                    '&::-webkit-scrollbar': {
+                        width: '8px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                        backgroundColor: alpha(GRAY_COLOR, 0.05),
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: alpha(BLUE_COLOR, 0.2),
+                        borderRadius: '4px',
+                    },
+                }}>
+                    <Table size="small" sx={{ minWidth: 600 }}>
+                        <TableBody>
+                            {rmeFormData.map((field, index) => renderFormField(field, index))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </DialogContent>
+
+            <DialogActions sx={{
+                p: 3,
+                pt: 2,
+                borderTop: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                position: 'sticky',
+                bottom: 0,
+                backgroundColor: 'white',
+                zIndex: 1,
+            }}>
+                <OutlineButton
+                    onClick={onClose}
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                >
+                    Cancel
+                </OutlineButton>
+                <GradientButton
+                    onClick={handleSubmit}
+                    variant="contained"
+                    color="primary"
+                    startIcon={<Save size={18} />}
+                >
+                    Save Changes
+                </GradientButton>
+            </DialogActions>
+        </Dialog>
+    );
+};
+
 const RMEReports = () => {
     const queryClient = useQueryClient();
     const { user: authUser } = useAuth();
@@ -399,7 +711,11 @@ const RMEReports = () => {
     const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
     const [currentPdfUrl, setCurrentPdfUrl] = useState('');
 
-    // Confirmation modals for actions
+    // Edit Form Modal state
+    const [editFormModalOpen, setEditFormModalOpen] = useState(false);
+    const [selectedWorkOrder, setSelectedWorkOrder] = useState(null);
+
+    // Confirmation modals for actions - FIXED: Initialize with open: false
     const [lockedConfirmModal, setLockedConfirmModal] = useState({
         open: false,
         itemId: null,
@@ -490,7 +806,6 @@ const RMEReports = () => {
         const finalized = [];
 
         workOrders.forEach(item => {
-            // Format all dates to Pacific Time for display
             const report = {
                 id: item.id.toString(),
                 woNumber: item.wo_number || 'N/A',
@@ -637,11 +952,16 @@ const RMEReports = () => {
         setPdfViewerOpen(true);
     };
 
-    // Handle unlocked report link click
-    const handleUnlockedReportClick = (url) => {
-        if (url) {
-            window.open(url, '_blank', 'noopener,noreferrer');
-        }
+    // Handle Edit button click - opens the edit form modal
+    const handleEditClick = (item) => {
+        setSelectedWorkOrder(item);
+        setEditFormModalOpen(true);
+    };
+
+    // Handle save from edit form
+    const handleSaveForm = (formData) => {
+        showSnackbar('Form saved successfully', 'success');
+        queryClient.invalidateQueries(['rme-work-orders']);
     };
 
     // Mutations
@@ -810,7 +1130,7 @@ const RMEReports = () => {
         },
     });
 
-    // Handle locked action with confirmation
+    // Handle locked action with confirmation - FIXED: Properly set open to true
     const handleLockedClick = (id, section, itemData) => {
         setLockedConfirmModal({
             open: true,
@@ -837,7 +1157,7 @@ const RMEReports = () => {
         }
     };
 
-    // Handle discard action with confirmation
+    // Handle discard action with confirmation - FIXED: Properly set open to true
     const handleDiscardClick = (id, section, itemData) => {
         setDiscardConfirmModal({
             open: true,
@@ -1241,8 +1561,8 @@ const RMEReports = () => {
                                 variant="outlined"
                                 color="error"
                                 size="small"
-                                onClick={() => handleSoftDelete(selectedReportNeeded, 'Report Needed')}
                                 startIcon={<Trash2 size={10} />}
+                                onClick={() => handleSoftDelete(selectedReportNeeded, 'Report Needed')}
                             >
                                 Move to Bin ({selectedReportNeeded.size})
                             </OutlineButton>
@@ -1265,7 +1585,6 @@ const RMEReports = () => {
                     onPageChange={handleChangePageReportNeeded}
                     onRowsPerPageChange={handleChangeRowsPerPageReportNeeded}
                     onViewPDF={handleViewPDF}
-                    onUnlockedReportClick={handleUnlockedReportClick}
                     isMobile={isMobile}
                 />
             </Section>
@@ -1334,6 +1653,7 @@ const RMEReports = () => {
                     onWaitToLockNotesChange={handleWaitToLockNotesChange}
                     onSaveChanges={handleSaveReportSubmittedChanges}
                     waitToLockActionSize={waitToLockAction.size}
+                    onEditClick={handleEditClick}
                     color={CYAN_COLOR}
                     totalCount={filteredReportSubmitted.length}
                     page={pageReportSubmitted}
@@ -1341,7 +1661,6 @@ const RMEReports = () => {
                     onPageChange={handleChangePageReportSubmitted}
                     onRowsPerPageChange={handleChangeRowsPerPageReportSubmitted}
                     onViewPDF={handleViewPDF}
-                    onUnlockedReportClick={handleUnlockedReportClick}
                     isMobile={isMobile}
                 />
             </Section>
@@ -1390,6 +1709,7 @@ const RMEReports = () => {
                     onToggleAll={() => setSelectedHolding(toggleAllSelection(filteredHoldingReports, holdingPageItems, selectedHolding))}
                     onLockedClick={(id, itemData) => handleLockedClick(id, 'holding', itemData)}
                     onDiscardClick={(id, itemData) => handleDiscardClick(id, 'holding', itemData)}
+                    onEditClick={handleEditClick}
                     color={ORANGE_COLOR}
                     totalCount={filteredHoldingReports.length}
                     page={pageHolding}
@@ -1397,7 +1717,6 @@ const RMEReports = () => {
                     onPageChange={handleChangePageHolding}
                     onRowsPerPageChange={handleChangeRowsPerPageHolding}
                     onViewPDF={handleViewPDF}
-                    onUnlockedReportClick={handleUnlockedReportClick}
                     isMobile={isMobile}
                 />
             </Section>
@@ -1461,11 +1780,18 @@ const RMEReports = () => {
                 pdfUrl={currentPdfUrl}
             />
 
-            {/* Recycle Bin Modal - Using the reusable component */}
+            {/* Edit Form Modal */}
+            <EditFormModal
+                open={editFormModalOpen}
+                onClose={() => setEditFormModalOpen(false)}
+                workOrderData={selectedWorkOrder}
+                onSave={handleSaveForm}
+            />
+
+            {/* Recycle Bin Modal */}
             <RmeRecycleBinModal
                 open={recycleBinModalOpen}
                 onClose={() => setRecycleBinModalOpen(false)}
-                // Data props
                 recycleBinItems={deletedWorkOrders}
                 isRecycleBinLoading={false}
                 recycleBinSearch={recycleBinSearch}
@@ -1475,19 +1801,16 @@ const RMEReports = () => {
                 handleChangeRecycleBinPage={handleChangeRecycleBinPage}
                 handleChangeRecycleBinRowsPerPage={handleChangeRecycleBinRowsPerPage}
                 selectedRecycleBinItems={selectedRecycleBinItems}
-                // Action props
                 toggleRecycleBinSelection={toggleRecycleBinSelection}
                 toggleAllRecycleBinSelection={toggleAllRecycleBinSelection}
                 confirmBulkRestore={() => handleRestore(selectedRecycleBinItems)}
                 confirmBulkPermanentDelete={() => handlePermanentDelete(selectedRecycleBinItems)}
                 handleSingleRestore={handleSingleRestore}
                 handleSinglePermanentDelete={handleSinglePermanentDelete}
-                // State props
                 restoreFromRecycleBinMutation={restoreFromRecycleBinMutation}
                 permanentDeleteFromRecycleBinMutation={permanentDeleteFromRecycleBinMutation}
                 bulkRestoreMutation={bulkRestoreMutation}
                 bulkPermanentDeleteMutation={bulkPermanentDeleteMutation}
-                // Display props
                 itemType="work-order"
                 timezoneOffset={getCurrentPacificTimezoneOffset()}
                 isMobile={isMobile}
@@ -2489,7 +2812,6 @@ const ReportNeededTable = ({
     onPageChange,
     onRowsPerPageChange,
     onViewPDF,
-    onUnlockedReportClick,
     isMobile,
 }) => {
     const allSelectedOnPage = items.length > 0 && items.every(item => selected.has(item.id));
@@ -2567,7 +2889,7 @@ const ReportNeededTable = ({
                 <TableBody>
                     {items.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                            <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                                 <Box sx={{
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -2765,6 +3087,7 @@ const ReportSubmittedTable = ({
     onWaitToLockNotesChange,
     onSaveChanges,
     waitToLockActionSize,
+    onEditClick,
     color,
     totalCount,
     page,
@@ -2772,7 +3095,6 @@ const ReportSubmittedTable = ({
     onPageChange,
     onRowsPerPageChange,
     onViewPDF,
-    onUnlockedReportClick,
     isMobile,
 }) => {
     const allSelectedOnPage = items.length > 0 && items.every(item => selected.has(item.id));
@@ -2793,7 +3115,7 @@ const ReportSubmittedTable = ({
                     borderRadius: '4px',
                 },
             }}>
-                <Table size="small" sx={{ minWidth: isMobile ? 1200 : 'auto' }}>
+                <Table size="small" sx={{ minWidth: isMobile ? 1300 : 'auto' }}>
                     <TableHead>
                         <TableRow sx={{
                             bgcolor: alpha(color, 0.04),
@@ -2842,8 +3164,8 @@ const ReportSubmittedTable = ({
                             <TableCell align="center" sx={{ minWidth: 120 }}>
                                 {isMobile ? 'Report' : 'Last Report'}
                             </TableCell>
-                            <TableCell align="center" sx={{ minWidth: 120 }}>
-                                {isMobile ? 'Unlocked' : 'Unlocked Report'}
+                            <TableCell align="center" sx={{ minWidth: 80 }}>
+                                Edit
                             </TableCell>
                             <TableCell align="center" sx={{ minWidth: 80 }}>
                                 {isMobile ? 'Lock' : 'LOCKED'}
@@ -3005,37 +3327,28 @@ const ReportSubmittedTable = ({
                                                     </Typography>
                                                 )}
                                             </TableCell>
-                                            <TableCell align="center" sx={{ py: 1.5 }}>
-                                                {item.unlockedReport ? (
-                                                    <Tooltip title="Open Unlocked Report in New Tab">
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() => onUnlockedReportClick(item.unlockedReportLink)}
-                                                            sx={{
-                                                                color: ORANGE_COLOR,
-                                                                '&:hover': {
-                                                                    backgroundColor: alpha(ORANGE_COLOR, 0.1),
-                                                                },
+                                            <TableCell align="center" sx={{ py: 1 }}>
+                                                <Tooltip title="Edit RME Form">
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => onEditClick(item)}
+                                                        sx={{
+                                                            color: ORANGE_COLOR,
+                                                            '&:hover': {
+                                                                backgroundColor: alpha(ORANGE_COLOR, 0.1),
+                                                            },
+                                                        }}
+                                                    >
+                                                        <img
+                                                            src={pen}
+                                                            alt="edit"
+                                                            style={{
+                                                                width: '20px',
+                                                                height: '20px',
                                                             }}
-                                                        >
-                                                            <img
-                                                                src={pen}
-                                                                alt="view-report"
-                                                                style={{
-                                                                    width: '20px',
-                                                                    height: '20px',
-                                                                }}
-                                                            />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                ) : (
-                                                    <Typography variant="caption" sx={{
-                                                        color: GRAY_COLOR,
-                                                        fontSize: isMobile ? '0.75rem' : '0.8rem',
-                                                    }}>
-                                                        —
-                                                    </Typography>
-                                                )}
+                                                        />
+                                                    </IconButton>
+                                                </Tooltip>
                                             </TableCell>
                                             <TableCell align="center" sx={{ py: 1.5 }}>
                                                 <Tooltip title="Click to lock this report">
@@ -3125,7 +3438,7 @@ const ReportSubmittedTable = ({
                                                         }}>
                                                             <FormControl size="small" sx={{ minWidth: isMobile ? '100%' : 200, fontSize: { xs: '0.7rem', md: '0.8rem' } }}>
                                                                 <InputLabel sx={{ fontSize: { xs: '0.7rem', md: '0.9rem' } }}>Reason in Holding</InputLabel>
-                                                                <Select
+                                                                <StyledSelect
                                                                     value={details.reason}
                                                                     onChange={(e) => onWaitToLockReasonChange(item.id, e.target.value)}
                                                                     label="Reason in Holding"
@@ -3136,7 +3449,7 @@ const ReportSubmittedTable = ({
                                                                     <MenuItem sx={{ fontSize: { xs: '0.7rem', md: '0.8rem' } }} value="Customer Follow-up Required">Customer Follow-up Required</MenuItem>
                                                                     <MenuItem sx={{ fontSize: { xs: '0.7rem', md: '0.8rem' } }} value="Technical Issue">Technical Issue</MenuItem>
                                                                     <MenuItem sx={{ fontSize: { xs: '0.7rem', md: '0.8rem' } }} value="Other">Other</MenuItem>
-                                                                </Select>
+                                                                </StyledSelect>
                                                             </FormControl>
                                                             <StyledTextField
                                                                 size="small"
@@ -3221,6 +3534,7 @@ const HoldingTable = ({
     onToggleAll,
     onLockedClick,
     onDiscardClick,
+    onEditClick,
     color,
     totalCount,
     page,
@@ -3228,7 +3542,6 @@ const HoldingTable = ({
     onPageChange,
     onRowsPerPageChange,
     onViewPDF,
-    onUnlockedReportClick,
     isMobile,
 }) => {
     const allSelectedOnPage = items.length > 0 && items.every(item => selected.has(item.id));
@@ -3248,7 +3561,7 @@ const HoldingTable = ({
                 borderRadius: '4px',
             },
         }}>
-            <Table size="small" sx={{ minWidth: isMobile ? 1200 : 'auto' }}>
+            <Table size="small" sx={{ minWidth: isMobile ? 1300 : 'auto' }}>
                 <TableHead>
                     <TableRow sx={{
                         bgcolor: alpha(color, 0.04),
@@ -3297,8 +3610,8 @@ const HoldingTable = ({
                         <TableCell align="center" sx={{ minWidth: 120 }}>
                             {isMobile ? 'Prior Report' : 'Prior Locked Report'}
                         </TableCell>
-                        <TableCell align="center" sx={{ minWidth: 120 }}>
-                            {isMobile ? 'Unlocked' : 'Unlocked Report'}
+                        <TableCell align="center" sx={{ minWidth: 80 }}>
+                            Edit
                         </TableCell>
                         <TableCell sx={{ minWidth: 200 }}>
                             {isMobile ? 'Reason & Notes' : 'Reason in Holding & Notes'}
@@ -3459,36 +3772,27 @@ const HoldingTable = ({
                                         )}
                                     </TableCell>
                                     <TableCell align="center" sx={{ py: 1.5 }}>
-                                        {item.unlockedReportLink ? (
-                                            <Tooltip title="Open Unlocked Report in New Tab">
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={() => onUnlockedReportClick(item.unlockedReportLink)}
-                                                    sx={{
-                                                        color: ORANGE_COLOR,
-                                                        '&:hover': {
-                                                            backgroundColor: alpha(ORANGE_COLOR, 0.1),
-                                                        },
+                                        <Tooltip title="Edit RME Form">
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => onEditClick(item)}
+                                                sx={{
+                                                    color: ORANGE_COLOR,
+                                                    '&:hover': {
+                                                        backgroundColor: alpha(ORANGE_COLOR, 0.1),
+                                                    },
+                                                }}
+                                            >
+                                                <img
+                                                    src={pen}
+                                                    alt="edit"
+                                                    style={{
+                                                        width: '20px',
+                                                        height: '20px',
                                                     }}
-                                                >
-                                                    <img
-                                                        src={pen}
-                                                        alt="view-report"
-                                                        style={{
-                                                            width: '20px',
-                                                            height: '20px',
-                                                        }}
-                                                    />
-                                                </IconButton>
-                                            </Tooltip>
-                                        ) : (
-                                            <Typography variant="caption" sx={{
-                                                color: GRAY_COLOR,
-                                                fontSize: isMobile ? '0.75rem' : '0.8rem',
-                                            }}>
-                                                —
-                                            </Typography>
-                                        )}
+                                                />
+                                            </IconButton>
+                                        </Tooltip>
                                     </TableCell>
                                     <TableCell sx={{ py: 1.5 }}>
                                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -3691,7 +3995,7 @@ const FinalizedTable = ({
                 <TableBody>
                     {items.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                            <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                                 <Box sx={{
                                     display: 'flex',
                                     flexDirection: 'column',
