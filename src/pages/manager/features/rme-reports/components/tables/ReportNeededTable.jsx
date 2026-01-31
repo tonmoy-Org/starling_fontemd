@@ -276,9 +276,6 @@ const ReportNeededTable = ({
                         '& .MuiTablePagination-actions': {
                             marginLeft: '8px',
                         },
-                        '& .MuiTablePagination-actions': {
-                            marginLeft: '8px',
-                        },
                         '& .MuiIconButton-root': {
                             padding: '6px',
                         },
