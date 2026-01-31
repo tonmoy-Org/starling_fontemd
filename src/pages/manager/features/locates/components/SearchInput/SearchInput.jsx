@@ -1,13 +1,11 @@
 import React from 'react';
 import { Box, IconButton } from '@mui/material';
-import { Search, X } from 'lucide-react';
 import { alpha } from '@mui/material/styles';
+import { Search, X } from 'lucide-react';
 
-const GRAY_COLOR = '#6b7280';
-
-const SearchInput = ({ value, onChange, placeholder, color, fullWidth = false }) => {
+const SearchInput = ({ value, onChange, placeholder, color, fullWidth = false, sx = {} }) => {
     return (
-        <Box sx={{ position: 'relative', width: fullWidth ? '100%' : 250 }}>
+        <Box sx={{ position: 'relative', width: fullWidth ? '100%' : 250, ...sx }}>
             <Box
                 component="input"
                 placeholder={placeholder}
@@ -27,13 +25,13 @@ const SearchInput = ({ value, onChange, placeholder, color, fullWidth = false })
                         boxShadow: `0 0 0 2px ${alpha(color, 0.1)}`,
                     },
                     '&::placeholder': {
-                        color: alpha(GRAY_COLOR, 0.6),
+                        color: alpha('#6b7280', 0.6),
                     },
                 }}
             />
             <Search
                 size={16}
-                color={GRAY_COLOR}
+                color="#6b7280"
                 style={{
                     position: 'absolute',
                     left: '10px',

@@ -38,8 +38,10 @@ import { Library } from '../pages/superadmin/pages/Library';
 import { ManagerDashboard } from '../pages/manager/pages/ManagerDashboard';
 import { ManagerProfile } from '../pages/manager/pages/Profile';
 import { TechUserManagement } from '../pages/manager/pages/TechUserManagement';
-import Locates from '../pages/manager/pages/Locates';
-import RMEReports from '../pages/manager/pages/RMEReports';
+
+import Locates from '../pages/manager/features/locates/Locates';
+
+import RMEReports from '../pages/manager/features/rme-reports/RMEReports';
 import RSSReports from '../pages/manager/pages/RSSReports';
 import TOSReports from '../pages/manager/pages/TOSReports';
 
@@ -55,6 +57,7 @@ import { VehiclesPhotos } from '../pages/tech/pages/VehiclesPhotos';
 import { VehiclesInventory } from '../pages/tech/pages/VehiclesInventory';
 import { TeamDailyChecklist } from '../pages/tech/pages/TeamDailyChecklist';
 import { ResourcesLibrary } from '../pages/tech/pages/ResourcesLibrary';
+
 
 
 

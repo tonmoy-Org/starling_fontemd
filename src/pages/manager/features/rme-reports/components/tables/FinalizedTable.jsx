@@ -1,0 +1,274 @@
+import React from 'react';
+import {
+    TableContainer,
+    Table,
+    TableHead,
+    TableBody,
+    TableRow,
+    TableCell,
+    Checkbox,
+    Box,
+    Typography,
+    TablePagination,
+    Chip
+} from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import { CheckCircle } from 'lucide-react';
+import {
+    formatDate,
+    formatTime
+} from '../../utils/formatters';
+import {
+    GRAY_COLOR,
+    TEXT_COLOR,
+    GREEN_COLOR,
+    RED_COLOR
+} from '../../utils/constants';
+
+const FinalizedTable = ({
+    items,
+    selected,
+    onToggleSelect,
+    onToggleAll,
+    color,
+    totalCount,
+    page,
+    rowsPerPage,
+    onPageChange,
+    onRowsPerPageChange,
+    isMobile,
+}) => {
+    const allSelectedOnPage = items.length > 0 && items.every(item => selected.has(item.id));
+    const someSelectedOnPage = items.length > 0 && items.some(item => selected.has(item.id));
+
+    return (
+        <TableContainer sx={{
+            overflowX: 'auto',
+            '&::-webkit-scrollbar': {
+                height: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+                backgroundColor: alpha(color, 0.05),
+            },
+            '&::-webkit-scrollbar-thumb': {
+                backgroundColor: alpha(color, 0.2),
+                borderRadius: '4px',
+            },
+        }}>
+            <Table size="small" sx={{ minWidth: isMobile ? 1000 : 'auto' }}>
+                <TableHead>
+                    <TableRow sx={{
+                        bgcolor: alpha(color, 0.04),
+                        '& th': {
+                            borderBottom: `2px solid ${alpha(color, 0.1)}`,
+                            py: 1.5,
+                            px: 1.5,
+                            fontSize: '0.85rem',
+                            fontWeight: 600,
+                            color: TEXT_COLOR,
+                            whiteSpace: 'nowrap',
+                        }
+                    }}>
+                        <TableCell
+                            padding="checkbox"
+                            sx={{
+                                pl: isMobile ? 1.5 : 2.5,
+                                width: '50px',
+                                minWidth: '50px',
+                                maxWidth: '50px',
+                            }}
+                        >
+                            <Checkbox
+                                size="small"
+                                checked={allSelectedOnPage}
+                                indeterminate={someSelectedOnPage && !allSelectedOnPage}
+                                onChange={onToggleAll}
+                                sx={{
+                                    color: color,
+                                    '&.Mui-checked': {
+                                        color: color,
+                                    },
+                                    padding: '4px',
+                                }}
+                            />
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 120 }}>
+                            Status
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 180 }}>
+                            Address
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 150 }}>
+                            Date
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 150 }}>
+                            {isMobile ? 'Manager' : 'By Manager'}
+                        </TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {items.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                                <Box sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: 1,
+                                }}>
+                                    <CheckCircle size={32} color={alpha(TEXT_COLOR, 0.2)} />
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            color: TEXT_COLOR,
+                                            opacity: 0.6,
+                                            fontSize: '0.85rem',
+                                            fontWeight: 500,
+                                        }}
+                                    >
+                                        No finalized reports
+                                    </Typography>
+                                </Box>
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        items.map((item) => {
+                            const isSelected = selected.has(item.id);
+
+                            return (
+                                <TableRow
+                                    key={item.id}
+                                    hover
+                                    sx={{
+                                        bgcolor: isSelected ? alpha(color, 0.1) : 'white',
+                                        '&:hover': {
+                                            backgroundColor: alpha(color, 0.05),
+                                        },
+                                        '&:last-child td': {
+                                            borderBottom: 'none',
+                                        },
+                                    }}
+                                >
+                                    <TableCell padding="checkbox" sx={{
+                                        pl: isMobile ? 1.5 : 2.5,
+                                        py: 1.5,
+                                        width: '50px',
+                                        minWidth: '50px',
+                                        maxWidth: '50px',
+                                    }}>
+                                        <Checkbox
+                                            checked={isSelected}
+                                            onChange={() => onToggleSelect(item.id)}
+                                            size="small"
+                                            sx={{
+                                                color: color,
+                                                '&.Mui-checked': {
+                                                    color: color,
+                                                },
+                                                padding: '4px',
+                                            }}
+                                        />
+                                    </TableCell>
+                                    <TableCell sx={{ py: 1.5 }}>
+                                        <Chip
+                                            label={item.status}
+                                            size="small"
+                                            sx={{
+                                                bgcolor: alpha(item.statusColor, 0.1),
+                                                color: item.statusColor,
+                                                fontWeight: 600,
+                                                fontSize: '0.85rem',
+                                            }}
+                                        />
+                                    </TableCell>
+                                    <TableCell sx={{ py: 1.5 }}>
+                                        <Box>
+                                            <Typography variant="body2" sx={{
+                                                fontWeight: 500,
+                                                fontSize: '0.85rem',
+                                                wordBreak: 'break-word',
+                                                overflowWrap: 'break-word',
+                                            }}>
+                                                {item.street}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{
+                                                color: GRAY_COLOR,
+                                                fontSize: '0.8rem',
+                                                wordBreak: 'break-word',
+                                                overflowWrap: 'break-word',
+                                            }}>
+                                                {item.city}, {item.state} {item.zip}
+                                            </Typography>
+                                        </Box>
+                                    </TableCell>
+                                    <TableCell sx={{ py: 1.5 }}>
+                                        <Typography variant="body2" sx={{
+                                            fontWeight: 500,
+                                            fontSize: '0.85rem',
+                                        }}>
+                                            {formatDate(item.actionTime)}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{
+                                            color: GRAY_COLOR,
+                                            fontSize: '0.8rem',
+                                        }}>
+                                            {formatTime(item.actionTime)}
+                                        </Typography>
+                                    </TableCell>
+                                    <TableCell sx={{ py: 1.5 }}>
+                                        <Box>
+                                            <Typography variant="body2" sx={{
+                                                fontWeight: 500,
+                                                fontSize: '0.85rem',
+                                            }}>
+                                                {item.by}
+                                            </Typography>
+                                            <Typography variant="caption" sx={{
+                                                color: GRAY_COLOR,
+                                                fontSize: '0.8rem',
+                                            }}>
+                                                {item.byEmail}
+                                            </Typography>
+                                        </Box>
+                                    </TableCell>
+                                </TableRow>
+                            );
+                        })
+                    )}
+                </TableBody>
+            </Table>
+
+            {totalCount > 0 && (
+                <TablePagination
+                    rowsPerPageOptions={isMobile ? [5, 10, 25] : [5, 10, 25, 50]}
+                    component="div"
+                    count={totalCount}
+                    rowsPerPage={rowsPerPage}
+                    page={page}
+                    onPageChange={onPageChange}
+                    onRowsPerPageChange={onRowsPerPageChange}
+                    sx={{
+                        borderTop: `1px solid ${alpha(color, 0.1)}`,
+                        '& .MuiTablePagination-toolbar': {
+                            minHeight: '52px',
+                            padding: '0 16px',
+                        },
+                        '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                            fontSize: '0.85rem',
+                            color: TEXT_COLOR,
+                            fontWeight: 400,
+                        },
+                        '& .MuiTablePagination-actions': {
+                            marginLeft: '8px',
+                        },
+                        '& .MuiIconButton-root': {
+                            padding: '6px',
+                        },
+                    }}
+                />
+            )}
+        </TableContainer>
+    );
+};
+
+export default FinalizedTable;

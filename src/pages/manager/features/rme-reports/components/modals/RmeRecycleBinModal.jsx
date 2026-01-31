@@ -1,91 +1,40 @@
 import React, { useMemo } from 'react';
 import {
+    Modal,
     Box,
     Typography,
-    Modal,
     IconButton,
-    Table,
-    TableBody,
-    TableCell,
     TableContainer,
+    Table,
     TableHead,
+    TableBody,
     TableRow,
+    TableCell,
     Checkbox,
     Button,
-    Stack,
     Tooltip,
-    TablePagination,
-    CircularProgress,
-    Avatar,
+    Stack,
     InputAdornment,
+    TablePagination
 } from '@mui/material';
-import {
-    Search,
-    X,
-    Trash2,
-    RotateCcw,
-    History,
-} from 'lucide-react';
 import { alpha } from '@mui/material/styles';
-import StyledTextField from '../../../components/ui/StyledTextField'; // Make sure this exists
-
-const TEXT_COLOR = '#0F1115';
-const GREEN_COLOR = '#10b981';
-const RED_COLOR = '#ef4444';
-const PURPLE_COLOR = '#8b5cf6';
-const GRAY_COLOR = '#6b7280';
-const BLUE_COLOR = '#1976d2';
-
-// Helper function to get technician initial
-const getTechnicianInitial = (technicianName) => {
-    if (!technicianName) return '?';
-    return technicianName.charAt(0).toUpperCase();
-};
-
-// Helper function to parse address
-const parseDashboardAddress = (fullAddress) => {
-    if (!fullAddress) return { street: '', city: '', state: '', zip: '', original: '' };
-    const parts = fullAddress.split(' - ');
-    if (parts.length < 2) return { street: fullAddress, city: '', state: '', zip: '', original: fullAddress };
-    const street = parts[0].trim();
-    const remaining = parts[1].trim();
-    const zipMatch = remaining.match(/\b\d{5}\b/);
-    const zip = zipMatch ? zipMatch[0] : '';
-    const withoutZip = remaining.replace(zip, '').trim();
-    const cityState = withoutZip.split(',').map(s => s.trim());
-    return {
-        street,
-        city: cityState[0] || '',
-        state: cityState[1] || '',
-        zip,
-        original: fullAddress,
-    };
-};
-
-// Format date with timezone
-const formatDateTimeWithTZ = (dateString) => {
-    if (!dateString) return '—';
-    try {
-        const date = new Date(dateString);
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const month = months[date.getMonth()];
-        const day = date.getDate().toString().padStart(2, '0');
-        const year = date.getFullYear();
-        const hours = date.getHours();
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours % 12 || 12;
-
-        return `${month} ${day}, ${year} ${displayHours}:${minutes} ${ampm}`;
-    } catch (e) {
-        return '—';
-    }
-};
+import { useTheme, useMediaQuery } from '@mui/material';
+import { X, Search, Trash2, RotateCcw, History } from 'lucide-react';
+import StyledTextField from '../../../../../../components/ui/StyledTextField';
+import {
+    formatDateTimeWithTZ
+} from '../../utils/formatters';
+import {
+    PURPLE_COLOR,
+    GRAY_COLOR,
+    TEXT_COLOR,
+    GREEN_COLOR,
+    RED_COLOR
+} from '../../utils/constants';
 
 const RmeRecycleBinModal = ({
     open,
     onClose,
-    // Data props
     recycleBinItems = [],
     isRecycleBinLoading = false,
     recycleBinSearch = '',
@@ -95,23 +44,21 @@ const RmeRecycleBinModal = ({
     handleChangeRecycleBinPage = () => { },
     handleChangeRecycleBinRowsPerPage = () => { },
     selectedRecycleBinItems = new Set(),
-    // Action props
     toggleRecycleBinSelection = () => { },
     toggleAllRecycleBinSelection = () => { },
     confirmBulkRestore = () => { },
     confirmBulkPermanentDelete = () => { },
     handleSingleRestore = () => { },
     handleSinglePermanentDelete = () => { },
-    // State props
     restoreFromRecycleBinMutation = { isPending: false },
     permanentDeleteFromRecycleBinMutation = { isPending: false },
     bulkRestoreMutation = { isPending: false },
     bulkPermanentDeleteMutation = { isPending: false },
-    // Display props
     isMobile = false,
     isSmallMobile = false,
 }) => {
-    // Filter items based on search
+    const theme = useTheme();
+
     const filteredRecycleBinItems = useMemo(() => {
         if (!recycleBinSearch) return recycleBinItems;
         const searchLower = recycleBinSearch.toLowerCase();
@@ -119,19 +66,17 @@ const RmeRecycleBinModal = ({
             const workOrderNumber = item.wo_number || 'N/A';
             const technician = item.technician || 'Unassigned';
             const deletedBy = item.deleted_by || 'Unknown';
-            const address = parseDashboardAddress(item.full_address || '');
+            const fullAddress = item.full_address || '';
 
             return (
                 workOrderNumber.toLowerCase().includes(searchLower) ||
                 technician.toLowerCase().includes(searchLower) ||
-                address.street.toLowerCase().includes(searchLower) ||
-                address.city.toLowerCase().includes(searchLower) ||
+                fullAddress.toLowerCase().includes(searchLower) ||
                 deletedBy.toLowerCase().includes(searchLower)
             );
         });
     }, [recycleBinItems, recycleBinSearch]);
 
-    // Paginated items
     const recycleBinPageItems = useMemo(() => {
         return filteredRecycleBinItems.slice(
             recycleBinPage * recycleBinRowsPerPage,
@@ -139,13 +84,11 @@ const RmeRecycleBinModal = ({
         );
     }, [filteredRecycleBinItems, recycleBinPage, recycleBinRowsPerPage]);
 
-    // Determine if all items on page are selected
     const allSelectedOnPage = recycleBinPageItems.length > 0 &&
         recycleBinPageItems.every(item =>
             selectedRecycleBinItems.has(item.id?.toString() || item.id)
         );
 
-    // Determine if some items on page are selected
     const someSelectedOnPage = recycleBinPageItems.length > 0 &&
         recycleBinPageItems.some(item =>
             selectedRecycleBinItems.has(item.id?.toString() || item.id)
@@ -174,7 +117,6 @@ const RmeRecycleBinModal = ({
                 flexDirection: 'column',
                 m: isMobile ? 1 : 0,
             }}>
-                {/* Header */}
                 <Box sx={{
                     p: 2,
                     borderBottom: `1px solid ${alpha(PURPLE_COLOR, 0.1)}`,
@@ -227,7 +169,6 @@ const RmeRecycleBinModal = ({
                     </IconButton>
                 </Box>
 
-                {/* Toolbar with search and bulk actions */}
                 <Box sx={{
                     p: 1.5,
                     borderBottom: `1px solid ${alpha(PURPLE_COLOR, 0.1)}`,
@@ -341,11 +282,26 @@ const RmeRecycleBinModal = ({
                     </Box>
                 </Box>
 
-                {/* Table Content */}
                 <Box sx={{ flex: 1, overflow: 'auto' }}>
                     {isRecycleBinLoading ? (
                         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                            <CircularProgress size={24} sx={{ color: PURPLE_COLOR }} />
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Box sx={{
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: '50%',
+                                    border: `2px solid ${alpha(PURPLE_COLOR, 0.3)}`,
+                                    borderTopColor: PURPLE_COLOR,
+                                    animation: 'spin 1s linear infinite',
+                                    '@keyframes spin': {
+                                        '0%': { transform: 'rotate(0deg)' },
+                                        '100%': { transform: 'rotate(360deg)' }
+                                    }
+                                }} />
+                                <Typography variant="body2" sx={{ color: GRAY_COLOR, fontSize: '0.85rem' }}>
+                                    Loading...
+                                </Typography>
+                            </Box>
                         </Box>
                     ) : filteredRecycleBinItems.length === 0 ? (
                         <Box sx={{ textAlign: 'center', py: 8 }}>
@@ -407,8 +363,6 @@ const RmeRecycleBinModal = ({
                                         const workOrderNumber = item.wo_number || 'N/A';
                                         const deletedBy = item.deleted_by || 'Unknown';
                                         const deletedByEmail = item.deleted_by_email || '';
-
-                                        // Address parsing (safe)
                                         const fullAddress = item.full_address || '';
                                         const [streetPart = '', restPart = ''] = fullAddress.split(',');
                                         const restParts = restPart.trim().split(/\s+/);
@@ -417,7 +371,6 @@ const RmeRecycleBinModal = ({
                                         const city = restParts[0] || 'Unknown';
                                         const state = restParts[1] || 'Unknown';
                                         const zip = restParts[2] || 'Unknown';
-
 
                                         return (
                                             <TableRow
@@ -546,7 +499,6 @@ const RmeRecycleBinModal = ({
                     )}
                 </Box>
 
-                {/* Pagination */}
                 {filteredRecycleBinItems.length > 0 && (
                     <Box sx={{
                         borderTop: `1px solid ${alpha(PURPLE_COLOR, 0.1)}`,
