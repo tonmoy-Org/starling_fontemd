@@ -5,7 +5,6 @@ import {
     Paper,
     Alert,
     Snackbar,
-    CircularProgress,
     Avatar,
     Divider,
     Chip,
@@ -18,7 +17,6 @@ import {
     alpha,
     IconButton,
     Button,
-    Tooltip,
 } from '@mui/material';
 import axiosInstance from '../../api/axios';
 import { useAuth } from '../../auth/AuthProvider';
@@ -29,7 +27,6 @@ import {
     Edit,
     Save,
     X,
-    ShieldCheck,
     Mail,
     User,
     Lock,
@@ -442,7 +439,7 @@ export const ProfilePage = ({ roleLabel }) => {
                         sx={{
                             fontWeight: 600,
                             mb: 0.5,
-                            fontSize: '0.95rem',
+                            fontSize: '1rem',
                             color: TEXT_COLOR,
                             letterSpacing: '-0.01em',
                         }}

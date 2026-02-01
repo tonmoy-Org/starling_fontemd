@@ -23,6 +23,7 @@ import { DeleteConfirmationModal } from '../../../components/ui/DeleteConfirmati
 import { StatusToggleModal } from '../../../components/ui/StatusToggleModal';
 import { NotificationSnackbar } from '../../../components/ui/NotificationSnackbar';
 import { DataTable } from '../../../components/DataTable/DataTable';
+import { useAuth } from '../../../auth/AuthProvider';
 
 // Define color constants
 const TEXT_COLOR = '#0F1115';
@@ -34,6 +35,7 @@ const GRAY_COLOR = '#6b7280';
 export const UserManagement = () => {
     const [success, setSuccess] = useState('');
     const [error, setError] = useState('');
+    const { user: isSuperAdmin } = useAuth();
 
     const {
         // Data
@@ -244,7 +246,7 @@ export const UserManagement = () => {
                         <IconButton
                             size="small"
                             onClick={() => handleOpenDialog(user)}
-                            disabled={user.role === 'superadmin'}
+                            disabled={user.id === 'superadmin'}
                             sx={{
                                 color: BLUE_COLOR,
                                 padding: '4px',
@@ -260,7 +262,7 @@ export const UserManagement = () => {
                         <IconButton
                             size="small"
                             onClick={() => handleToggleStatusClick(user)}
-                            disabled={user.role === 'superadmin'}
+                            disabled={user.role === 'superadmin' ? isSuperAdmin?.id === user.id : false}
                             sx={{
                                 color: user.isActive ? RED_COLOR : GREEN_COLOR,
                                 padding: '4px',
@@ -278,7 +280,7 @@ export const UserManagement = () => {
                         <IconButton
                             size="small"
                             onClick={() => handleDeleteClick(user)}
-                            disabled={user.role === 'superadmin'}
+                            disabled={user.role === 'superadmin' ? isSuperAdmin?.id === user.id : false}
                             sx={{
                                 color: RED_COLOR,
                                 padding: '4px',

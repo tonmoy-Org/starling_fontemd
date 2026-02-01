@@ -163,9 +163,6 @@ export const UserFormModal = ({
                                 variant="outlined"
                                 size="small"
                             >
-                                <MenuItem value="">
-                                    <em>Select role</em>
-                                </MenuItem>
                                 <MenuItem value="manager">Manager</MenuItem>
                                 <MenuItem value="superadmin">Super Admin</MenuItem>
                                 <MenuItem value="tech">Tech</MenuItem>
