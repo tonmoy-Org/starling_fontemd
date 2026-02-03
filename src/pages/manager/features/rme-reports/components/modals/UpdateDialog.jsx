@@ -268,8 +268,6 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
             }}
         >
             <DialogTitle sx={{
-                borderBottom: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
-                bgcolor: alpha(BLUE_COLOR, 0.03),
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',

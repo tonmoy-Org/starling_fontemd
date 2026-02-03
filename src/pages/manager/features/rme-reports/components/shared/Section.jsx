@@ -41,8 +41,16 @@ const Section = ({
                     gap: 1.5,
                     mb: isMobile ? 1 : 0,
                     width: isMobile ? '100%' : 'auto',
+                    flexDirection: isMobile ? 'column' : 'row',
                 }}>
-                    <Box sx={{ flex: 1 }}>
+                    <Box sx={{
+                        flex: 1,
+                        width: isMobile ? '100%' : 'auto',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        mb: isMobile ? 1 : 0,
+                    }}>
                         <Typography
                             sx={{
                                 fontSize: isMobile ? '0.85rem' : '1rem',
@@ -67,43 +75,90 @@ const Section = ({
                                 }}
                             />
                         </Typography>
+                        {showDeleteButton && onDeleteAction && !isMobile && (
+                            <button
+                                className="outline-button"
+                                onClick={onDeleteAction}
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    fontSize: '0.85rem',
+                                    padding: '6px 12px',
+                                    border: `1px solid ${alpha('#ef4444', 0.3)}`,
+                                    borderRadius: '4px',
+                                    backgroundColor: 'transparent',
+                                    color: '#ef4444',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = alpha('#ef4444', 0.05);
+                                    e.target.style.borderColor = '#ef4444';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = 'transparent';
+                                    e.target.style.borderColor = alpha('#ef4444', 0.3);
+                                }}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                </svg>
+                                Move to Bin ({selectedCount})
+                            </button>
+                        )}
                     </Box>
-                    {!isMobile && showDeleteButton && onDeleteAction && (
-                        <button
-                            className="outline-button"
-                            onClick={onDeleteAction}
-                            style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                fontSize: '0.85rem',
-                                padding: '6px 12px',
-                                border: `1px solid ${alpha('#ef4444', 0.3)}`,
-                                borderRadius: '4px',
-                                backgroundColor: 'transparent',
-                                color: '#ef4444',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                            }}
-                            onMouseEnter={(e) => {
-                                e.target.style.backgroundColor = alpha('#ef4444', 0.05);
-                                e.target.style.borderColor = '#ef4444';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.target.style.backgroundColor = 'transparent';
-                                e.target.style.borderColor = alpha('#ef4444', 0.3);
-                            }}
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 6h18"></path>
-                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                            </svg>
-                            Move to Bin ({selectedCount})
-                        </button>
+
+                    {/* Mobile delete button - shown below the title on mobile */}
+                    {showDeleteButton && onDeleteAction && isMobile && (
+                        <Box sx={{ width: '100%' }}>
+                            <button
+                                className="outline-button"
+                                onClick={onDeleteAction}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '4px',
+                                    fontSize: '0.85rem',
+                                    padding: '8px 16px',
+                                    border: `1px solid ${alpha('#ef4444', 0.3)}`,
+                                    borderRadius: '4px',
+                                    backgroundColor: 'transparent',
+                                    color: '#ef4444',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    width: '100%',
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = alpha('#ef4444', 0.05);
+                                    e.target.style.borderColor = '#ef4444';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = 'transparent';
+                                    e.target.style.borderColor = alpha('#ef4444', 0.3);
+                                }}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                </svg>
+                                Move to Bin ({selectedCount})
+                            </button>
+                        </Box>
                     )}
                 </Box>
-                {additionalActions}
+                {additionalActions && (
+                    <Box sx={{
+                        width: isMobile ? '100%' : 'auto',
+                        mt: isMobile ? 1 : 0,
+                    }}>
+                        {additionalActions}
+                    </Box>
+                )}
             </Box>
             {children}
         </Paper>

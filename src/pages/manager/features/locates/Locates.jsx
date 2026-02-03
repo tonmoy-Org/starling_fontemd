@@ -54,11 +54,11 @@ import {
 // Move this function outside the component or use a proper utility
 const getCalledAtDate = (item) => {
   if (!item?.calledAt) return '—';
-  
+
   // Check if calledAt is a valid date
   const date = new Date(item.calledAt);
   if (isNaN(date.getTime())) return '—';
-  
+
   // Format the date
   return date.toLocaleDateString('en-US', {
     month: 'short',
@@ -857,7 +857,10 @@ const Locates = () => {
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{
+          vertical: isMobile ? 'top' : 'bottom',
+          horizontal: 'right',
+        }}
       >
         <Alert
           onClose={handleCloseSnackbar}
@@ -872,12 +875,12 @@ const Locates = () => {
             width: '100%',
             borderRadius: '6px',
             backgroundColor: snackbar.severity === 'success'
-              ? alpha(GREEN_COLOR, 0.05)
+              ? 'success'
               : snackbar.severity === 'error'
-                ? alpha(RED_COLOR, 0.05)
+                ? 'error'
                 : snackbar.severity === 'warning'
-                  ? alpha(ORANGE_COLOR, 0.05)
-                  : alpha(BLUE_COLOR, 0.05),
+                  ? 'warning'
+                  : 'info',
             borderLeft: `4px solid ${snackbar.severity === 'success' ? GREEN_COLOR :
               snackbar.severity === 'error' ? RED_COLOR :
                 snackbar.severity === 'warning' ? ORANGE_COLOR : BLUE_COLOR}`,

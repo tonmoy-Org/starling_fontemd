@@ -15,7 +15,6 @@ import {
     TableCell,
     TableContainer,
     TableRow,
-    Paper,
     FormControl,
     RadioGroup,
     FormControlLabel,
@@ -35,8 +34,6 @@ import {
     BLUE_COLOR,
     GRAY_COLOR,
     TEXT_COLOR,
-    GREEN_COLOR,
-    ORANGE_COLOR,
     RED_COLOR,
 } from '../../utils/constants';
 import UpdateButton from '../../../../../../components/ui/UpdateButton';
@@ -49,6 +46,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
     const [formData, setFormData] = useState([]);
     const [error, setError] = useState(null);
     const [yesNoFields, setYesNoFields] = useState({});
+    const [inspectionFields, setInspectionFields] = useState({});
     const [showFormNotFoundModal, setShowFormNotFoundModal] = useState(false);
 
     useEffect(() => {
@@ -61,6 +59,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                 const response = await axiosInstance.get(`/work-order-edit/${workOrderData.id}/`);
 
                 let serverData = response.data;
+                console.log('serverData', serverData);
 
                 let formDataArray = [];
 
@@ -81,16 +80,29 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                             value = field.value;
                         }
 
+                        // Clean up field labels - remove any text in parentheses
+                        let label = field.label || field.name;
+                        if (label) {
+                            // Remove text in parentheses including the parentheses themselves
+                            label = label.replace(/\s*\([^)]*\)/g, '');
+                            // Remove text in brackets including the brackets themselves
+                            label = label.replace(/\s*\[[^\]]*\]/g, '');
+                            // Trim any extra spaces
+                            label = label.trim();
+                        }
+
                         return {
                             ...field,
                             value: value,
-                            label: field.label || field.name
+                            label: label
                         };
                     });
 
                     setFormData(processedFormData);
 
                     const initialYesNoFields = {};
+                    const initialInspectionFields = {};
+
                     processedFormData.forEach((field) => {
                         if (field.type === 'select') {
                             const cleanOptions = field.options ? field.options.filter(opt => opt !== '' && opt !== null && opt !== undefined) : [];
@@ -111,11 +123,12 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
 
                             if (isYesNoField) {
                                 initialYesNoFields[field.name] = {
-                                    isYesNo: true,
-                                    showConditional: false
+                                    isYesNo: true
                                 };
-                            } else if (isInspectionField) {
-                                initialYesNoFields[field.name] = {
+                            }
+
+                            if (isInspectionField) {
+                                initialInspectionFields[field.name] = {
                                     isInspection: true
                                 };
                             }
@@ -123,6 +136,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                     });
 
                     setYesNoFields(initialYesNoFields);
+                    setInspectionFields(initialInspectionFields);
                 } else {
                     setFormData([]);
                     setShowFormNotFoundModal(true);
@@ -144,30 +158,6 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
             fetchFormData();
         }
     }, [workOrderData, open]);
-
-    useEffect(() => {
-        const updatedYesNoFields = { ...yesNoFields };
-        let hasChanges = false;
-
-        formData.forEach(field => {
-            const fieldInfo = yesNoFields[field.name];
-            const fieldValue = field.value || '';
-
-            if (fieldInfo?.isYesNo) {
-                const shouldShowConditional = fieldValue.toString().toUpperCase() === 'NO' ||
-                    fieldValue.toString().toUpperCase() === 'N/A';
-
-                if (updatedYesNoFields[field.name].showConditional !== shouldShowConditional) {
-                    updatedYesNoFields[field.name].showConditional = shouldShowConditional;
-                    hasChanges = true;
-                }
-            }
-        });
-
-        if (hasChanges) {
-            setYesNoFields(updatedYesNoFields);
-        }
-    }, [formData]);
 
     const handleInputChange = (fieldName, value) => {
         setFormData(prev =>
@@ -241,51 +231,12 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
         }
     };
 
-    const getInspectionRowColor = (value) => {
-        switch (value) {
-            case 'Fully Inspected':
-                return alpha(BLUE_COLOR, 0.08);
-            case 'Partially Inspected':
-                return alpha(BLUE_COLOR, 0.08);
-            case 'Not Inspected':
-                return alpha(BLUE_COLOR, 0.08);
-            default:
-                return alpha(BLUE_COLOR, 0.02);
-        }
-    };
-
-    const getInspectionTextColor = (value) => {
-        switch (value) {
-            case 'Fully Inspected':
-                return BLUE_COLOR;
-            case 'Partially Inspected':
-                return ORANGE_COLOR;
-            case 'Not Inspected':
-                return BLUE_COLOR;
-            default:
-                return BLUE_COLOR;
-        }
-    };
-
-    const getInspectionBorderColor = (value) => {
-        switch (value) {
-            case 'Fully Inspected':
-                return alpha(GREEN_COLOR, 0.3);
-            case 'Partially Inspected':
-                return alpha(ORANGE_COLOR, 0.3);
-            case 'Not Inspected':
-                return alpha(RED_COLOR, 0.3);
-            default:
-                return alpha(BLUE_COLOR, 0.3);
-        }
-    };
-
     const isYesNoField = (fieldName) => {
         return yesNoFields[fieldName]?.isYesNo;
     };
 
     const isInspectionField = (fieldName) => {
-        return yesNoFields[fieldName]?.isInspection;
+        return inspectionFields[fieldName]?.isInspection;
     };
 
     const renderFormField = (field, index) => {
@@ -294,119 +245,76 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
         const cleanOptions = field.options ? field.options.filter(opt => opt !== '' && opt !== null && opt !== undefined) : [];
         const isYesNo = isYesNoField(field.name);
         const isInspection = isInspectionField(field.name);
-        const showConditionalComment = isYesNo && ['NO', 'N/A'].includes(value?.toUpperCase());
 
-        const defaultRowBgColor = alpha(BLUE_COLOR, 0.02);
+        // Dark blue background for inspection fields (3 options)
         const rowBgColor = isInspection
-            ? getInspectionRowColor(value)
-            : defaultRowBgColor;
+            ? alpha(BLUE_COLOR, 0.6) // Darker blue background for inspection fields
+            : 'transparent';
 
         if (isYesNo) {
             return (
-                <React.Fragment key={uniqueKey}>
-                    <TableRow sx={{ backgroundColor: defaultRowBgColor }}>
-                        <TableCell sx={{
-                            borderBottom: showConditionalComment ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                            width: isMobile ? '40%' : '70%',
-                            fontWeight: 600,
-                            fontSize: '0.85rem',
-                            color: TEXT_COLOR,
-                            verticalAlign: 'top',
-                        }}>
-                            {field.label || field.name}
-                            {field.required && (
-                                <Typography component="span" sx={{ color: RED_COLOR, ml: 0.5 }}>
-                                    *
-                                </Typography>
-                            )}
-                        </TableCell>
-                        <TableCell sx={{
-                            borderBottom: showConditionalComment ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                        }}>
-                            <RadioGroup
-                                row
-                                name={field.name}
-                                value={value}
-                                onChange={(e) => handleInputChange(field.name, e.target.value)}
-                                sx={{ gap: isMobile ? 1 : 2 }}
-                            >
-                                {cleanOptions.map((option, optionIndex) => (
-                                    <FormControlLabel
-                                        key={`${option}-${optionIndex}`}
-                                        value={option}
-                                        control={<Radio size="small" />}
-                                        label={
-                                            <Typography sx={{
-                                                fontSize: '0.85rem',
-                                                textTransform: option ? 'uppercase' : 'none'
-                                            }}>
-                                                {option || 'Select...'}
-                                            </Typography>
-                                        }
-                                        disabled={isLoading || saveLoading}
-                                        sx={{
-                                            marginRight: isMobile ? 1 : 2,
-                                            '& .MuiFormControlLabel-label': {
-                                                fontSize: '0.85rem',
-                                            }
-                                        }}
-                                    />
-                                ))}
-                            </RadioGroup>
-                            {field.required && !value && (
-                                <Typography variant="caption" sx={{ color: RED_COLOR, display: 'block', mt: 0.5 }}>
-                                    This field is required
-                                </Typography>
-                            )}
-                        </TableCell>
-                    </TableRow>
-
-                    {showConditionalComment && (
-                        <TableRow sx={{ backgroundColor: defaultRowBgColor }}>
-                            <TableCell sx={{
-                                borderBottom: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                                width: isMobile ? '40%' : '70%',
-                                fontWeight: 600,
-                                fontSize: '0.85rem',
-                                color: TEXT_COLOR,
-                                verticalAlign: 'top',
-                            }}>
-                                Explanation (required for NO/N/A):
-                                <Typography component="span" sx={{ color: RED_COLOR, ml: 0.5 }}>
-                                    *
-                                </Typography>
-                            </TableCell>
-                            <TableCell sx={{
-                                borderBottom: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                            }}>
-                                <StyledTextField
-                                    value={value}
-                                    onChange={(e) => handleInputChange(field.name, e.target.value)}
-                                    fullWidth
-                                    multiline
-                                    rows={3}
-                                    size="small"
-                                    disabled={isLoading || saveLoading}
-                                    placeholder={`Please explain why ${field.label || field.name.toLowerCase()}...`}
-                                    error={!value}
-                                    sx={{
-                                        '& .MuiInputBase-input': {
+                <TableRow key={uniqueKey} sx={{ backgroundColor: 'transparent' }}>
+                    <TableCell sx={{
+                        borderBottom: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                        width: isMobile ? '40%' : '70%',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        color: TEXT_COLOR,
+                        verticalAlign: 'top',
+                        padding: '12px 16px',
+                    }}>
+                        {field.label || field.name}
+                        {field.required && (
+                            <Typography component="span" sx={{ color: RED_COLOR, ml: 0.5 }}>
+                                *
+                            </Typography>
+                        )}
+                    </TableCell>
+                    <TableCell sx={{
+                        borderBottom: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                        padding: '12px 16px',
+                    }}>
+                        <RadioGroup
+                            row
+                            name={field.name}
+                            value={value}
+                            onChange={(e) => handleInputChange(field.name, e.target.value)}
+                            sx={{ gap: isMobile ? 1 : 2 }}
+                        >
+                            {cleanOptions.map((option, optionIndex) => (
+                                <FormControlLabel
+                                    key={`${option}-${optionIndex}`}
+                                    value={option}
+                                    control={<Radio size="small" />}
+                                    label={
+                                        <Typography sx={{
                                             fontSize: '0.85rem',
-                                            lineHeight: 1.5,
+                                            textTransform: option ? 'uppercase' : 'none'
+                                        }}>
+                                            {option || 'Select...'}
+                                        </Typography>
+                                    }
+                                    disabled={isLoading || saveLoading}
+                                    sx={{
+                                        marginRight: isMobile ? 1 : 2,
+                                        '& .MuiFormControlLabel-label': {
+                                            fontSize: '0.85rem',
                                         }
                                     }}
                                 />
-                            </TableCell>
-                        </TableRow>
-                    )}
-                </React.Fragment>
+                            ))}
+                        </RadioGroup>
+                        {field.required && !value && (
+                            <Typography variant="caption" sx={{ color: RED_COLOR, display: 'block', mt: 0.5 }}>
+                                This field is required
+                            </Typography>
+                        )}
+                    </TableCell>
+                </TableRow>
             );
         }
 
         if (isInspection) {
-            const textColor = getInspectionTextColor(value);
-            const borderColor = getInspectionBorderColor(value);
-
             return (
                 <TableRow
                     key={uniqueKey}
@@ -421,6 +329,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                         fontSize: '0.85rem',
                         color: TEXT_COLOR,
                         verticalAlign: 'top',
+                        padding: '6px 16px',
                     }}>
                         {field.label || field.name}
                         {field.required && (
@@ -431,6 +340,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                     </TableCell>
                     <TableCell sx={{
                         borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                        padding: '5px 16px',
                     }}>
                         <FormControl fullWidth size="small">
                             <StyledSelect
@@ -442,9 +352,10 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                 sx={{
                                     '& .MuiSelect-select': {
                                         fontSize: '0.85rem',
-                                        padding: '8px 12px',
+                                        padding: '6px 12px',
                                         color: TEXT_COLOR,
                                         fontWeight: 600,
+                                        backgroundColor: 'white',
                                     },
                                     '& .MuiOutlinedInput-notchedOutline': {
                                         borderColor: alpha(BLUE_COLOR, 0.3),
@@ -481,7 +392,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
         switch (field.type) {
             case 'select':
                 return (
-                    <TableRow key={uniqueKey} sx={{ backgroundColor: defaultRowBgColor }}>
+                    <TableRow key={uniqueKey} sx={{ backgroundColor: 'transparent' }}>
                         <TableCell sx={{
                             borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
                             width: isMobile ? '40%' : '70%',
@@ -489,6 +400,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                             fontSize: '0.85rem',
                             color: TEXT_COLOR,
                             verticalAlign: 'top',
+                            padding: '12px 16px',
                         }}>
                             {field.label || field.name}
                             {field.required && (
@@ -499,6 +411,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                         </TableCell>
                         <TableCell sx={{
                             borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                            padding: '12px 16px',
                         }}>
                             <FormControl fullWidth size="small">
                                 <StyledSelect
@@ -515,7 +428,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                             fontWeight: value ? 600 : 400,
                                         },
                                         '& .MuiOutlinedInput-notchedOutline': {
-                                            borderColor: alpha(BLUE_COLOR, 0.3),
+                                            borderColor: alpha(GRAY_COLOR, 0.3),
                                         },
                                         '&:hover .MuiOutlinedInput-notchedOutline': {
                                             borderColor: BLUE_COLOR,
@@ -543,7 +456,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
 
             case 'text':
                 return (
-                    <TableRow key={uniqueKey} sx={{ backgroundColor: defaultRowBgColor }}>
+                    <TableRow key={uniqueKey} sx={{ backgroundColor: 'transparent' }}>
                         <TableCell sx={{
                             borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
                             width: isMobile ? '40%' : '70%',
@@ -551,6 +464,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                             fontSize: '0.85rem',
                             color: TEXT_COLOR,
                             verticalAlign: 'top',
+                            padding: '12px 16px',
                         }}>
                             {field.label || field.name}
                             {field.required && (
@@ -561,6 +475,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                         </TableCell>
                         <TableCell sx={{
                             borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                            padding: '12px 16px',
                         }}>
                             <StyledTextField
                                 value={value}
@@ -578,7 +493,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                         fontWeight: 600,
                                     },
                                     '& .MuiOutlinedInput-notchedOutline': {
-                                        borderColor: alpha(BLUE_COLOR, 0.3),
+                                        borderColor: alpha(GRAY_COLOR, 0.3),
                                     },
                                     '&:hover .MuiOutlinedInput-notchedOutline': {
                                         borderColor: BLUE_COLOR,
@@ -591,7 +506,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
 
             case 'textarea':
                 return (
-                    <TableRow key={uniqueKey} sx={{ backgroundColor: defaultRowBgColor }}>
+                    <TableRow key={uniqueKey} sx={{ backgroundColor: 'transparent' }}>
                         <TableCell sx={{
                             borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
                             width: isMobile ? '40%' : '70%',
@@ -599,6 +514,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                             fontSize: '0.85rem',
                             color: TEXT_COLOR,
                             verticalAlign: 'top',
+                            padding: '12px 16px',
                         }}>
                             {field.label || field.name}
                             {field.required && (
@@ -609,6 +525,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                         </TableCell>
                         <TableCell sx={{
                             borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                            padding: '12px 16px',
                         }}>
                             <StyledTextField
                                 value={value}
@@ -628,7 +545,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                         fontWeight: 600,
                                     },
                                     '& .MuiOutlinedInput-notchedOutline': {
-                                        borderColor: alpha(BLUE_COLOR, 0.3),
+                                        borderColor: alpha(GRAY_COLOR, 0.3),
                                     },
                                     '&:hover .MuiOutlinedInput-notchedOutline': {
                                         borderColor: BLUE_COLOR,
@@ -641,7 +558,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
 
             default:
                 return (
-                    <TableRow key={uniqueKey} sx={{ backgroundColor: defaultRowBgColor }}>
+                    <TableRow key={uniqueKey} sx={{ backgroundColor: 'transparent' }}>
                         <TableCell sx={{
                             borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
                             width: isMobile ? '40%' : '70%',
@@ -649,6 +566,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                             fontSize: '0.85rem',
                             color: TEXT_COLOR,
                             verticalAlign: 'top',
+                            padding: '12px 16px',
                         }}>
                             {field.label || field.name}
                             {field.required && (
@@ -659,6 +577,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                         </TableCell>
                         <TableCell sx={{
                             borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                            padding: '12px 16px',
                         }}>
                             <Typography variant="body2" sx={{ color: GRAY_COLOR, fontStyle: 'italic' }}>
                                 Unsupported field type: {field.type}
@@ -700,8 +619,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                 }}
             >
                 <DialogTitle sx={{
-                    borderBottom: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
-                    bgcolor: alpha(BLUE_COLOR, 0.03),
+                    borderBottom: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -709,6 +627,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                     position: 'sticky',
                     top: 0,
                     zIndex: 1,
+                    backgroundColor: 'white',
                 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Box sx={{
@@ -767,27 +686,15 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                     ) : (
                         <>
                             <Box sx={{ my: 3 }}>
-                                <Typography variant="h6" sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 1, color: TEXT_COLOR }}>
+                                <Typography variant="h6" sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 2, color: TEXT_COLOR }}>
                                     Work Order Details
                                 </Typography>
                                 <Box sx={{
                                     display: 'flex',
-                                    gap: 2,
+                                    gap: 3,
                                     flexWrap: 'wrap',
-                                    p: 2,
-                                    borderRadius: '6px',
-                                    backgroundColor: alpha(GRAY_COLOR, 0.03),
-                                    border: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
                                     mb: 3,
                                 }}>
-                                    <Box>
-                                        <Typography variant="body2" sx={{ fontSize: '0.8rem', color: GRAY_COLOR, mb: 0.5 }}>
-                                            Work Order #
-                                        </Typography>
-                                        <Typography variant="body1" sx={{ fontSize: '0.9rem', fontWeight: 600, color: TEXT_COLOR }}>
-                                            {workOrderData?.woNumber || 'N/A'}
-                                        </Typography>
-                                    </Box>
                                     <Box>
                                         <Typography variant="body2" sx={{ fontSize: '0.8rem', color: GRAY_COLOR, mb: 0.5 }}>
                                             Address
@@ -810,6 +717,14 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                         </Typography>
                                         <Typography variant="body1" sx={{ fontSize: '0.9rem', fontWeight: 600, color: TEXT_COLOR }}>
                                             {workOrderData?.date || 'N/A'}
+                                        </Typography>
+                                    </Box>
+                                    <Box sx={{ ml: 'auto' }}>
+                                        <Typography variant="body2" sx={{ fontSize: '0.8rem', color: GRAY_COLOR, mb: 0.5 }}>
+                                            Work Order #
+                                        </Typography>
+                                        <Typography variant="body1" sx={{ fontSize: '0.9rem', fontWeight: 600, color: TEXT_COLOR }}>
+                                            {workOrderData?.woNumber || 'N/A'}
                                         </Typography>
                                     </Box>
                                 </Box>
@@ -838,7 +753,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                     </Alert>
                                 </Box>
                             ) : (
-                                <TableContainer component={Paper} sx={{
+                                <TableContainer sx={{
                                     borderRadius: '6px',
                                     border: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
                                     maxHeight: '400px',
@@ -850,7 +765,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                         backgroundColor: alpha(GRAY_COLOR, 0.05),
                                     },
                                     '&::-webkit-scrollbar-thumb': {
-                                        backgroundColor: alpha(BLUE_COLOR, 0.2),
+                                        backgroundColor: alpha(GRAY_COLOR, 0.2),
                                         borderRadius: '4px',
                                     },
                                 }}>

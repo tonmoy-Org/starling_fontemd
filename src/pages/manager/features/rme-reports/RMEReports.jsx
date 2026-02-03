@@ -615,7 +615,7 @@ const RMEReports = () => {
                         />
                     </Box>
                 }
-                showDeleteButton={!isMobile && selectedReportNeeded.size > 0}
+                showDeleteButton={selectedReportNeeded.size > 0} // REMOVED !isMobile condition
                 onDeleteAction={() => handleSoftDelete(selectedReportNeeded, 'Report Needed')}
                 isMobile={isMobile}
             >
@@ -663,7 +663,7 @@ const RMEReports = () => {
                         />
                     </Box>
                 }
-                showDeleteButton={!isMobile && selectedReportSubmitted.size > 0}
+                showDeleteButton={selectedReportSubmitted.size > 0}
                 onDeleteAction={() => handleSoftDelete(selectedReportSubmitted, 'Report Submitted')}
                 isMobile={isMobile}
             >
@@ -721,7 +721,7 @@ const RMEReports = () => {
                         />
                     </Box>
                 }
-                showDeleteButton={!isMobile && selectedHolding.size > 0}
+                showDeleteButton={selectedHolding.size > 0}
                 onDeleteAction={() => handleSoftDelete(selectedHolding, 'Holding')}
                 isMobile={isMobile}
             >
@@ -772,7 +772,7 @@ const RMEReports = () => {
                         />
                     </Box>
                 }
-                showDeleteButton={!isMobile && selectedFinalized.size > 0}
+                showDeleteButton={selectedFinalized.size > 0}
                 onDeleteAction={() => handleSoftDelete(selectedFinalized, 'Finalized')}
                 isMobile={isMobile}
             >
