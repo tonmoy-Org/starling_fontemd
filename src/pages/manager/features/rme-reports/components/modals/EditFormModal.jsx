@@ -1,3 +1,4 @@
+// EditFormModal.js
 import React, { useState, useEffect } from 'react';
 import {
     Dialog,
@@ -692,7 +693,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                 PaperProps={{
                     sx: {
                         bgcolor: 'white',
-                        borderRadius: isMobile ? 0 : '8px',
+                        borderRadius: isMobile ? 0 : '5px',
                         maxHeight: isMobile ? '100%' : '90vh',
                         width: isMobile ? '100%' : '1200px',
                     }
@@ -728,7 +729,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                         </Box>
                         <Box>
                             <Typography variant="h6" sx={{
-                                fontSize: '1.1rem',
+                                fontSize: '1rem',
                                 fontWeight: 600,
                                 color: TEXT_COLOR,
                                 mb: 0,
@@ -736,7 +737,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                 Edit RME Form
                             </Typography>
                             <Typography variant="body2" sx={{
-                                fontSize: '0.85rem',
+                                fontSize: '0.75rem',
                                 color: GRAY_COLOR,
                             }}>
                                 {workOrderData?.street || 'Work Order'}
@@ -765,8 +766,8 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                         </Box>
                     ) : (
                         <>
-                            <Box sx={{ mb: 3 }}>
-                                <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 1, color: TEXT_COLOR }}>
+                            <Box sx={{ my: 3 }}>
+                                <Typography variant="h6" sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 1, color: TEXT_COLOR }}>
                                     Work Order Details
                                 </Typography>
                                 <Box sx={{
@@ -824,7 +825,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                 </Alert>
                             )}
 
-                            <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 2, color: TEXT_COLOR }}>
+                            <Typography variant="h6" sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 2, color: TEXT_COLOR }}>
                                 RME Form Fields
                             </Typography>
 

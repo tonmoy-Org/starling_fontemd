@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Typography,
     FormControl,
     InputLabel,
-    TextField,
     Button,
     Dialog,
     DialogTitle,
     DialogContent,
     DialogActions,
-    MenuItem
+    MenuItem,
+    IconButton,
+    useTheme,
+    useMediaQuery
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { Save, X } from 'lucide-react';
@@ -22,148 +24,41 @@ import {
     ORANGE_COLOR,
 } from '../../utils/constants';
 import OutlineButton from '../../../../../../components/ui/OutlineButton';
+import septic_components from '../../data/septic_components.json';
+import StyledTextField from '../../../../../../components/ui/StyledTextField';
 
 const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
     const [formData, setFormData] = useState({
         category: '',
         componentType: '',
-        customLabel: '',
-        serialNumber: '',
-        sortOrder: ''
+        manufacturer: '',
+        model: '',
+        customLabel: ''
     });
 
-    // Define all categories
-    const categories = [
-        { value: '', label: '' },
-        { value: '1', label: 'Aerobic Treatment Unit' },
-        { value: '5', label: 'Disinfection' },
-        { value: '10', label: 'Distribution' },
-        { value: '11', label: 'Drainage' },
-        { value: '6', label: 'Drainfield (disposal)' },
-        { value: '3', label: 'Media Filter' },
-        { value: '12', label: 'Monitoring' },
-        { value: '7', label: 'Panel' },
-        { value: '4', label: 'Pump' },
-        { value: '2', label: 'TANK' }
-    ];
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
-    // Define components for each category
-    const categoryComponents = {
-        // Pump Category (4) - Keep existing
-        '4': [
-            { value: '', label: '' },
-            { value: '29', label: 'Effluent Pump' },
-            { value: '40', label: 'Siphon' }
-        ],
-        // Tank Category (2) - Keep existing
-        '2': [
-            { value: '', label: '' },
-            { value: '117', label: 'Ammonia tank' },
-            { value: '25', label: 'Clarifying Tank' },
-            { value: '37', label: 'Grease Trap' },
-            { value: '39', label: 'Grease trap - 2 Compartment' },
-            { value: '28', label: 'Holding Tank' },
-            { value: '48', label: 'Pump Basin' },
-            { value: '26', label: 'Pump Tank' },
-            { value: '50', label: 'Recirculation Tank' },
-            { value: '19', label: 'Septic Tank - 1 Compartment' },
-            { value: '23', label: 'Septic Tank - 2 Compartment' },
-            { value: '49', label: 'Septic Tank - 3 Compartment' },
-            { value: '24', label: 'Surge Tank' },
-            { value: '27', label: 'Trash Tank' }
-        ],
-        // Aerobic Treatment Unit (1) - Keep existing
-        '1': [
-            { value: '', label: '' },
-            { value: '201', label: 'ATU' },
-        ],
-        // Media Filter (3) - UPDATE THIS SECTION with HTML data
-        '3': [
-            { value: '', label: '' },
-            { value: '17', label: 'Biofilter' },
-            { value: '12', label: 'Bottomless Sand Filter' },
-            { value: '15', label: 'Mound' },
-            { value: '81', label: 'Mound - At Grade' },
-            { value: '78', label: 'Peat Filter' },
-            { value: '105', label: 'Recirculating Gravel Filter' },
-            { value: '13', label: 'Recirculating Sand Filter' },
-            { value: '11', label: 'Sand Filter' },
-            { value: '16', label: 'Textile Filter' },
-            { value: '14', label: 'Trickling Filter' }
-        ],
-        // Disinfection (5) - Keep existing
-        '5': [
-            { value: '', label: '' },
-            { value: '501', label: 'Chlorine' },
-            { value: '502', label: 'Ozone' },
-            { value: '503', label: 'Ultraviolet' }
-        ],
-        // Drainfield (disposal) - Category 6 - Keep existing
-        '6': [
-            { value: '', label: '' },
-            { value: '52', label: 'Cesspool' },
-            { value: '7', label: 'Drip Irrigation' },
-            { value: '101', label: 'Drip Irrigation (Automatic Flush)' },
-            { value: '102', label: 'Drip Irrigation (Continuous Flush)' },
-            { value: '103', label: 'Drip Irrigation (Manual Flush)' },
-            { value: '53', label: 'Drywell' },
-            { value: '80', label: 'ET/ETI Bed' },
-            { value: '1', label: 'Gravity' },
-            { value: '3', label: 'Gravity Bed' },
-            { value: '54', label: 'Lagoon' },
-            { value: '125', label: 'NPDES - Dry Ditch' },
-            { value: '127', label: 'NPDES - Open water' },
-            { value: '126', label: 'NPDES - Stream' },
-            { value: '91', label: 'Pit Privy' },
-            { value: '4', label: 'Pressure' },
-            { value: '5', label: 'Pressure Bed' },
-            { value: '6', label: 'Sand Lined Trench' },
-            { value: '129', label: 'Seepage pit' },
-            { value: '130', label: 'Seepage pit enhanced' },
-            { value: '88', label: 'Spray Irrigation' },
-            { value: '116', label: 'Surface Drip Irrigation' },
-            { value: '115', label: 'Wastewater pond' }
-        ],
-        // Distribution - Category 10 - Keep existing
-        '10': [
-            { value: '', label: '' },
-            { value: '101', label: 'Automatic Distribution Valve' },
-            { value: '102', label: 'Bull-run Valve' },
-            { value: '103', label: 'D-Box' },
-            { value: '104', label: 'Diverter Valve' },
-            { value: '105', label: 'Flow Meter' },
-            { value: '106', label: 'Manifold' },
-        ],
-        // Drainage - Category 11 (add if needed)
-        '11': [
-            { value: '', label: '' },
-            // Add drainage components here if needed
-        ],
-        // Monitoring - Category 12 (add if needed)
-        '12': [
-            { value: '', label: '' },
-            // Add monitoring components here if needed
-        ],
-        // Panel - Category 7 (add if needed)
-        '7': [
-            { value: '', label: '' },
-            // Add panel components here if needed
-        ],
-        // Default for other categories
-        'default': [
-            { value: '', label: '' },
-            { value: '1', label: 'Component 1' },
-            { value: '2', label: 'Component 2' }
-        ]
-    };
+    const categories = Object.keys(septic_components).map((categoryName, index) => ({
+        value: (index + 1).toString(),
+        label: categoryName
+    }));
 
-    // Generate sort order options (1-98)
-    const sortOrderOptions = [{ value: '', label: '' }, ...Array.from({ length: 98 }, (_, i) => ({
-        value: (i + 1).toString(),
-        label: (i + 1).toString()
-    }))];
+    const categoryComponents = Object.keys(septic_components).reduce((acc, categoryName, index) => {
+        const categoryId = (index + 1).toString();
+        const components = Object.keys(septic_components[categoryName]).map(compName => ({
+            value: compName,
+            label: compName,
+            componentData: septic_components[categoryName][compName]
+        }));
 
-    // Get components for selected category
+        acc[categoryId] = [{ value: '', label: '' }, ...components];
+        return acc;
+    }, {});
+
+    categoryComponents['default'] = [{ value: '', label: '' }];
+
     const getComponentsForCategory = () => {
         if (!formData.category) {
             return [{ value: '', label: '' }];
@@ -171,15 +66,94 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
         return categoryComponents[formData.category] || categoryComponents['default'];
     };
 
+    const getManufacturersForComponent = () => {
+        if (!formData.componentType || !formData.category) {
+            return [{ value: '', label: '' }];
+        }
+
+        const components = categoryComponents[formData.category];
+        const component = components.find(comp => comp.value === formData.componentType);
+
+        if (!component || !component.componentData) {
+            return [{ value: '', label: '' }];
+        }
+
+        const componentData = component.componentData;
+        const manufacturerNames = Object.keys(componentData);
+
+        const manufacturers = manufacturerNames.map(manName => {
+            const manData = componentData[manName];
+            return {
+                value: manData.id,
+                label: manName,
+                manufacturerData: manData
+            };
+        });
+
+        return [{ value: '', label: '' }, ...manufacturers];
+    };
+
+    const getModelsForManufacturer = () => {
+        if (!formData.manufacturer || !formData.componentType || !formData.category) {
+            return [{ value: '', label: '' }];
+        }
+
+        const components = categoryComponents[formData.category];
+        const component = components.find(comp => comp.value === formData.componentType);
+
+        if (!component || !component.componentData) {
+            return [{ value: '', label: '' }];
+        }
+
+        const componentData = component.componentData;
+        const manufacturerName = Object.keys(componentData).find(manName => {
+            return componentData[manName].id === formData.manufacturer;
+        });
+
+        if (!manufacturerName) {
+            return [{ value: '', label: '' }];
+        }
+
+        const manufacturerData = componentData[manufacturerName];
+
+        if (!manufacturerData.models || manufacturerData.models.length === 0) {
+            return [{ value: '', label: '' }];
+        }
+
+        const models = manufacturerData.models.map(model => ({
+            value: model.id,
+            label: model.name
+        }));
+
+        return [{ value: '', label: '' }, ...models];
+    };
+
     const handleChange = (field, value) => {
-        // If category changes, reset component type
         if (field === 'category') {
             setFormData(prev => ({
                 ...prev,
                 [field]: value,
-                componentType: ''
+                componentType: '',
+                manufacturer: '',
+                model: ''
             }));
-        } else {
+        }
+        else if (field === 'componentType') {
+            setFormData(prev => ({
+                ...prev,
+                [field]: value,
+                manufacturer: '',
+                model: ''
+            }));
+        }
+        else if (field === 'manufacturer') {
+            setFormData(prev => ({
+                ...prev,
+                [field]: value,
+                model: ''
+            }));
+        }
+        else {
             setFormData(prev => ({
                 ...prev,
                 [field]: value
@@ -188,7 +162,16 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
     };
 
     const handleSubmit = () => {
-        onSubmit(item.id, formData);
+        const submittedData = {
+            id: item.id,
+            category: categories.find(cat => cat.value === formData.category)?.label || '',
+            componentType: getComponentsForCategory().find(comp => comp.value === formData.componentType)?.label || '',
+            manufacturer: getManufacturersForComponent().find(man => man.value === formData.manufacturer)?.label || '',
+            model: getModelsForManufacturer().find(mod => mod.value === formData.model)?.label || '',
+            customLabel: formData.customLabel
+        };
+
+        onSubmit(item.id, submittedData);
         onClose();
         resetForm();
     };
@@ -200,181 +183,381 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
 
     const resetForm = () => {
         setFormData({
-            category: '4',
-            componentType: '29',
-            customLabel: '',
-            serialNumber: '',
-            sortOrder: ''
+            category: '',
+            componentType: '',
+            manufacturer: '',
+            model: '',
+            customLabel: ''
         });
     };
+
+    useEffect(() => {
+        if (item && open) {
+            let categoryId = '';
+            if (item.category) {
+                const foundCategory = categories.find(cat =>
+                    cat.label === item.category || cat.value === item.category
+                );
+                categoryId = foundCategory ? foundCategory.value : '';
+            }
+
+            let componentTypeValue = '';
+            if (item.componentType && categoryId) {
+                const components = getComponentsForCategory();
+                const foundComponent = components.find(comp =>
+                    comp.label === item.componentType || comp.value === item.componentType
+                );
+                componentTypeValue = foundComponent ? foundComponent.value : '';
+            }
+
+            let manufacturerId = '';
+            if (item.manufacturer && categoryId && componentTypeValue) {
+                const manufacturers = getManufacturersForComponent();
+                const foundManufacturer = manufacturers.find(man =>
+                    man.label === item.manufacturer || man.value === item.manufacturer
+                );
+                manufacturerId = foundManufacturer ? foundManufacturer.value : '';
+            }
+
+            let modelId = '';
+            if (item.model && manufacturerId) {
+                const models = getModelsForManufacturer();
+                const foundModel = models.find(mod =>
+                    mod.label === item.model || mod.value === item.model
+                );
+                modelId = foundModel ? foundModel.value : '';
+            }
+
+            setFormData({
+                category: categoryId,
+                componentType: componentTypeValue,
+                manufacturer: manufacturerId,
+                model: modelId,
+                customLabel: item.customLabel || ''
+            });
+        }
+    }, [item, open]);
+
+    // Responsive sizing adjustments
+    const dialogMaxWidth = isMobile ? 'sm' : 'md';
+    const iconSize = isMobile ? 16 : 18;
+    const titleFontSize = isMobile ? '0.9rem' : '0.95rem';
+    const subtitleFontSize = isMobile ? '0.75rem' : '0.8rem';
+    const bodyFontSize = isMobile ? '0.8rem' : '0.85rem';
+    const captionFontSize = isMobile ? '0.7rem' : '0.75rem';
+    const inputFontSize = isMobile ? '0.75rem' : '0.8rem';
+    const buttonFontSize = isMobile ? '0.75rem' : '0.8rem';
+    const dialogPadding = isMobile ? 1 : 2;
 
     return (
         <Dialog
             open={open}
             onClose={handleClose}
-            maxWidth="md"
+            maxWidth={dialogMaxWidth}
             fullWidth
-            sx={{
-                '& .MuiDialog-paper': {
-                    maxHeight: '90vh',
+            fullScreen={isMobile}
+            PaperProps={{
+                sx: {
+                    bgcolor: 'white',
+                    borderRadius: isMobile ? 0 : '5px',
+                    height: isMobile ? '100%' : 'auto',
+                    maxHeight: isMobile ? '100%' : '90vh',
+                    m: 0,
                 }
             }}
         >
             <DialogTitle sx={{
-                bgcolor: alpha(BLUE_COLOR, 0.05),
                 borderBottom: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
-                py: 2,
-                px: 3
+                bgcolor: alpha(BLUE_COLOR, 0.03),
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                py: isMobile ? 1.5 : 1.5,
+                px: isMobile ? 1.5 : 2,
             }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Typography sx={{ fontSize: '1rem', fontWeight: 600 }}>
-                        Update Septic Components for Report
-                    </Typography>
-                </Box>
-                <Typography variant="caption" sx={{
-                    display: 'block',
-                    color: GRAY_COLOR,
-                    mt: 0.5,
-                    fontSize: '0.75rem'
-                }}>
-                    ID: {item?.id || 'N/A'} | Technician: {item?.technician || 'N/A'}
-                </Typography>
-            </DialogTitle>
-
-            <DialogContent sx={{ py: 3, px: 3, overflow: 'auto' }}>
                 <Box sx={{
-                    border: '2px solid #e0e0e0',
-                    borderRadius: 1,
-                    p: 2,
-                    mb: 3
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: isMobile ? 1 : 2,
+                    flex: 1,
+                    mr: 1
                 }}>
-                    <Typography
-                        component="legend"
-                        sx={{
-                            px: 1,
+                    <Box sx={{
+                        width: isMobile ? 32 : 36,
+                        height: isMobile ? 32 : 36,
+                        borderRadius: '6px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: alpha(BLUE_COLOR, 0.1),
+                        color: BLUE_COLOR,
+                        flexShrink: 0
+                    }}>
+                        <Save size={isMobile ? 16 : 18} />
+                    </Box>
+                    <Box sx={{
+                        flex: 1,
+                        minWidth: 0 // Prevents overflow
+                    }}>
+                        <Typography variant="h6" sx={{
+                            fontSize: titleFontSize,
                             fontWeight: 600,
                             color: TEXT_COLOR,
-                            fontSize: '0.9rem',
-                            mb: 2
-                        }}
-                    >
-                        Septic System Components
-                    </Typography>
+                            lineHeight: 1.2,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                        }}>
+                            Update Septic Components
+                        </Typography>
+                        <Typography variant="body2" sx={{
+                            fontSize: subtitleFontSize,
+                            color: GRAY_COLOR,
+                            lineHeight: 1.2,
+                            mt: 0.5,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                        }}>
+                            ID: {item?.id || 'N/A'} {!isSmallScreen && '|'} {isSmallScreen ? <br /> : ' '}
+                            Tech: {item?.technician || 'N/A'}
+                        </Typography>
+                    </Box>
+                </Box>
+                <IconButton
+                    size="small"
+                    onClick={handleClose}
+                    sx={{
+                        color: GRAY_COLOR,
+                        '&:hover': {
+                            backgroundColor: alpha(GRAY_COLOR, 0.1),
+                        },
+                        flexShrink: 0
+                    }}
+                >
+                    <X size={iconSize} />
+                </IconButton>
+            </DialogTitle>
 
-                    {/* Component Information */}
-                    <Box>
-                        {/* 1. Select A Category */}
-                        <Box sx={{ mb: 2 }}>
-                            <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
-                                1. Select A Category
-                            </Typography>
-                            <FormControl fullWidth size="small">
-                                <InputLabel>Category</InputLabel>
-                                <StyledSelect
-                                    value={formData.category}
-                                    onChange={(e) => handleChange('category', e.target.value)}
-                                    label="Category"
-                                >
-                                    {categories.map((cat) => (
-                                        <MenuItem key={cat.value} value={cat.value}>
-                                            {cat.label}
-                                        </MenuItem>
-                                    ))}
-                                </StyledSelect>
-                            </FormControl>
-                            <Typography variant="caption" sx={{ color: 'error.main', mt: 0.5 }}>
-                                (Required)
-                            </Typography>
-                        </Box>
-
-                        {/* 2. Select A Component */}
-                        <Box sx={{ mb: 2 }}>
-                            <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
-                                2. Select A Component
-                            </Typography>
-                            <FormControl fullWidth size="small">
-                                <InputLabel>Component Type</InputLabel>
-                                <StyledSelect
-                                    value={formData.componentType}
-                                    onChange={(e) => handleChange('componentType', e.target.value)}
-                                    label="Component Type"
-                                    disabled={!formData.category}
-                                >
-                                    {getComponentsForCategory().map((type) => (
-                                        <MenuItem key={type.value} value={type.value}>
-                                            {type.label}
-                                        </MenuItem>
-                                    ))}
-                                </StyledSelect>
-                            </FormControl>
-                            <Typography variant="caption" sx={{ color: 'error.main', mt: 0.5 }}>
-                                (Required)
-                            </Typography>
-                        </Box>
-
-                        {/* 3. Add a Custom Label */}
-                        <Box sx={{ mb: 2 }}>
-                            <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
-                                3. Add a Custom Label
-                            </Typography>
-                            <TextField
-                                fullWidth
-                                size="small"
-                                value={formData.customLabel}
-                                onChange={(e) => handleChange('customLabel', e.target.value)}
-                                placeholder="Enter custom label"
-                            />
-                            <Typography variant="caption" sx={{ color: 'maroon', mt: 0.5 }}>
-                                (optional)
-                            </Typography>
-                        </Box>
-
-                        {/* 4. Serial Number / Sort Order */}
-                        <Box sx={{ mb: 2 }}>
-                            <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 500 }}>
-                                4. Serial Number / Sort Order
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                                <TextField
-                                    size="small"
-                                    value={formData.serialNumber}
-                                    onChange={(e) => handleChange('serialNumber', e.target.value)}
-                                    placeholder="Serial Number"
-                                    sx={{ flexGrow: 1 }}
-                                />
-                                <FormControl size="small" sx={{ width: 80 }}>
-                                    <InputLabel>Order</InputLabel>
-                                    <StyledSelect
-                                        value={formData.sortOrder}
-                                        onChange={(e) => handleChange('sortOrder', e.target.value)}
-                                        label="Order"
+            <DialogContent sx={{
+                py: isMobile ? 1.5 : 2,
+                px: isMobile ? 1.5 : 2,
+                flex: 1,
+                overflow: 'auto'
+            }}>
+                <Box sx={{
+                    border: '1px solid #e0e0e0',
+                    borderRadius: 1,
+                    p: isMobile ? 1 : 1.5,
+                }}>
+                    <Box sx={{ mb: isMobile ? 1 : 1.5 }}>
+                        <Typography variant="body2" sx={{
+                            mb: 0.5,
+                            fontWeight: 500,
+                            fontSize: bodyFontSize
+                        }}>
+                            1. Select A Category
+                        </Typography>
+                        <FormControl fullWidth size="small">
+                            <InputLabel sx={{ fontSize: inputFontSize }}>Category</InputLabel>
+                            <StyledSelect
+                                value={formData.category}
+                                onChange={(e) => handleChange('category', e.target.value)}
+                                label="Category"
+                                sx={{
+                                    '& .MuiSelect-select': {
+                                        fontSize: inputFontSize,
+                                        py: isMobile ? 0.75 : 1,
+                                    }
+                                }}
+                            >
+                                {categories.map((cat) => (
+                                    <MenuItem
+                                        key={cat.value}
+                                        value={cat.value}
+                                        sx={{ fontSize: inputFontSize }}
                                     >
-                                        {sortOrderOptions.map((option) => (
-                                            <MenuItem key={option.value} value={option.value}>
-                                                {option.label}
-                                            </MenuItem>
-                                        ))}
-                                    </StyledSelect>
-                                </FormControl>
-                            </Box>
-                            <Typography variant="caption" sx={{ color: 'maroon', mt: 0.5 }}>
-                                (optional)
-                            </Typography>
-                        </Box>
+                                        {cat.label}
+                                    </MenuItem>
+                                ))}
+                            </StyledSelect>
+                        </FormControl>
+                        <Typography variant="caption" sx={{
+                            color: 'error.main',
+                            fontSize: captionFontSize
+                        }}>
+                            (Required)
+                        </Typography>
+                    </Box>
+
+                    <Box sx={{ mb: isMobile ? 1 : 1.5 }}>
+                        <Typography variant="body2" sx={{
+                            mb: 0.5,
+                            fontWeight: 500,
+                            fontSize: bodyFontSize
+                        }}>
+                            2. Select A Component
+                        </Typography>
+                        <FormControl fullWidth size="small">
+                            <InputLabel sx={{ fontSize: inputFontSize }}>Component Type</InputLabel>
+                            <StyledSelect
+                                value={formData.componentType}
+                                onChange={(e) => handleChange('componentType', e.target.value)}
+                                label="Component Type"
+                                disabled={!formData.category}
+                                sx={{
+                                    '& .MuiSelect-select': {
+                                        fontSize: inputFontSize,
+                                        py: isMobile ? 0.75 : 1,
+                                    }
+                                }}
+                            >
+                                {getComponentsForCategory().map((type) => (
+                                    <MenuItem
+                                        key={type.value}
+                                        value={type.value}
+                                        sx={{ fontSize: inputFontSize }}
+                                    >
+                                        {type.label}
+                                    </MenuItem>
+                                ))}
+                            </StyledSelect>
+                        </FormControl>
+                        <Typography variant="caption" sx={{
+                            color: 'error.main',
+                            fontSize: captionFontSize
+                        }}>
+                            (Required)
+                        </Typography>
+                    </Box>
+
+                    <Box sx={{ mb: isMobile ? 1 : 1.5 }}>
+                        <Typography variant="body2" sx={{
+                            mb: 0.5,
+                            fontWeight: 500,
+                            fontSize: bodyFontSize
+                        }}>
+                            3. Select The Manufacturer
+                        </Typography>
+                        <FormControl fullWidth size="small">
+                            <InputLabel sx={{ fontSize: inputFontSize }}>Manufacturer</InputLabel>
+                            <StyledSelect
+                                value={formData.manufacturer}
+                                onChange={(e) => handleChange('manufacturer', e.target.value)}
+                                label="Manufacturer"
+                                disabled={!formData.componentType}
+                                sx={{
+                                    '& .MuiSelect-select': {
+                                        fontSize: inputFontSize,
+                                        py: isMobile ? 0.75 : 1,
+                                    }
+                                }}
+                            >
+                                {getManufacturersForComponent().map((man) => (
+                                    <MenuItem
+                                        key={man.value}
+                                        value={man.value}
+                                        sx={{ fontSize: inputFontSize }}
+                                    >
+                                        {man.label}
+                                    </MenuItem>
+                                ))}
+                            </StyledSelect>
+                        </FormControl>
+                        <Typography variant="caption" sx={{
+                            color: 'maroon',
+                            fontSize: captionFontSize
+                        }}>
+                            (optional)
+                        </Typography>
+                    </Box>
+
+                    <Box sx={{ mb: isMobile ? 1 : 1.5 }}>
+                        <Typography variant="body2" sx={{
+                            mb: 0.5,
+                            fontWeight: 500,
+                            fontSize: bodyFontSize
+                        }}>
+                            4. Select The Model
+                        </Typography>
+                        <FormControl fullWidth size="small">
+                            <InputLabel sx={{ fontSize: inputFontSize }}>Model</InputLabel>
+                            <StyledSelect
+                                value={formData.model}
+                                onChange={(e) => handleChange('model', e.target.value)}
+                                label="Model"
+                                disabled={!formData.manufacturer}
+                                sx={{
+                                    '& .MuiSelect-select': {
+                                        fontSize: inputFontSize,
+                                        py: isMobile ? 0.75 : 1,
+                                    }
+                                }}
+                            >
+                                {getModelsForManufacturer().map((model) => (
+                                    <MenuItem
+                                        key={model.value}
+                                        value={model.value}
+                                        sx={{ fontSize: inputFontSize }}
+                                    >
+                                        {model.label}
+                                    </MenuItem>
+                                ))}
+                            </StyledSelect>
+                        </FormControl>
+                        <Typography variant="caption" sx={{
+                            color: 'maroon',
+                            fontSize: captionFontSize
+                        }}>
+                            (optional)
+                        </Typography>
+                    </Box>
+
+                    <Box sx={{ mb: 0.5 }}>
+                        <Typography variant="body2" sx={{
+                            mb: 0.5,
+                            fontWeight: 500,
+                            fontSize: bodyFontSize
+                        }}>
+                            5. Add a Custom Label
+                        </Typography>
+                        <StyledTextField
+                            fullWidth
+                            size="small"
+                            value={formData.customLabel}
+                            onChange={(e) => handleChange('customLabel', e.target.value)}
+                            placeholder="Enter custom label"
+                            InputProps={{
+                                sx: {
+                                    fontSize: inputFontSize,
+                                    py: isMobile ? 0.75 : 1,
+                                }
+                            }}
+                        />
+                        <Typography variant="caption" sx={{
+                            color: 'maroon',
+                            fontSize: captionFontSize
+                        }}>
+                            (optional)
+                        </Typography>
                     </Box>
                 </Box>
             </DialogContent>
 
             <DialogActions sx={{
                 borderTop: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                py: 2,
-                px: 3,
-                gap: 1
+                py: isMobile ? 1 : 1.5,
+                px: isMobile ? 1.5 : 2,
+                gap: isMobile ? 0.5 : 1,
+                flexWrap: isMobile ? 'wrap' : 'nowrap'
             }}>
                 <OutlineButton
                     variant="outlined"
                     onClick={handleClose}
-                    startIcon={<X size={16} />}
+                    startIcon={<X size={isMobile ? 14 : 16} />}
+                    sx={{
+                        fontSize: buttonFontSize,
+                        minWidth: isMobile ? 'calc(50% - 4px)' : 'auto',
+                        flex: isMobile ? 1 : 'none'
+                    }}
                 >
                     Cancel
                 </OutlineButton>
@@ -383,11 +566,13 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                     onClick={handleSubmit}
                     color="warning"
                     size="small"
-                    startIcon={<Save size={14} />}
+                    startIcon={<Save size={isMobile ? 12 : 14} />}
                     sx={{
                         textTransform: 'none',
-                        fontSize: '0.85rem',
-                        height: '32px',
+                        fontSize: buttonFontSize,
+                        height: isMobile ? '32px' : '32px',
+                        minWidth: isMobile ? 'calc(50% - 4px)' : 'auto',
+                        flex: isMobile ? 1 : 'none',
                         bgcolor: ORANGE_COLOR,
                         '&:hover': {
                             bgcolor: alpha(ORANGE_COLOR, 0.9),

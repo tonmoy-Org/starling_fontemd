@@ -1,7 +1,8 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { PrivateRoute } from '../auth/PrivateRoute';
+import { LoginRoute } from '../auth/LoginRoute';
 
 import { SuperAdminLayout } from '../pages/superadmin/components/SuperAdminLayout';
 import { ManagerLayout } from '../pages/manager/components/ManagerLayout';
@@ -9,7 +10,6 @@ import { TechLayout } from '../pages/tech/components/TechLayout';
 
 import { Login } from '../pages/login/Login';
 import { ErrorPage } from '../pages/error/ErrorPage';
-import { LoginRoute } from '../auth/LoginRoute';
 
 import { SuperAdminDashboard } from '../pages/superadmin/pages/SuperAdminDashboard';
 import { SuperAdminProfile } from '../pages/superadmin/pages/Profile';
@@ -40,7 +40,6 @@ import { ManagerProfile } from '../pages/manager/pages/Profile';
 import { TechUserManagement } from '../pages/manager/pages/TechUserManagement';
 
 import Locates from '../pages/manager/features/locates/Locates';
-
 import RMEReports from '../pages/manager/features/rme-reports/RMEReports';
 import RSSReports from '../pages/manager/pages/RSSReports';
 import TOSReports from '../pages/manager/pages/TOSReports';
@@ -58,23 +57,34 @@ import { VehiclesInventory } from '../pages/tech/pages/VehiclesInventory';
 import { TeamDailyChecklist } from '../pages/tech/pages/TeamDailyChecklist';
 import { ResourcesLibrary } from '../pages/tech/pages/ResourcesLibrary';
 
-
-
-
-
 export const AppRoutes = () => {
   const { user } = useAuth();
 
   return (
-    <Router>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <Routes>
-        <Route path="/login" element={<LoginRoute><Login /></LoginRoute>} />
+        {/* Auth */}
+        <Route
+          path="/login"
+          element={
+            <LoginRoute>
+              <Login />
+            </LoginRoute>
+          }
+        />
 
+        {/* Error pages */}
         <Route path="/error" element={<ErrorPage />} />
         <Route path="/unauthorized" element={<ErrorPage type="unauthorized" />} />
         <Route path="/not-found" element={<ErrorPage type="not-found" />} />
         <Route path="/server-error" element={<ErrorPage type="server-error" />} />
 
+        {/* Role redirect */}
         <Route
           path="/dashboard"
           element={
@@ -86,9 +96,14 @@ export const AppRoutes = () => {
           }
         />
 
+        {/* Super Admin */}
         <Route
           path="/super-admin-dashboard"
-          element={<PrivateRoute requiredRoles={['superadmin']}><SuperAdminLayout /></PrivateRoute>}
+          element={
+            <PrivateRoute requiredRoles={['superadmin']}>
+              <SuperAdminLayout />
+            </PrivateRoute>
+          }
         >
           <Route index element={<SuperAdminDashboard />} />
           <Route path="profile" element={<SuperAdminProfile />} />
@@ -122,9 +137,14 @@ export const AppRoutes = () => {
           <Route path="notifications" element={<Notifications />} />
         </Route>
 
+        {/* Manager */}
         <Route
           path="/manager-dashboard"
-          element={<PrivateRoute requiredRoles={['manager']}><ManagerLayout /></PrivateRoute>}
+          element={
+            <PrivateRoute requiredRoles={['manager']}>
+              <ManagerLayout />
+            </PrivateRoute>
+          }
         >
           <Route index element={<ManagerDashboard />} />
           <Route path="profile" element={<ManagerProfile />} />
@@ -157,9 +177,14 @@ export const AppRoutes = () => {
           <Route path="notifications" element={<Notifications />} />
         </Route>
 
+        {/* Tech */}
         <Route
           path="/tech-dashboard"
-          element={<PrivateRoute requiredRoles={['tech']}><TechLayout /></PrivateRoute>}
+          element={
+            <PrivateRoute requiredRoles={['tech']}>
+              <TechLayout />
+            </PrivateRoute>
+          }
         >
           <Route index element={<TechDashboard />} />
           <Route path="profile" element={<TechProfile />} />
@@ -172,14 +197,14 @@ export const AppRoutes = () => {
           <Route path="vehicles/inventory" element={<VehiclesInventory />} />
 
           <Route path="team/daily-checklist" element={<TeamDailyChecklist />} />
-
           <Route path="resources/library" element={<ResourcesLibrary />} />
           <Route path="notifications" element={<Notifications />} />
         </Route>
 
+        {/* Root */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<ErrorPage type="not-found" />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 };

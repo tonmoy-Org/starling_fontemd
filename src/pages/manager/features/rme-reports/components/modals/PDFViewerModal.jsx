@@ -1,3 +1,4 @@
+// PDFViewerModal.js
 import React from 'react';
 import {
     Dialog,
@@ -26,7 +27,7 @@ const PDFViewerModal = ({ open, onClose, pdfUrl }) => {
             PaperProps={{
                 sx: {
                     bgcolor: 'white',
-                    borderRadius: isMobile ? 0 : '8px',
+                    borderRadius: isMobile ? 0 : '5px',
                     height: isMobile ? '100%' : '90vh',
                     maxHeight: '90vh',
                 }
@@ -38,7 +39,7 @@ const PDFViewerModal = ({ open, onClose, pdfUrl }) => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                py: 2,
+                py: 1,
             }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Box sx={{
@@ -58,7 +59,6 @@ const PDFViewerModal = ({ open, onClose, pdfUrl }) => {
                             fontSize: '1rem',
                             fontWeight: 600,
                             color: TEXT_COLOR,
-                            mb: 0.5,
                         }}>
                             PDF Viewer
                         </Typography>
