@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -41,12 +41,22 @@ export const UserManagement = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { user: currentUser } = useAuth();
+
     const [snackbar, setSnackbar] = useState({
         open: false,
         message: '',
         severity: 'success',
     });
+
     const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+
+    // Track previous modal states to detect when they close
+    const [prevOpenDialog, setPrevOpenDialog] = useState(false);
+    const [prevOpenDeleteDialog, setPrevOpenDeleteDialog] = useState(false);
+    const [prevOpenStatusDialog, setPrevOpenStatusDialog] = useState(false);
+
+    // Track pending snackbar messages
+    const [pendingSnackbar, setPendingSnackbar] = useState(null);
 
     const {
         users,
@@ -78,6 +88,34 @@ export const UserManagement = () => {
         setOpenStatusDialog,
     } = useUsers('/users', 'users');
 
+    // Effect to detect when modals close and show snackbar
+    useEffect(() => {
+        // Check if UserFormModal just closed
+        if (prevOpenDialog && !openDialog && pendingSnackbar) {
+            showSnackbar(pendingSnackbar.message, pendingSnackbar.severity);
+            setPendingSnackbar(null);
+        }
+        setPrevOpenDialog(openDialog);
+    }, [openDialog, prevOpenDialog, pendingSnackbar]);
+
+    useEffect(() => {
+        // Check if DeleteConfirmationModal just closed
+        if (prevOpenDeleteDialog && !openDeleteDialog && pendingSnackbar) {
+            showSnackbar(pendingSnackbar.message, pendingSnackbar.severity);
+            setPendingSnackbar(null);
+        }
+        setPrevOpenDeleteDialog(openDeleteDialog);
+    }, [openDeleteDialog, prevOpenDeleteDialog, pendingSnackbar]);
+
+    useEffect(() => {
+        // Check if StatusToggleModal just closed
+        if (prevOpenStatusDialog && !openStatusDialog && pendingSnackbar) {
+            showSnackbar(pendingSnackbar.message, pendingSnackbar.severity);
+            setPendingSnackbar(null);
+        }
+        setPrevOpenStatusDialog(openStatusDialog);
+    }, [openStatusDialog, prevOpenStatusDialog, pendingSnackbar]);
+
     const showSnackbar = (message, severity = 'success') => {
         setSnackbar({
             open: true,
@@ -96,9 +134,17 @@ export const UserManagement = () => {
     const handleEnhancedDeleteConfirm = async () => {
         try {
             await handleDeleteConfirm();
-            showSnackbar('User deleted successfully', 'success');
+            // Store snackbar message to show after modal closes
+            setPendingSnackbar({
+                message: 'User deleted successfully',
+                severity: 'success'
+            });
         } catch (err) {
-            showSnackbar(err.message || 'Failed to delete user', 'error');
+            setPendingSnackbar({
+                message: err.message || 'Failed to delete user',
+                severity: 'error'
+            });
+            throw err;
         }
     };
 
@@ -107,10 +153,16 @@ export const UserManagement = () => {
         try {
             const result = await handleToggleStatusConfirm();
             const action = userToToggle?.isActive ? 'deactivated' : 'activated';
-            showSnackbar(`User ${action} successfully`, 'success');
+            setPendingSnackbar({
+                message: `User ${action} successfully`,
+                severity: 'success'
+            });
             return result;
         } catch (err) {
-            showSnackbar(err.message || 'Failed to update user status', 'error');
+            setPendingSnackbar({
+                message: err.message || 'Failed to update user status',
+                severity: 'error'
+            });
             throw err;
         } finally {
             setIsTogglingStatus(false);
@@ -121,10 +173,16 @@ export const UserManagement = () => {
         try {
             const result = await handleSubmit();
             const action = selectedUser ? 'updated' : 'created';
-            showSnackbar(`User ${action} successfully`, 'success');
+            setPendingSnackbar({
+                message: `User ${action} successfully`,
+                severity: 'success'
+            });
             return result;
         } catch (err) {
-            showSnackbar(err.message || 'Failed to save user', 'error');
+            setPendingSnackbar({
+                message: err.message || 'Failed to save user',
+                severity: 'error'
+            });
             throw err;
         }
     };

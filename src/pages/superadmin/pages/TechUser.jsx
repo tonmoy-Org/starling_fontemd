@@ -1,5 +1,4 @@
-// TechUser.jsx (Using DataTable)
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -36,6 +35,14 @@ export const TechUser = () => {
     const [success, setSuccess] = useState('');
     const [error, setError] = useState('');
 
+    // Track previous modal states
+    const [prevOpenDialog, setPrevOpenDialog] = useState(false);
+    const [prevOpenDeleteDialog, setPrevOpenDeleteDialog] = useState(false);
+    const [prevOpenStatusDialog, setPrevOpenStatusDialog] = useState(false);
+
+    // Track pending notifications
+    const [pendingNotification, setPendingNotification] = useState(null);
+
     const {
         // Data
         users,
@@ -53,7 +60,7 @@ export const TechUser = () => {
         openDeleteDialog,
         openStatusDialog,
         formData,
-        
+
         // Handlers
         handleChangePage,
         handleChangeRowsPerPage,
@@ -66,7 +73,7 @@ export const TechUser = () => {
         handleInputChange,
         handleSwitchChange,
         handleSubmit,
-        
+
         // Dialog controls
         setOpenDialog,
         setOpenDeleteDialog,
@@ -77,6 +84,99 @@ export const TechUser = () => {
     const techFormData = {
         ...formData,
         role: 'tech'
+    };
+
+    // Effects to detect when modals close and show notifications
+    useEffect(() => {
+        // Check if UserFormModal just closed
+        if (prevOpenDialog && !openDialog && pendingNotification) {
+            if (pendingNotification.type === 'success') {
+                setSuccess(pendingNotification.message);
+            } else {
+                setError(pendingNotification.message);
+            }
+            setPendingNotification(null);
+        }
+        setPrevOpenDialog(openDialog);
+    }, [openDialog, prevOpenDialog, pendingNotification]);
+
+    useEffect(() => {
+        // Check if DeleteConfirmationModal just closed
+        if (prevOpenDeleteDialog && !openDeleteDialog && pendingNotification) {
+            if (pendingNotification.type === 'success') {
+                setSuccess(pendingNotification.message);
+            } else {
+                setError(pendingNotification.message);
+            }
+            setPendingNotification(null);
+        }
+        setPrevOpenDeleteDialog(openDeleteDialog);
+    }, [openDeleteDialog, prevOpenDeleteDialog, pendingNotification]);
+
+    useEffect(() => {
+        // Check if StatusToggleModal just closed
+        if (prevOpenStatusDialog && !openStatusDialog && pendingNotification) {
+            if (pendingNotification.type === 'success') {
+                setSuccess(pendingNotification.message);
+            } else {
+                setError(pendingNotification.message);
+            }
+            setPendingNotification(null);
+        }
+        setPrevOpenStatusDialog(openStatusDialog);
+    }, [openStatusDialog, prevOpenStatusDialog, pendingNotification]);
+
+    // Enhanced handlers that store notifications
+    const handleEnhancedDeleteConfirm = async () => {
+        try {
+            await handleDeleteConfirm();
+            setPendingNotification({
+                type: 'success',
+                message: 'Tech user deleted successfully'
+            });
+        } catch (err) {
+            setPendingNotification({
+                type: 'error',
+                message: err.message || 'Failed to delete tech user'
+            });
+            throw err;
+        }
+    };
+
+    const handleEnhancedToggleConfirm = async () => {
+        try {
+            const result = await handleToggleStatusConfirm();
+            const action = userToToggle?.isActive ? 'deactivated' : 'activated';
+            setPendingNotification({
+                type: 'success',
+                message: `Tech user ${action} successfully`
+            });
+            return result;
+        } catch (err) {
+            setPendingNotification({
+                type: 'error',
+                message: err.message || 'Failed to update tech user status'
+            });
+            throw err;
+        }
+    };
+
+    const handleEnhancedSubmit = async () => {
+        try {
+            const result = await handleSubmit();
+            const action = selectedUser ? 'updated' : 'created';
+            setPendingNotification({
+                type: 'success',
+                message: `Tech user ${action} successfully`
+            });
+            return result;
+        } catch (err) {
+            setPendingNotification({
+                type: 'error',
+                message: err.message || 'Failed to save tech user'
+            });
+            throw err;
+        }
     };
 
     // Helper functions for styling
@@ -247,7 +347,7 @@ export const TechUser = () => {
                                 color: user.isActive ? RED_COLOR : GREEN_COLOR,
                                 padding: '4px',
                                 '&:hover': {
-                                    backgroundColor: user.isActive 
+                                    backgroundColor: user.isActive
                                         ? `rgba(239, 68, 68, 0.1)`
                                         : `rgba(16, 185, 129, 0.1)`,
                                 },
@@ -351,11 +451,11 @@ export const TechUser = () => {
                 emptyStateDescription="Create one to get started."
             />
 
-            {/* Reusable Modals */}
+            {/* Reusable Modals - Updated to use enhanced handlers */}
             <UserFormModal
                 open={openDialog}
                 onClose={handleCloseDialog}
-                onSubmit={handleSubmit}
+                onSubmit={handleEnhancedSubmit}
                 selectedUser={selectedUser}
                 formData={techFormData}
                 onInputChange={handleInputChange}
@@ -367,7 +467,7 @@ export const TechUser = () => {
             <DeleteConfirmationModal
                 open={openDeleteDialog}
                 onClose={() => setOpenDeleteDialog(false)}
-                onConfirm={handleDeleteConfirm}
+                onConfirm={handleEnhancedDeleteConfirm}
                 item={userToDelete}
                 title="Tech User"
             />
@@ -375,7 +475,7 @@ export const TechUser = () => {
             <StatusToggleModal
                 open={openStatusDialog}
                 onClose={() => setOpenStatusDialog(false)}
-                onConfirm={handleToggleStatusConfirm}
+                onConfirm={handleEnhancedToggleConfirm}
                 item={userToToggle}
                 title="Tech User"
             />
