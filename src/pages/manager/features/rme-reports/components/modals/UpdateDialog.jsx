@@ -239,31 +239,34 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
         }
     }, [item, open]);
 
-    // Responsive sizing adjustments
-    const dialogMaxWidth = isMobile ? 'sm' : 'md';
-    const iconSize = isMobile ? 16 : 18;
-    const titleFontSize = isMobile ? '0.9rem' : '0.95rem';
-    const subtitleFontSize = isMobile ? '0.75rem' : '0.8rem';
-    const bodyFontSize = isMobile ? '0.8rem' : '0.85rem';
-    const captionFontSize = isMobile ? '0.7rem' : '0.75rem';
-    const inputFontSize = isMobile ? '0.75rem' : '0.8rem';
-    const buttonFontSize = isMobile ? '0.75rem' : '0.8rem';
-    const dialogPadding = isMobile ? 1 : 2;
+    // Compact sizing adjustments
+    const iconSize = isMobile ? 14 : 16;
+    const titleFontSize = isMobile ? '0.85rem' : '1rem';
+    const subtitleFontSize = isMobile ? '0.7rem' : '0.75rem';
+    const bodyFontSize = isMobile ? '0.75rem' : '0.8rem';
+    const captionFontSize = isMobile ? '0.65rem' : '0.7rem';
+    const inputFontSize = isMobile ? '0.7rem' : '0.75rem';
+    const buttonFontSize = isMobile ? '0.7rem' : '0.75rem';
+    const dialogPadding = isMobile ? 0.75 : 1.25;
+    const formControlMargin = isMobile ? 0.75 : 1;
 
     return (
         <Dialog
             open={open}
             onClose={handleClose}
-            maxWidth={dialogMaxWidth}
+            maxWidth="xs"
             fullWidth
             fullScreen={isMobile}
             PaperProps={{
                 sx: {
                     bgcolor: 'white',
-                    borderRadius: isMobile ? 0 : '5px',
+                    borderRadius: isMobile ? 0 : '4px',
                     height: isMobile ? '100%' : 'auto',
-                    maxHeight: isMobile ? '100%' : '90vh',
+                    maxHeight: isMobile ? '100%' : '85vh',
                     m: 0,
+                    maxWidth: isMobile ? '100%' : '420px',
+                    width: '100%',
+                    pb: isMobile ? 0.5 : 1.5
                 }
             }}
         >
@@ -271,32 +274,35 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                py: isMobile ? 1.5 : 1.5,
-                px: isMobile ? 1.5 : 2,
+                py: 1,
+                px: dialogPadding + 0.5,
+                borderBottom: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                backgroundColor: alpha(BLUE_COLOR, 0.02)
             }}>
                 <Box sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: isMobile ? 1 : 2,
+                    gap: 2,
                     flex: 1,
-                    mr: 1
+                    mr: 0.5,
+                    py: 1
                 }}>
                     <Box sx={{
-                        width: isMobile ? 32 : 36,
-                        height: isMobile ? 32 : 36,
-                        borderRadius: '6px',
+                        width: 28,
+                        height: 28,
+                        borderRadius: '5px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        backgroundColor: alpha(BLUE_COLOR, 0.1),
+                        backgroundColor: alpha(BLUE_COLOR, 0.08),
                         color: BLUE_COLOR,
                         flexShrink: 0
                     }}>
-                        <Save size={isMobile ? 16 : 18} />
+                        <Save size={iconSize} />
                     </Box>
                     <Box sx={{
                         flex: 1,
-                        minWidth: 0 // Prevents overflow
+                        minWidth: 0
                     }}>
                         <Typography variant="h6" sx={{
                             fontSize: titleFontSize,
@@ -304,20 +310,20 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                             color: TEXT_COLOR,
                             lineHeight: 1.2,
                             overflow: 'hidden',
+                            pb: 0.5,
                             textOverflow: 'ellipsis',
                         }}>
-                            Update Septic Components
+                            Update Component
                         </Typography>
                         <Typography variant="body2" sx={{
                             fontSize: subtitleFontSize,
                             color: GRAY_COLOR,
                             lineHeight: 1.2,
-                            mt: 0.5,
+                            mt: 0.25,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                         }}>
-                            ID: {item?.id || 'N/A'} {!isSmallScreen && '|'} {isSmallScreen ? <br /> : ' '}
-                            Tech: {item?.technician || 'N/A'}
+                            ID: {item?.id || 'N/A'} | Tech: {item?.technician || 'N/A'}
                         </Typography>
                     </Box>
                 </Box>
@@ -326,6 +332,7 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                     onClick={handleClose}
                     sx={{
                         color: GRAY_COLOR,
+                        p: 0.5,
                         '&:hover': {
                             backgroundColor: alpha(GRAY_COLOR, 0.1),
                         },
@@ -337,26 +344,44 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
             </DialogTitle>
 
             <DialogContent sx={{
-                py: isMobile ? 1.5 : 2,
-                px: isMobile ? 1.5 : 2,
+                py: dialogPadding,
+                px: dialogPadding + 0.5,
                 flex: 1,
                 overflow: 'auto'
             }}>
                 <Box sx={{
-                    border: '1px solid #e0e0e0',
-                    borderRadius: 1,
-                    p: isMobile ? 1 : 1.5,
+                    border: `1px solid ${alpha(GRAY_COLOR, 0.2)}`,
+                    borderRadius: 0.75,
+                    p: formControlMargin,
+                    backgroundColor: alpha(GRAY_COLOR, 0.01)
                 }}>
-                    <Box sx={{ mb: isMobile ? 1 : 1.5 }}>
+                    {/* Category Selection */}
+                    <Box sx={{ mb: formControlMargin }}>
                         <Typography variant="body2" sx={{
-                            mb: 1,
+                            mb: 1.5,
                             fontWeight: 500,
-                            fontSize: bodyFontSize
+                            fontSize: bodyFontSize,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
                         }}>
-                            1. Select A Category
+                            <Box component="span" sx={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: '50%',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.6rem',
+                                backgroundColor: BLUE_COLOR,
+                                color: 'white'
+                            }}>
+                                1
+                            </Box>
+                            Select Category
                         </Typography>
                         <FormControl fullWidth size="small">
-                            <InputLabel sx={{ fontSize: inputFontSize }}>Category</InputLabel>
+                            <InputLabel sx={{ fontSize: inputFontSize, lineHeight: 1.2 }}>Category</InputLabel>
                             <StyledSelect
                                 value={formData.category}
                                 onChange={(e) => handleChange('category', e.target.value)}
@@ -364,7 +389,8 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                                 sx={{
                                     '& .MuiSelect-select': {
                                         fontSize: inputFontSize,
-
+                                        py: 0.625,
+                                        minHeight: 'auto'
                                     }
                                 }}
                             >
@@ -372,7 +398,7 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                                     <MenuItem
                                         key={cat.value}
                                         value={cat.value}
-                                        sx={{ fontSize: inputFontSize }}
+                                        sx={{ fontSize: inputFontSize, py: 0.5 }}
                                     >
                                         {cat.label}
                                     </MenuItem>
@@ -381,22 +407,41 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                         </FormControl>
                         <Typography variant="caption" sx={{
                             color: 'error.main',
-                            fontSize: captionFontSize
+                            fontSize: captionFontSize,
+                            mt: 0.25,
+                            display: 'block'
                         }}>
-                            (Required)
+                            Required
                         </Typography>
                     </Box>
 
-                    <Box sx={{ mb: isMobile ? 1 : 1.5 }}>
+                    {/* Component Type Selection */}
+                    <Box sx={{ mb: formControlMargin }}>
                         <Typography variant="body2" sx={{
-                            mb: 1,
+                            mb: 1.5,
                             fontWeight: 500,
-                            fontSize: bodyFontSize
+                            fontSize: bodyFontSize,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
                         }}>
-                            2. Select A Component
+                            <Box component="span" sx={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: '50%',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.6rem',
+                                backgroundColor: BLUE_COLOR,
+                                color: 'white'
+                            }}>
+                                2
+                            </Box>
+                            Component Type
                         </Typography>
                         <FormControl fullWidth size="small">
-                            <InputLabel sx={{ fontSize: inputFontSize }}>Component Type</InputLabel>
+                            <InputLabel sx={{ fontSize: inputFontSize, lineHeight: 1.2 }}>Component Type</InputLabel>
                             <StyledSelect
                                 value={formData.componentType}
                                 onChange={(e) => handleChange('componentType', e.target.value)}
@@ -405,7 +450,8 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                                 sx={{
                                     '& .MuiSelect-select': {
                                         fontSize: inputFontSize,
-
+                                        py: 0.625,
+                                        minHeight: 'auto'
                                     }
                                 }}
                             >
@@ -413,7 +459,7 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                                     <MenuItem
                                         key={type.value}
                                         value={type.value}
-                                        sx={{ fontSize: inputFontSize }}
+                                        sx={{ fontSize: inputFontSize, py: 0.5 }}
                                     >
                                         {type.label}
                                     </MenuItem>
@@ -422,22 +468,41 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                         </FormControl>
                         <Typography variant="caption" sx={{
                             color: 'error.main',
-                            fontSize: captionFontSize
+                            fontSize: captionFontSize,
+                            mt: 0.25,
+                            display: 'block'
                         }}>
-                            (Required)
+                            Required
                         </Typography>
                     </Box>
 
-                    <Box sx={{ mb: isMobile ? 1 : 1.5 }}>
+                    {/* Manufacturer Selection */}
+                    <Box sx={{ mb: formControlMargin }}>
                         <Typography variant="body2" sx={{
-                            mb: 1,
+                            mb: 1.5,
                             fontWeight: 500,
-                            fontSize: bodyFontSize
+                            fontSize: bodyFontSize,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
                         }}>
-                            3. Select The Manufacturer
+                            <Box component="span" sx={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: '50%',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.6rem',
+                                backgroundColor: ORANGE_COLOR,
+                                color: 'white'
+                            }}>
+                                3
+                            </Box>
+                            Manufacturer
                         </Typography>
                         <FormControl fullWidth size="small">
-                            <InputLabel sx={{ fontSize: inputFontSize }}>Manufacturer</InputLabel>
+                            <InputLabel sx={{ fontSize: inputFontSize, lineHeight: 1.2 }}>Manufacturer</InputLabel>
                             <StyledSelect
                                 value={formData.manufacturer}
                                 onChange={(e) => handleChange('manufacturer', e.target.value)}
@@ -446,7 +511,8 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                                 sx={{
                                     '& .MuiSelect-select': {
                                         fontSize: inputFontSize,
-
+                                        py: 0.625,
+                                        minHeight: 'auto'
                                     }
                                 }}
                             >
@@ -454,7 +520,7 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                                     <MenuItem
                                         key={man.value}
                                         value={man.value}
-                                        sx={{ fontSize: inputFontSize }}
+                                        sx={{ fontSize: inputFontSize, py: 0.5 }}
                                     >
                                         {man.label}
                                     </MenuItem>
@@ -462,23 +528,42 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                             </StyledSelect>
                         </FormControl>
                         <Typography variant="caption" sx={{
-                            color: 'maroon',
-                            fontSize: captionFontSize
+                            color: 'text.secondary',
+                            fontSize: captionFontSize,
+                            mt: 0.25,
+                            display: 'block'
                         }}>
-                            (optional)
+                            Optional
                         </Typography>
                     </Box>
 
-                    <Box sx={{ mb: isMobile ? 1 : 1.5 }}>
+                    {/* Model Selection */}
+                    <Box sx={{ mb: formControlMargin }}>
                         <Typography variant="body2" sx={{
-                            mb: 1,
+                            mb: 1.5,
                             fontWeight: 500,
-                            fontSize: bodyFontSize
+                            fontSize: bodyFontSize,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
                         }}>
-                            4. Select The Model
+                            <Box component="span" sx={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: '50%',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.6rem',
+                                backgroundColor: ORANGE_COLOR,
+                                color: 'white'
+                            }}>
+                                4
+                            </Box>
+                            Model
                         </Typography>
                         <FormControl fullWidth size="small">
-                            <InputLabel sx={{ fontSize: inputFontSize }}>Model</InputLabel>
+                            <InputLabel sx={{ fontSize: inputFontSize, lineHeight: 1.2 }}>Model</InputLabel>
                             <StyledSelect
                                 value={formData.model}
                                 onChange={(e) => handleChange('model', e.target.value)}
@@ -487,7 +572,8 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                                 sx={{
                                     '& .MuiSelect-select': {
                                         fontSize: inputFontSize,
-
+                                        py: 0.625,
+                                        minHeight: 'auto'
                                     }
                                 }}
                             >
@@ -495,7 +581,7 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                                     <MenuItem
                                         key={model.value}
                                         value={model.value}
-                                        sx={{ fontSize: inputFontSize }}
+                                        sx={{ fontSize: inputFontSize, py: 0.5 }}
                                     >
                                         {model.label}
                                     </MenuItem>
@@ -503,20 +589,39 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                             </StyledSelect>
                         </FormControl>
                         <Typography variant="caption" sx={{
-                            color: 'maroon',
-                            fontSize: captionFontSize
+                            color: 'text.secondary',
+                            fontSize: captionFontSize,
+                            mt: 0.25,
+                            display: 'block'
                         }}>
-                            (optional)
+                            Optional
                         </Typography>
                     </Box>
 
-                    <Box sx={{ mb: 0.5 }}>
+                    {/* Custom Label */}
+                    <Box sx={{ mb: 0.25 }}>
                         <Typography variant="body2" sx={{
-                            mb: 1,
+                            mb: 1.5,
                             fontWeight: 500,
-                            fontSize: bodyFontSize
+                            fontSize: bodyFontSize,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
                         }}>
-                            5. Add a Custom Label
+                            <Box component="span" sx={{
+                                width: 16,
+                                height: 16,
+                                borderRadius: '50%',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.6rem',
+                                backgroundColor: ORANGE_COLOR,
+                                color: 'white'
+                            }}>
+                                5
+                            </Box>
+                            Custom Label
                         </Typography>
                         <StyledTextField
                             fullWidth
@@ -527,14 +632,18 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                             InputProps={{
                                 sx: {
                                     fontSize: inputFontSize,
+                                    py: 0.5,
+                                    minHeight: 'auto'
                                 }
                             }}
                         />
                         <Typography variant="caption" sx={{
-                            color: 'maroon',
-                            fontSize: captionFontSize
+                            color: 'text.secondary',
+                            fontSize: captionFontSize,
+                            mt: 0.25,
+                            display: 'block'
                         }}>
-                            (optional)
+                            Optional
                         </Typography>
                     </Box>
                 </Box>
@@ -542,19 +651,24 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
 
             <DialogActions sx={{
                 borderTop: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                py: isMobile ? 1 : 1.5,
-                px: isMobile ? 1.5 : 2,
-                gap: isMobile ? 0.5 : 1,
-                flexWrap: isMobile ? 'wrap' : 'nowrap'
+                py: 0.75,
+                px: dialogPadding + 0.5,
+                gap: 0.75,
+                flexWrap: 'nowrap'
             }}>
                 <OutlineButton
                     variant="outlined"
                     onClick={handleClose}
-                    startIcon={<X size={isMobile ? 14 : 16} />}
+                    startIcon={<X size={iconSize - 2} />}
                     sx={{
                         fontSize: buttonFontSize,
-                        minWidth: isMobile ? 'calc(50% - 4px)' : 'auto',
-                        flex: isMobile ? 1 : 'none'
+                        py: 0.375,
+                        px: 1.5,
+                        minHeight: '32px',
+                        borderWidth: '1px',
+                        '& .MuiButton-startIcon': {
+                            mr: 0.5
+                        }
                     }}
                 >
                     Cancel
@@ -564,9 +678,18 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                     onClick={handleSubmit}
                     color="warning"
                     size="small"
-                    startIcon={<Save size={isMobile ? 12 : 14} />}
+                    startIcon={<Save size={iconSize - 2} />}
+                    sx={{
+                        fontSize: buttonFontSize,
+                        py: 0.375,
+                        px: 1.5,
+                        minHeight: '32px',
+                        '& .MuiButton-startIcon': {
+                            mr: 0.5
+                        }
+                    }}
                 >
-                    Update Component
+                    Update
                 </UpdateButton>
             </DialogActions>
         </Dialog>
