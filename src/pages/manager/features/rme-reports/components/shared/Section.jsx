@@ -39,7 +39,6 @@ const Section = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: 1.5,
-                    mb: isMobile ? 1 : 0,
                     width: isMobile ? '100%' : 'auto',
                     flexDirection: isMobile ? 'column' : 'row',
                 }}>
@@ -49,7 +48,7 @@ const Section = ({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        mb: isMobile ? 1 : 0,
+                        mb: isMobile ? 0 : 0,
                     }}>
                         <Typography
                             sx={{
@@ -154,7 +153,7 @@ const Section = ({
                 {additionalActions && (
                     <Box sx={{
                         width: isMobile ? '100%' : 'auto',
-                        mt: isMobile ? 1 : 0,
+                        mt: isMobile ? 0 : 0,
                     }}>
                         {additionalActions}
                     </Box>

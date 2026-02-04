@@ -5,17 +5,14 @@ import {
     FormControl,
     InputLabel,
     Button,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
     MenuItem,
     IconButton,
     useTheme,
-    useMediaQuery
+    useMediaQuery,
+    Paper
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { Save, X } from 'lucide-react';
+import { Save, X, ArrowLeft } from 'lucide-react';
 import StyledSelect from '../../../../../../components/ui/StyledSelect';
 import {
     BLUE_COLOR,
@@ -28,7 +25,7 @@ import septic_components from '../../data/septic_components.json';
 import StyledTextField from '../../../../../../components/ui/StyledTextField';
 import UpdateButton from '../../../../../../components/ui/UpdateButton';
 
-const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
+const UpdateComponent = ({ item, onSubmit, onClose, showBackButton = false }) => {
     const [formData, setFormData] = useState({
         category: '',
         componentType: '',
@@ -39,12 +36,17 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
 
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
 
     const categories = Object.keys(septic_components).map((categoryName, index) => ({
         value: (index + 1).toString(),
         label: categoryName
     }));
+
+    // Add empty option for placeholder
+    const categoriesWithPlaceholder = [
+        { value: '', label: 'Select Category' },
+        ...categories
+    ];
 
     const categoryComponents = Object.keys(septic_components).reduce((acc, categoryName, index) => {
         const categoryId = (index + 1).toString();
@@ -54,29 +56,29 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
             componentData: septic_components[categoryName][compName]
         }));
 
-        acc[categoryId] = [{ value: '', label: '' }, ...components];
+        acc[categoryId] = [{ value: '', label: 'Select Component Type' }, ...components];
         return acc;
     }, {});
 
-    categoryComponents['default'] = [{ value: '', label: '' }];
+    categoryComponents['default'] = [{ value: '', label: 'Select Component Type' }];
 
     const getComponentsForCategory = () => {
         if (!formData.category) {
-            return [{ value: '', label: '' }];
+            return [{ value: '', label: 'Select Component Type' }];
         }
         return categoryComponents[formData.category] || categoryComponents['default'];
     };
 
     const getManufacturersForComponent = () => {
         if (!formData.componentType || !formData.category) {
-            return [{ value: '', label: '' }];
+            return [{ value: '', label: 'Select Manufacturer' }];
         }
 
         const components = categoryComponents[formData.category];
         const component = components.find(comp => comp.value === formData.componentType);
 
         if (!component || !component.componentData) {
-            return [{ value: '', label: '' }];
+            return [{ value: '', label: 'Select Manufacturer' }];
         }
 
         const componentData = component.componentData;
@@ -91,19 +93,19 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
             };
         });
 
-        return [{ value: '', label: '' }, ...manufacturers];
+        return [{ value: '', label: 'Select Manufacturer' }, ...manufacturers];
     };
 
     const getModelsForManufacturer = () => {
         if (!formData.manufacturer || !formData.componentType || !formData.category) {
-            return [{ value: '', label: '' }];
+            return [{ value: '', label: 'Select Model' }];
         }
 
         const components = categoryComponents[formData.category];
         const component = components.find(comp => comp.value === formData.componentType);
 
         if (!component || !component.componentData) {
-            return [{ value: '', label: '' }];
+            return [{ value: '', label: 'Select Model' }];
         }
 
         const componentData = component.componentData;
@@ -112,13 +114,13 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
         });
 
         if (!manufacturerName) {
-            return [{ value: '', label: '' }];
+            return [{ value: '', label: 'Select Model' }];
         }
 
         const manufacturerData = componentData[manufacturerName];
 
         if (!manufacturerData.models || manufacturerData.models.length === 0) {
-            return [{ value: '', label: '' }];
+            return [{ value: '', label: 'No models available' }];
         }
 
         const models = manufacturerData.models.map(model => ({
@@ -126,7 +128,7 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
             label: model.name
         }));
 
-        return [{ value: '', label: '' }, ...models];
+        return [{ value: '', label: 'Select Model' }, ...models];
     };
 
     const handleChange = (field, value) => {
@@ -173,12 +175,13 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
         };
 
         onSubmit(item.id, submittedData);
-        onClose();
         resetForm();
     };
 
     const handleClose = () => {
-        onClose();
+        if (onClose) {
+            onClose();
+        }
         resetForm();
     };
 
@@ -193,7 +196,7 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
     };
 
     useEffect(() => {
-        if (item && open) {
+        if (item) {
             let categoryId = '';
             if (item.category) {
                 const foundCategory = categories.find(cat =>
@@ -237,7 +240,7 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
                 customLabel: item.customLabel || ''
             });
         }
-    }, [item, open]);
+    }, [item]);
 
     // Compact sizing adjustments
     const iconSize = isMobile ? 14 : 16;
@@ -247,453 +250,400 @@ const UpdateDialog = ({ open, onClose, item, onSubmit }) => {
     const captionFontSize = isMobile ? '0.65rem' : '0.7rem';
     const inputFontSize = isMobile ? '0.7rem' : '0.75rem';
     const buttonFontSize = isMobile ? '0.7rem' : '0.75rem';
-    const dialogPadding = isMobile ? 0.75 : 1.25;
+    const paddingValue = isMobile ? 1 : 1.5;
     const formControlMargin = isMobile ? 0.75 : 1;
 
     return (
-        <Dialog
-            open={open}
-            onClose={handleClose}
-            maxWidth="xs"
-            fullWidth
-            fullScreen={isMobile}
-            PaperProps={{
-                sx: {
-                    bgcolor: 'white',
-                    borderRadius: isMobile ? 0 : '4px',
-                    height: isMobile ? '100%' : 'auto',
-                    maxHeight: isMobile ? '100%' : '85vh',
-                    m: 0,
-                    maxWidth: isMobile ? '100%' : '420px',
-                    width: '100%',
-                    pb: isMobile ? 0.5 : 1.5
-                }
-            }}
-        >
-            <DialogTitle sx={{
+        <Box sx={{
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5
+        }}>
+            {/* Header - Matching table style */}
+            <Box sx={{
                 display: 'flex',
-                justifyContent: 'space-between',
                 alignItems: 'center',
-                py: 1,
-                px: dialogPadding + 0.5,
-                borderBottom: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                backgroundColor: alpha(BLUE_COLOR, 0.02)
+                justifyContent: 'space-between',
+                mb: 0.5
             }}>
-                <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 2,
-                    flex: 1,
-                    mr: 0.5,
-                    py: 1
+                <Typography variant="h6" sx={{
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: TEXT_COLOR,
+                    letterSpacing: '0.3px'
                 }}>
-                    <Box sx={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: '5px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: alpha(BLUE_COLOR, 0.08),
-                        color: BLUE_COLOR,
-                        flexShrink: 0
-                    }}>
-                        <Save size={iconSize} />
-                    </Box>
-                    <Box sx={{
-                        flex: 1,
-                        minWidth: 0
-                    }}>
-                        <Typography variant="h6" sx={{
-                            fontSize: titleFontSize,
-                            fontWeight: 600,
-                            color: TEXT_COLOR,
-                            lineHeight: 1.2,
-                            overflow: 'hidden',
-                            pb: 0.5,
-                            textOverflow: 'ellipsis',
-                        }}>
-                            Update Component
-                        </Typography>
-                        <Typography variant="body2" sx={{
-                            fontSize: subtitleFontSize,
-                            color: GRAY_COLOR,
-                            lineHeight: 1.2,
-                            mt: 0.25,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                        }}>
-                            ID: {item?.id || 'N/A'} | Tech: {item?.technician || 'N/A'}
-                        </Typography>
-                    </Box>
-                </Box>
-                <IconButton
-                    size="small"
-                    onClick={handleClose}
-                    sx={{
-                        color: GRAY_COLOR,
-                        p: 0.5,
-                        '&:hover': {
-                            backgroundColor: alpha(GRAY_COLOR, 0.1),
-                        },
-                        flexShrink: 0
-                    }}
-                >
-                    <X size={iconSize} />
-                </IconButton>
-            </DialogTitle>
+                    Update Component
+                </Typography>
 
-            <DialogContent sx={{
-                py: dialogPadding,
-                px: dialogPadding + 0.5,
-                flex: 1,
-                overflow: 'auto'
+                {showBackButton && (
+                    <IconButton
+                        size="small"
+                        onClick={onClose}
+                        sx={{
+                            p: 0.5,
+                            '& svg': {
+                                fontSize: '1rem'
+                            }
+                        }}
+                    >
+                        <ArrowLeft size={16} />
+                    </IconButton>
+                )}
+            </Box>
+
+            {/* Form Container - Matching table container style */}
+            <Box sx={{
+                borderRadius: '3px',
+                border: `1px solid ${alpha(GRAY_COLOR, 0.2)}`,
+                backgroundColor: 'white',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column'
             }}>
+                {/* Form Fields Container */}
                 <Box sx={{
-                    border: `1px solid ${alpha(GRAY_COLOR, 0.2)}`,
-                    borderRadius: 0.75,
-                    p: formControlMargin,
+                    p: 1.5,
+                    flex: 1,
                     backgroundColor: alpha(GRAY_COLOR, 0.01)
                 }}>
-                    {/* Category Selection */}
-                    <Box sx={{ mb: formControlMargin }}>
-                        <Typography variant="body2" sx={{
-                            mb: 1.5,
-                            fontWeight: 500,
-                            fontSize: bodyFontSize,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5
-                        }}>
-                            <Box component="span" sx={{
-                                width: 16,
-                                height: 16,
-                                borderRadius: '50%',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.6rem',
-                                backgroundColor: BLUE_COLOR,
-                                color: 'white'
+                    {/* Category Selection - Table row style */}
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        mb: 1.5,
+                        p: 1,
+                        backgroundColor: alpha(GRAY_COLOR, 0.03),
+                        borderRadius: '4px'
+                    }}>
+                        <Box sx={{ flex: '0 0 140px', minWidth: 0 }}>
+                            <Typography variant="body2" sx={{
+                                fontSize: '0.7rem',
+                                color: GRAY_COLOR,
+                                fontWeight: 500
                             }}>
-                                1
-                            </Box>
-                            Select Category
-                        </Typography>
-                        <FormControl fullWidth size="small">
-                            <InputLabel sx={{ fontSize: inputFontSize, lineHeight: 1.2 }}>Category</InputLabel>
-                            <StyledSelect
-                                value={formData.category}
-                                onChange={(e) => handleChange('category', e.target.value)}
-                                label="Category"
-                                sx={{
-                                    '& .MuiSelect-select': {
-                                        fontSize: inputFontSize,
-                                        py: 0.625,
-                                        minHeight: 'auto'
-                                    }
-                                }}
-                            >
-                                {categories.map((cat) => (
-                                    <MenuItem
-                                        key={cat.value}
-                                        value={cat.value}
-                                        sx={{ fontSize: inputFontSize, py: 0.5 }}
-                                    >
-                                        {cat.label}
-                                    </MenuItem>
-                                ))}
-                            </StyledSelect>
-                        </FormControl>
-                        <Typography variant="caption" sx={{
-                            color: 'error.main',
-                            fontSize: captionFontSize,
-                            mt: 0.25,
-                            display: 'block'
-                        }}>
-                            Required
-                        </Typography>
+                                Category
+                            </Typography>
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <FormControl fullWidth size="small">
+                                <StyledSelect
+                                    value={formData.category}
+                                    onChange={(e) => handleChange('category', e.target.value)}
+                                    displayEmpty
+                                    sx={{
+                                        '& .MuiSelect-select': {
+                                            fontSize: '0.8rem',
+                                            py: 0.5,
+                                            minHeight: 'auto',
+                                            fontWeight: 500,
+                                            color: formData.category ? TEXT_COLOR : alpha(GRAY_COLOR, 0.7)
+                                        }
+                                    }}
+                                >
+                                    {categoriesWithPlaceholder.map((cat) => (
+                                        <MenuItem
+                                            key={cat.value}
+                                            value={cat.value}
+                                            sx={{ 
+                                                fontSize: '0.8rem', 
+                                                py: 0.5,
+                                                color: cat.value ? TEXT_COLOR : alpha(GRAY_COLOR, 0.7)
+                                            }}
+                                        >
+                                            {cat.label}
+                                        </MenuItem>
+                                    ))}
+                                </StyledSelect>
+                            </FormControl>
+                            <Typography variant="caption" sx={{
+                                color: 'error.main',
+                                fontSize: '0.65rem',
+                                mt: 0.5,
+                                display: 'block'
+                            }}>
+                                Required
+                            </Typography>
+                        </Box>
                     </Box>
 
-                    {/* Component Type Selection */}
-                    <Box sx={{ mb: formControlMargin }}>
-                        <Typography variant="body2" sx={{
-                            mb: 1.5,
-                            fontWeight: 500,
-                            fontSize: bodyFontSize,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5
-                        }}>
-                            <Box component="span" sx={{
-                                width: 16,
-                                height: 16,
-                                borderRadius: '50%',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.6rem',
-                                backgroundColor: BLUE_COLOR,
-                                color: 'white'
+                    {/* Component Type - Table row style */}
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        mb: 1.5,
+                        p: 1,
+                        backgroundColor: alpha(GRAY_COLOR, 0.03),
+                        borderRadius: '4px'
+                    }}>
+                        <Box sx={{ flex: '0 0 140px', minWidth: 0 }}>
+                            <Typography variant="body2" sx={{
+                                fontSize: '0.7rem',
+                                color: GRAY_COLOR,
+                                fontWeight: 500
                             }}>
-                                2
-                            </Box>
-                            Component Type
-                        </Typography>
-                        <FormControl fullWidth size="small">
-                            <InputLabel sx={{ fontSize: inputFontSize, lineHeight: 1.2 }}>Component Type</InputLabel>
-                            <StyledSelect
-                                value={formData.componentType}
-                                onChange={(e) => handleChange('componentType', e.target.value)}
-                                label="Component Type"
-                                disabled={!formData.category}
-                                sx={{
-                                    '& .MuiSelect-select': {
-                                        fontSize: inputFontSize,
-                                        py: 0.625,
-                                        minHeight: 'auto'
-                                    }
-                                }}
-                            >
-                                {getComponentsForCategory().map((type) => (
-                                    <MenuItem
-                                        key={type.value}
-                                        value={type.value}
-                                        sx={{ fontSize: inputFontSize, py: 0.5 }}
-                                    >
-                                        {type.label}
-                                    </MenuItem>
-                                ))}
-                            </StyledSelect>
-                        </FormControl>
-                        <Typography variant="caption" sx={{
-                            color: 'error.main',
-                            fontSize: captionFontSize,
-                            mt: 0.25,
-                            display: 'block'
-                        }}>
-                            Required
-                        </Typography>
+                                Component Type
+                            </Typography>
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <FormControl fullWidth size="small">
+                                <StyledSelect
+                                    value={formData.componentType}
+                                    onChange={(e) => handleChange('componentType', e.target.value)}
+                                    disabled={!formData.category}
+                                    displayEmpty
+                                    sx={{
+                                        '& .MuiSelect-select': {
+                                            fontSize: '0.8rem',
+                                            py: 0.5,
+                                            minHeight: 'auto',
+                                            fontWeight: 500,
+                                            color: formData.componentType ? TEXT_COLOR : alpha(GRAY_COLOR, 0.7)
+                                        }
+                                    }}
+                                >
+                                    {getComponentsForCategory().map((type) => (
+                                        <MenuItem
+                                            key={type.value}
+                                            value={type.value}
+                                            sx={{ 
+                                                fontSize: '0.8rem', 
+                                                py: 0.5,
+                                                color: type.value ? TEXT_COLOR : alpha(GRAY_COLOR, 0.7)
+                                            }}
+                                        >
+                                            {type.label}
+                                        </MenuItem>
+                                    ))}
+                                </StyledSelect>
+                            </FormControl>
+                            <Typography variant="caption" sx={{
+                                color: 'error.main',
+                                fontSize: '0.65rem',
+                                mt: 0.5,
+                                display: 'block'
+                            }}>
+                                Required
+                            </Typography>
+                        </Box>
                     </Box>
 
-                    {/* Manufacturer Selection */}
-                    <Box sx={{ mb: formControlMargin }}>
-                        <Typography variant="body2" sx={{
-                            mb: 1.5,
-                            fontWeight: 500,
-                            fontSize: bodyFontSize,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5
-                        }}>
-                            <Box component="span" sx={{
-                                width: 16,
-                                height: 16,
-                                borderRadius: '50%',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.6rem',
-                                backgroundColor: ORANGE_COLOR,
-                                color: 'white'
+                    {/* Manufacturer - Table row style */}
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        mb: 1.5,
+                        p: 1,
+                        backgroundColor: alpha(GRAY_COLOR, 0.03),
+                        borderRadius: '4px'
+                    }}>
+                        <Box sx={{ flex: '0 0 140px', minWidth: 0 }}>
+                            <Typography variant="body2" sx={{
+                                fontSize: '0.7rem',
+                                color: GRAY_COLOR,
+                                fontWeight: 500
                             }}>
-                                3
-                            </Box>
-                            Manufacturer
-                        </Typography>
-                        <FormControl fullWidth size="small">
-                            <InputLabel sx={{ fontSize: inputFontSize, lineHeight: 1.2 }}>Manufacturer</InputLabel>
-                            <StyledSelect
-                                value={formData.manufacturer}
-                                onChange={(e) => handleChange('manufacturer', e.target.value)}
-                                label="Manufacturer"
-                                disabled={!formData.componentType}
-                                sx={{
-                                    '& .MuiSelect-select': {
-                                        fontSize: inputFontSize,
-                                        py: 0.625,
-                                        minHeight: 'auto'
-                                    }
-                                }}
-                            >
-                                {getManufacturersForComponent().map((man) => (
-                                    <MenuItem
-                                        key={man.value}
-                                        value={man.value}
-                                        sx={{ fontSize: inputFontSize, py: 0.5 }}
-                                    >
-                                        {man.label}
-                                    </MenuItem>
-                                ))}
-                            </StyledSelect>
-                        </FormControl>
-                        <Typography variant="caption" sx={{
-                            color: 'text.secondary',
-                            fontSize: captionFontSize,
-                            mt: 0.25,
-                            display: 'block'
-                        }}>
-                            Optional
-                        </Typography>
+                                Manufacturer
+                            </Typography>
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <FormControl fullWidth size="small">
+                                <StyledSelect
+                                    value={formData.manufacturer}
+                                    onChange={(e) => handleChange('manufacturer', e.target.value)}
+                                    disabled={!formData.componentType}
+                                    displayEmpty
+                                    sx={{
+                                        '& .MuiSelect-select': {
+                                            fontSize: '0.8rem',
+                                            py: 0.5,
+                                            minHeight: 'auto',
+                                            fontWeight: 500,
+                                            color: formData.manufacturer ? TEXT_COLOR : alpha(GRAY_COLOR, 0.7)
+                                        }
+                                    }}
+                                >
+                                    {getManufacturersForComponent().map((man) => (
+                                        <MenuItem
+                                            key={man.value}
+                                            value={man.value}
+                                            sx={{ 
+                                                fontSize: '0.8rem', 
+                                                py: 0.5,
+                                                color: man.value ? TEXT_COLOR : alpha(GRAY_COLOR, 0.7)
+                                            }}
+                                        >
+                                            {man.label}
+                                        </MenuItem>
+                                    ))}
+                                </StyledSelect>
+                            </FormControl>
+                            <Typography variant="caption" sx={{
+                                color: 'text.secondary',
+                                fontSize: '0.65rem',
+                                mt: 0.5,
+                                display: 'block'
+                            }}>
+                                Optional
+                            </Typography>
+                        </Box>
                     </Box>
 
-                    {/* Model Selection */}
-                    <Box sx={{ mb: formControlMargin }}>
-                        <Typography variant="body2" sx={{
-                            mb: 1.5,
-                            fontWeight: 500,
-                            fontSize: bodyFontSize,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5
-                        }}>
-                            <Box component="span" sx={{
-                                width: 16,
-                                height: 16,
-                                borderRadius: '50%',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.6rem',
-                                backgroundColor: ORANGE_COLOR,
-                                color: 'white'
+                    {/* Model - Table row style */}
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        mb: 1.5,
+                        p: 1,
+                        backgroundColor: alpha(GRAY_COLOR, 0.03),
+                        borderRadius: '4px'
+                    }}>
+                        <Box sx={{ flex: '0 0 140px', minWidth: 0 }}>
+                            <Typography variant="body2" sx={{
+                                fontSize: '0.7rem',
+                                color: GRAY_COLOR,
+                                fontWeight: 500
                             }}>
-                                4
-                            </Box>
-                            Model
-                        </Typography>
-                        <FormControl fullWidth size="small">
-                            <InputLabel sx={{ fontSize: inputFontSize, lineHeight: 1.2 }}>Model</InputLabel>
-                            <StyledSelect
-                                value={formData.model}
-                                onChange={(e) => handleChange('model', e.target.value)}
-                                label="Model"
-                                disabled={!formData.manufacturer}
-                                sx={{
-                                    '& .MuiSelect-select': {
-                                        fontSize: inputFontSize,
-                                        py: 0.625,
-                                        minHeight: 'auto'
-                                    }
-                                }}
-                            >
-                                {getModelsForManufacturer().map((model) => (
-                                    <MenuItem
-                                        key={model.value}
-                                        value={model.value}
-                                        sx={{ fontSize: inputFontSize, py: 0.5 }}
-                                    >
-                                        {model.label}
-                                    </MenuItem>
-                                ))}
-                            </StyledSelect>
-                        </FormControl>
-                        <Typography variant="caption" sx={{
-                            color: 'text.secondary',
-                            fontSize: captionFontSize,
-                            mt: 0.25,
-                            display: 'block'
-                        }}>
-                            Optional
-                        </Typography>
+                                Model
+                            </Typography>
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <FormControl fullWidth size="small">
+                                <StyledSelect
+                                    value={formData.model}
+                                    onChange={(e) => handleChange('model', e.target.value)}
+                                    disabled={!formData.manufacturer}
+                                    displayEmpty
+                                    sx={{
+                                        '& .MuiSelect-select': {
+                                            fontSize: '0.8rem',
+                                            py: 0.5,
+                                            minHeight: 'auto',
+                                            fontWeight: 500,
+                                            color: formData.model ? TEXT_COLOR : alpha(GRAY_COLOR, 0.7)
+                                        }
+                                    }}
+                                >
+                                    {getModelsForManufacturer().map((model) => (
+                                        <MenuItem
+                                            key={model.value}
+                                            value={model.value}
+                                            sx={{ 
+                                                fontSize: '0.8rem', 
+                                                py: 0.5,
+                                                color: model.value ? TEXT_COLOR : alpha(GRAY_COLOR, 0.7)
+                                            }}
+                                        >
+                                            {model.label}
+                                        </MenuItem>
+                                    ))}
+                                </StyledSelect>
+                            </FormControl>
+                            <Typography variant="caption" sx={{
+                                color: 'text.secondary',
+                                fontSize: '0.65rem',
+                                mt: 0.5,
+                                display: 'block'
+                            }}>
+                                Optional
+                            </Typography>
+                        </Box>
                     </Box>
 
-                    {/* Custom Label */}
-                    <Box sx={{ mb: 0.25 }}>
-                        <Typography variant="body2" sx={{
-                            mb: 1.5,
-                            fontWeight: 500,
-                            fontSize: bodyFontSize,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5
-                        }}>
-                            <Box component="span" sx={{
-                                width: 16,
-                                height: 16,
-                                borderRadius: '50%',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '0.6rem',
-                                backgroundColor: ORANGE_COLOR,
-                                color: 'white'
+                    {/* Custom Label - Table row style */}
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        p: 1,
+                        backgroundColor: alpha(GRAY_COLOR, 0.03),
+                        borderRadius: '4px'
+                    }}>
+                        <Box sx={{ flex: '0 0 140px', minWidth: 0, pt: 0.5 }}>
+                            <Typography variant="body2" sx={{
+                                fontSize: '0.7rem',
+                                color: GRAY_COLOR,
+                                fontWeight: 500
                             }}>
-                                5
-                            </Box>
-                            Custom Label
-                        </Typography>
-                        <StyledTextField
-                            fullWidth
-                            size="small"
-                            value={formData.customLabel}
-                            onChange={(e) => handleChange('customLabel', e.target.value)}
-                            placeholder="Enter custom label"
-                            InputProps={{
-                                sx: {
-                                    fontSize: inputFontSize,
-                                    py: 0.5,
-                                    minHeight: 'auto'
-                                }
-                            }}
-                        />
-                        <Typography variant="caption" sx={{
-                            color: 'text.secondary',
-                            fontSize: captionFontSize,
-                            mt: 0.25,
-                            display: 'block'
-                        }}>
-                            Optional
-                        </Typography>
+                                Custom Label
+                            </Typography>
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <StyledTextField
+                                fullWidth
+                                size="small"
+                                value={formData.customLabel}
+                                onChange={(e) => handleChange('customLabel', e.target.value)}
+                                placeholder="Enter custom label (optional)"
+                                InputProps={{
+                                    sx: {
+                                        fontSize: '0.8rem',
+                                        py: 0.5,
+                                        minHeight: 'auto',
+                                        fontWeight: 500,
+                                        color: formData.customLabel ? TEXT_COLOR : alpha(GRAY_COLOR, 0.7)
+                                    }
+                                }}
+                            />
+                            <Typography variant="caption" sx={{
+                                color: 'text.secondary',
+                                fontSize: '0.65rem',
+                                mt: 0.5,
+                                display: 'block'
+                            }}>
+                                Optional
+                            </Typography>
+                        </Box>
                     </Box>
                 </Box>
-            </DialogContent>
 
-            <DialogActions sx={{
-                borderTop: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                py: 0.75,
-                px: dialogPadding + 0.5,
-                gap: 0.75,
-                flexWrap: 'nowrap'
-            }}>
-                <OutlineButton
-                    variant="outlined"
-                    onClick={handleClose}
-                    startIcon={<X size={iconSize - 2} />}
-                    sx={{
-                        fontSize: buttonFontSize,
-                        py: 0.375,
-                        px: 1.5,
-                        minHeight: '32px',
-                        borderWidth: '1px',
-                        '& .MuiButton-startIcon': {
-                            mr: 0.5
-                        }
-                    }}
-                >
-                    Cancel
-                </OutlineButton>
-                <UpdateButton
-                    variant="contained"
-                    onClick={handleSubmit}
-                    color="warning"
-                    size="small"
-                    startIcon={<Save size={iconSize - 2} />}
-                    sx={{
-                        fontSize: buttonFontSize,
-                        py: 0.375,
-                        px: 1.5,
-                        minHeight: '32px',
-                        '& .MuiButton-startIcon': {
-                            mr: 0.5
-                        }
-                    }}
-                >
-                    Update
-                </UpdateButton>
-            </DialogActions>
-        </Dialog>
+                {/* Footer Actions - Matching table footer style */}
+                <Box sx={{
+                    borderTop: `1px solid ${alpha(GRAY_COLOR, 0.2)}`,
+                    p: 1.5,
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 1,
+                    backgroundColor: alpha(GRAY_COLOR, 0.01)
+                }}>
+                    <OutlineButton
+                        variant="outlined"
+                        onClick={handleClose}
+                        startIcon={<X size={14} />}
+                        sx={{
+                            fontSize: '0.75rem',
+                            py: 0.375,
+                            px: 1.5,
+                            minHeight: '32px',
+                            borderWidth: '1px',
+                            '& .MuiButton-startIcon': {
+                                mr: 0.5
+                            }
+                        }}
+                    >
+                        Cancel
+                    </OutlineButton>
+                    <UpdateButton
+                        variant="contained"
+                        onClick={handleSubmit}
+                        color="warning"
+                        size="small"
+                        startIcon={<Save size={14} />}
+                        sx={{
+                            fontSize: '0.75rem',
+                            py: 0.375,
+                            px: 1.5,
+                            minHeight: '32px',
+                            '& .MuiButton-startIcon': {
+                                mr: 0.5
+                            }
+                        }}
+                    >
+                        Update Component
+                    </UpdateButton>
+                </Box>
+            </Box>
+        </Box>
     );
 };
 
-export default UpdateDialog;
+export default UpdateComponent;

@@ -88,7 +88,7 @@ const BaseModal = ({
                         <Typography
                             sx={{
                                 color: GRAY_COLOR,
-                                fontSize: '0.85rem',
+                                fontSize: '0.7rem',
                                 mt: 0.25
                             }}
                         >
@@ -119,7 +119,7 @@ const BaseModalActions = ({
             variant="outlined"
             sx={{
                 textTransform: 'none',
-                fontSize: '0.85rem',
+                fontSize: '0.8rem',
                 fontWeight: 400,
                 color: TEXT_COLOR,
                 borderColor: alpha(TEXT_COLOR, 0.2),
@@ -138,14 +138,14 @@ const BaseModalActions = ({
             disabled={isLoading}
             startIcon={
                 isLoading ? (
-                    <CircularProgress size={16} sx={{ color: 'white' }} />
+                    <CircularProgress size={14} sx={{ color: 'white' }} />
                 ) : (
                     confirmIcon
                 )
             }
             sx={{
                 textTransform: 'none',
-                fontSize: '0.85rem',
+                fontSize: '0.8rem',
                 fontWeight: 500,
                 bgcolor: confirmColor,
                 boxShadow: 'none',
@@ -183,7 +183,7 @@ export const DeleteConfirmationModal = ({
         borderColor={ORANGE_COLOR}
     >
         <DialogContent sx={{ pt: 2.5 }}>
-            <Typography sx={{ fontSize: '0.85rem', mb: 2, color: TEXT_COLOR }}>
+            <Typography sx={{ fontSize: '0.75rem', mb: 2, color: TEXT_COLOR }}>
                 {message || `Are you sure you want to move ${count} item(s) from the ${section} section to recycle bin?`}
             </Typography>
 
@@ -203,14 +203,14 @@ export const DeleteConfirmationModal = ({
                     <Typography
                         sx={{
                             color: ORANGE_COLOR,
-                            fontSize: '0.85rem',
+                            fontSize: '0.75rem',
                             fontWeight: 500,
                             mb: 0.25
                         }}
                     >
                         Note
                     </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: TEXT_COLOR }}>
                         Items moved to recycle bin can be restored later.
                     </Typography>
                 </Box>
@@ -245,7 +245,7 @@ export const RestoreConfirmationModal = ({
         borderColor={GREEN_COLOR}
     >
         <DialogContent sx={{ pt: 2.5 }}>
-            <Typography sx={{ fontSize: '0.85rem', mb: 2, color: TEXT_COLOR }}>
+            <Typography sx={{ fontSize: '0.75rem', mb: 2, color: TEXT_COLOR }}>
                 Are you sure you want to restore <strong>{count}</strong> item(s) from recycle bin?
             </Typography>
 
@@ -265,14 +265,14 @@ export const RestoreConfirmationModal = ({
                     <Typography
                         sx={{
                             color: GREEN_COLOR,
-                            fontSize: '0.85rem',
+                            fontSize: '0.75rem',
                             fontWeight: 500,
                             mb: 0.25
                         }}
                     >
                         Note
                     </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: TEXT_COLOR }}>
                         Items will be restored to their original sections.
                     </Typography>
                 </Box>
@@ -307,7 +307,7 @@ export const PermanentDeleteConfirmationModal = ({
         borderColor={RED_COLOR}
     >
         <DialogContent sx={{ pt: 2.5 }}>
-            <Typography sx={{ fontSize: '0.85rem', mb: 2, color: TEXT_COLOR }}>
+            <Typography sx={{ fontSize: '0.75rem', mb: 2, color: TEXT_COLOR }}>
                 Are you sure you want to permanently delete <strong>{count}</strong> item(s)?
             </Typography>
 
@@ -327,14 +327,14 @@ export const PermanentDeleteConfirmationModal = ({
                     <Typography
                         sx={{
                             color: RED_COLOR,
-                            fontSize: '0.85rem',
+                            fontSize: '0.75rem',
                             fontWeight: 500,
                             mb: 0.25
                         }}
                     >
                         Warning
                     </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: TEXT_COLOR }}>
                         This action cannot be undone. Items will be permanently removed and cannot be recovered.
                     </Typography>
                 </Box>
@@ -370,7 +370,7 @@ export const LockConfirmationModal = ({
         borderColor={GREEN_COLOR}
     >
         <DialogContent sx={{ pt: 2.5 }}>
-            <Typography sx={{ fontSize: '0.85rem', mb: 2, color: TEXT_COLOR }}>
+            <Typography sx={{ fontSize: '0.75rem', mb: 2, color: TEXT_COLOR }}>
                 Lock this report and move it to the Finalized section?
             </Typography>
 
@@ -387,20 +387,20 @@ export const LockConfirmationModal = ({
                     <Typography
                         sx={{
                             color: TEXT_COLOR,
-                            fontSize: '0.85rem',
+                            fontSize: '0.75rem',
                             fontWeight: 500,
                             mb: 0.5
                         }}
                     >
                         Work Order Details
                     </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: TEXT_COLOR }}>
                         <strong>WO#:</strong> {itemData.woNumber || itemData.wo_number}
                     </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: TEXT_COLOR }}>
                         <strong>Address:</strong> {itemData.street}
                     </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: TEXT_COLOR }}>
                         <strong>City:</strong> {itemData.city}, {itemData.state} {itemData.zip}
                     </Typography>
                 </Box>
@@ -422,14 +422,14 @@ export const LockConfirmationModal = ({
                     <Typography
                         sx={{
                             color: GREEN_COLOR,
-                            fontSize: '0.85rem',
+                            fontSize: '0.75rem',
                             fontWeight: 500,
                             mb: 0.25
                         }}
                     >
                         Note
                     </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: TEXT_COLOR }}>
                         Locked reports cannot be edited and will appear in the Finalized section.
                     </Typography>
                 </Box>
@@ -464,7 +464,7 @@ export const DiscardConfirmationModal = ({
         borderColor={RED_COLOR}
     >
         <DialogContent sx={{ pt: 2.5 }}>
-            <Typography sx={{ fontSize: '0.85rem', mb: 2, color: TEXT_COLOR }}>
+            <Typography sx={{ fontSize: '0.75rem', mb: 2, color: TEXT_COLOR }}>
                 Discard this report and mark it as "DELETED"?
             </Typography>
 
@@ -481,20 +481,20 @@ export const DiscardConfirmationModal = ({
                     <Typography
                         sx={{
                             color: TEXT_COLOR,
-                            fontSize: '0.85rem',
+                            fontSize: '0.75rem',
                             fontWeight: 500,
                             mb: 0.5
                         }}
                     >
                         Work Order Details
                     </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: TEXT_COLOR }}>
                         <strong>WO#:</strong> {itemData.woNumber || itemData.wo_number}
                     </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: TEXT_COLOR }}>
                         <strong>Address:</strong> {itemData.street}
                     </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: TEXT_COLOR }}>
                         <strong>City:</strong> {itemData.city}, {itemData.state} {itemData.zip}
                     </Typography>
                 </Box>
@@ -516,14 +516,14 @@ export const DiscardConfirmationModal = ({
                     <Typography
                         sx={{
                             color: RED_COLOR,
-                            fontSize: '0.85rem',
+                            fontSize: '0.75rem',
                             fontWeight: 500,
                             mb: 0.25
                         }}
                     >
                         Warning
                     </Typography>
-                    <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>
+                    <Typography sx={{ fontSize: '0.75rem', color: TEXT_COLOR }}>
                         Discarded reports will be marked as DELETED and moved to appropriate sections.
                     </Typography>
                 </Box>
@@ -542,7 +542,6 @@ export const DiscardConfirmationModal = ({
     </BaseModal>
 );
 
-// Additional generic confirmation modal for reuse
 export const ConfirmationModal = ({
     open,
     onClose,
@@ -574,7 +573,7 @@ export const ConfirmationModal = ({
     >
         <DialogContent sx={{ pt: 2.5 }}>
             {message && (
-                <Typography sx={{ fontSize: '0.85rem', mb: 2, color: TEXT_COLOR }}>
+                <Typography sx={{ fontSize: '0.75rem', mb: 2, color: TEXT_COLOR }}>
                     {message}
                 </Typography>
             )}
@@ -599,14 +598,14 @@ export const ConfirmationModal = ({
                         <Typography
                             sx={{
                                 color: iconColor,
-                                fontSize: '0.85rem',
+                                fontSize: '0.75rem',
                                 fontWeight: 500,
                                 mb: 0.25
                             }}
                         >
                             {isDestructive ? 'Warning' : 'Note'}
                         </Typography>
-                        <Typography sx={{ fontSize: '0.85rem', color: TEXT_COLOR }}>
+                        <Typography sx={{ fontSize: '0.75rem', color: TEXT_COLOR }}>
                             {noteText}
                         </Typography>
                     </Box>

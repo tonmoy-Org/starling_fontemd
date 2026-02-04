@@ -1,4 +1,3 @@
-// PDFViewerModal.js
 import React from 'react';
 import {
     Dialog,
@@ -41,27 +40,28 @@ const PDFViewerModal = ({ open, onClose, pdfUrl }) => {
             }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Box sx={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: '8px',
+                        width: 36,
+                        height: 36,
+                        borderRadius: '6px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         backgroundColor: alpha(BLUE_COLOR, 0.1),
                         color: BLUE_COLOR,
                     }}>
-                        <FileText size={20} />
+                        <FileText size={18} />
                     </Box>
                     <Box>
                         <Typography variant="h6" sx={{
-                            fontSize: '1rem',
+                            fontSize: '0.95rem',
                             fontWeight: 600,
                             color: TEXT_COLOR,
+                            mb: 0,
                         }}>
                             PDF Viewer
                         </Typography>
                         <Typography variant="body2" sx={{
-                            fontSize: '0.85rem',
+                            fontSize: '0.7rem',
                             color: GRAY_COLOR,
                         }}>
                             Last Locked Report
@@ -78,7 +78,7 @@ const PDFViewerModal = ({ open, onClose, pdfUrl }) => {
                         },
                     }}
                 >
-                    <X size={20} />
+                    <X size={18} />
                 </IconButton>
             </DialogTitle>
             <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -106,13 +106,13 @@ const PDFViewerModal = ({ open, onClose, pdfUrl }) => {
                         <FileText size={48} color={alpha(GRAY_COLOR, 0.3)} />
                         <Typography variant="body2" sx={{
                             color: GRAY_COLOR,
-                            fontSize: '0.9rem',
+                            fontSize: '0.8rem',
                         }}>
                             No PDF available
                         </Typography>
                         <Typography variant="caption" sx={{
                             color: GRAY_COLOR,
-                            fontSize: '0.8rem',
+                            fontSize: '0.7rem',
                         }}>
                             PDF will appear here when available
                         </Typography>

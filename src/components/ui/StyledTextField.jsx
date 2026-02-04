@@ -21,6 +21,7 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
             borderWidth: "1px",
         },
     },
+    backgroundColor: theme.palette.background.paper,
 }));
 
 export default StyledTextField;

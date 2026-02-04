@@ -18,15 +18,12 @@ import {
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { Timer, FileSpreadsheet, Save } from 'lucide-react';
-import StyledTextField from '../../../../../../components/ui/StyledTextField';
 import StyledSelect from '../../../../../../components/ui/StyledSelect';
-import UpdateSepticDialog from '../modals/UpdateDialog';
 
 import reportIcon from '../../../../../../assets/icons/report.gif';
 import penIcon from '../../../../../../assets/icons/Edit.gif';
 import lockedIcon from '../../../../../../assets/icons/locked.gif';
 import discardIcon from '../../../../../../assets/icons/btnDel.gif';
-import updateIonIcon from '../../../../../../assets/icons/operations.png';
 
 import {
     WAIT_TO_LOCK_REASONS,
@@ -37,6 +34,7 @@ import {
     CYAN_COLOR
 } from '../../utils/constants';
 import UpdateButton from '../../../../../../components/ui/UpdateButton';
+import StyledTextarea from '../../../../../../components/ui/StyledTextarea';
 
 const ReportSubmittedTable = ({
     items,
@@ -62,27 +60,9 @@ const ReportSubmittedTable = ({
     onViewPDF,
     isMobile,
 }) => {
-    const [septicDialogOpen, setSepticDialogOpen] = useState(false);
-    const [selectedItem, setSelectedItem] = useState(null);
-
+ 
     const allSelectedOnPage = items.length > 0 && items.every(item => selected.has(item.id));
     const someSelectedOnPage = items.length > 0 && items.some(item => selected.has(item.id));
-
-    const handleUpdateClick = (item) => {
-        setSelectedItem(item);
-        setSepticDialogOpen(true);
-    };
-
-    const handleUpdateSubmit = (itemId, data) => {
-        console.log('Septic components submitted for item:', itemId, 'with data:', data);
-        // Add your API call or state update logic here
-        // You might want to update parent component state or make an API call
-    };
-
-    const handleUpdateClose = () => {
-        setSepticDialogOpen(false);
-        setSelectedItem(null);
-    };
 
     return (
         <>
@@ -428,7 +408,8 @@ const ReportSubmittedTable = ({
                                                                     sx={{
                                                                         '& .MuiSelect-select': {
                                                                             fontSize: '0.85rem',
-                                                                        }
+                                                                        },
+                                                                        bgcolor: 'white',
                                                                     }}
                                                                 >
                                                                     {WAIT_TO_LOCK_REASONS.map((reason) => (
@@ -442,7 +423,7 @@ const ReportSubmittedTable = ({
                                                                     ))}
                                                                 </StyledSelect>
                                                             </FormControl>
-                                                            <StyledTextField
+                                                            <StyledTextarea
                                                                 size="small"
                                                                 multiline
                                                                 rows={2}
@@ -510,14 +491,6 @@ const ReportSubmittedTable = ({
                     />
                 )}
             </TableContainer>
-
-            {/* Septic Components Dialog */}
-            <UpdateSepticDialog
-                open={septicDialogOpen}
-                onClose={handleUpdateClose}
-                item={selectedItem}
-                onSubmit={handleUpdateSubmit}
-            />
         </>
     );
 };

@@ -1,7 +1,9 @@
 import { styled } from '@mui/material/styles';
 import TextareaAutosize from '@mui/material/TextareaAutosize';
 
-const StyledTextarea = styled(TextareaAutosize)(({ theme }) => ({
+const StyledTextarea = styled((props) => (
+    <TextareaAutosize {...props} minRows={2} maxRows={3} />
+))(({ theme }) => ({
     width: '100%',
     padding: '6px 10px',
     fontSize: '0.875rem',

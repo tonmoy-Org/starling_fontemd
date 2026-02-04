@@ -14,22 +14,23 @@ import {
     TableCell,
     TableContainer,
     TableRow,
+    TableHead,
     FormControl,
     RadioGroup,
     FormControlLabel,
     Radio,
     MenuItem,
-    Button
+    useTheme,
+    useMediaQuery
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useTheme, useMediaQuery } from '@mui/material';
-import { X, Save, Plus } from 'lucide-react';
+import { X, Save, Plus, ArrowLeft } from 'lucide-react';
 import axiosInstance from '../../../../../../api/axios';
+import StyledTextField from '../../../../../../components/ui/StyledTextField';
 import StyledTextarea from '../../../../../../components/ui/StyledTextarea';
 import StyledSelect from '../../../../../../components/ui/StyledSelect';
 import OutlineButton from '../../../../../../components/ui/OutlineButton';
 import DashboardLoader from '../../../../../../components/Loader/DashboardLoader';
-import FormNotFoundModal from './FormNotFoundModal';
 import {
     BLUE_COLOR,
     GRAY_COLOR,
@@ -37,7 +38,8 @@ import {
     RED_COLOR,
 } from '../../utils/constants';
 import UpdateButton from '../../../../../../components/ui/UpdateButton';
-import UpdateDialog from './UpdateDialog';
+import GradientButton from '../../../../../../components/ui/GradientButton';
+import UpdateComponent from '../modals/UpdateDialog';
 
 const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onMoveToRecycleBin }) => {
     const theme = useTheme();
@@ -48,8 +50,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
     const [error, setError] = useState(null);
     const [yesNoFields, setYesNoFields] = useState({});
     const [inspectionFields, setInspectionFields] = useState({});
-    const [showFormNotFoundModal, setShowFormNotFoundModal] = useState(false);
-    const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+    const [showComponentForm, setShowComponentForm] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
 
     useEffect(() => {
@@ -62,7 +63,6 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                 const response = await axiosInstance.get(`/work-order-edit/${workOrderData.id}/`);
 
                 let serverData = response.data;
-                // console.log(serverData);
                 let formDataArray = [];
 
                 if (serverData.data && serverData.data.form_data && Array.isArray(serverData.data.form_data)) {
@@ -92,7 +92,8 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                         return {
                             ...field,
                             value: value,
-                            label: label
+                            label: label,
+                            status: field.status || ''
                         };
                     });
 
@@ -137,51 +138,46 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                     setInspectionFields(initialInspectionFields);
                 } else {
                     setFormData([]);
-                    setShowFormNotFoundModal(true);
                 }
 
             } catch (error) {
-                if (error.response?.status === 400) {
-                    setShowFormNotFoundModal(true);
-                } else {
-                    setError(error.response?.data?.message || 'Failed to load form data');
-                }
+                setError(error.response?.data?.message || 'Failed to load form data');
                 setFormData([]);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        if (open && workOrderData?.id) {
+        if (open && workOrderData?.id && !showComponentForm) {
             fetchFormData();
         }
-    }, [workOrderData, open]);
+    }, [workOrderData, open, showComponentForm]);
 
-    // Function to handle Add Component button click
     const handleAddComponent = () => {
-        // Create a mock item for the UpdateDialog
-        const mockItem = {
-            id: workOrderData?.id || 'N/A',
-            technician: workOrderData?.technician || 'N/A'
+        const componentData = {
+            id: workOrderData?.id || '',
+            work_order_today: workOrderData?.id || '',
+            technician: workOrderData?.technician || '',
+            street: workOrderData?.street || '',
+            date: workOrderData?.date || new Date().toISOString().split('T')[0],
         };
-        setSelectedItem(mockItem);
-        setShowUpdateDialog(true);
+
+        setSelectedItem(componentData);
+        setShowComponentForm(true);
     };
 
-    // Function to handle UpdateDialog close
-    const handleUpdateDialogClose = () => {
-        setShowUpdateDialog(false);
+    const handleComponentFormClose = () => {
+        setShowComponentForm(false);
         setSelectedItem(null);
     };
 
-    // Function to handle UpdateDialog submit
-    const handleUpdateSubmit = (id, submittedData) => {
-        // Handle the submitted component data here
+    const handleComponentFormSubmit = (id, submittedData) => {
         console.log('Component submitted:', submittedData);
         if (showSnackbar) {
             showSnackbar('Component added successfully', 'success');
         }
-        // You can add logic here to save the component to your backend
+        setShowComponentForm(false);
+        setSelectedItem(null);
     };
 
     const handleInputChange = (fieldName, value) => {
@@ -224,6 +220,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                 if (field.required !== undefined) fieldObj.required = field.required;
                 if (field.placeholder) fieldObj.placeholder = field.placeholder;
                 if (field.validation) fieldObj.validation = field.validation;
+                if (field.status) fieldObj.status = field.status;
 
                 return fieldObj;
             });
@@ -270,90 +267,161 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
         const cleanOptions = field.options ? field.options.filter(opt => opt !== '' && opt !== null && opt !== undefined) : [];
         const isYesNo = isYesNoField(field.name);
         const isInspection = isInspectionField(field.name);
+        const hasStatus = field.status && field.status !== '';
 
-        const rowBgColor = isInspection
-            ? BLUE_COLOR
-            : 'transparent';
+        const rowBgColor = isInspection ? BLUE_COLOR : 'transparent';
+        const cellTextColor = isInspection ? 'white' : TEXT_COLOR;
+        const cellHoverBgColor = isInspection
+            ? alpha(BLUE_COLOR, 0.9)
+            : alpha(theme.palette.action.hover, 0.04);
 
-        const fontSize = '0.825rem';
-        const padding = isMobile ? '8px 12px' : '10px 16px';
+        const fontSize = '0.75rem';
+        const padding = '6px 8px';
 
         if (isYesNo) {
             return (
-                <TableRow key={uniqueKey} sx={{ backgroundColor: 'transparent' }}>
-                    <TableCell sx={{
-                        borderBottom: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                        width: '70%',
-                        fontWeight: 600,
-                        fontSize: fontSize,
-                        color: TEXT_COLOR,
-                        verticalAlign: 'top',
-                        padding: padding,
-                    }}>
+                <TableRow
+                    key={uniqueKey}
+                    sx={{
+                        backgroundColor: rowBgColor,
+                        '&:hover': {
+                            backgroundColor: cellHoverBgColor
+                        }
+                    }}
+                >
+                    <TableCell
+                        size="small"
+                        sx={{
+                            width: '80%',
+                            fontWeight: 600,
+                            fontSize: fontSize,
+                            color: cellTextColor,
+                            verticalAlign: 'top',
+                            padding: padding,
+                            lineHeight: 1.2,
+                            backgroundColor: rowBgColor,
+                        }}
+                    >
                         {field.label || field.name}
                         {field.required && (
-                            <Typography component="span" sx={{ color: RED_COLOR, ml: 0.5, fontSize: fontSize }}>
+                            <Typography component="span" sx={{
+                                color: isInspection ? 'white' : RED_COLOR,
+                                ml: 0.5,
+                                fontSize: fontSize
+                            }}>
                                 *
                             </Typography>
                         )}
                     </TableCell>
-                    <TableCell sx={{
-                        borderBottom: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                        padding: padding,
-                    }}>
-                        <RadioGroup
-                            row
-                            name={field.name}
-                            value={value}
-                            onChange={(e) => handleInputChange(field.name, e.target.value)}
-                            sx={{ gap: isMobile ? 1 : 2 }}
-                        >
-                            {cleanOptions.map((option, optionIndex) => (
-                                <FormControlLabel
-                                    key={`${option}-${optionIndex}`}
-                                    value={option}
-                                    control={
-                                        <Radio
-                                            size="small"
-                                            sx={{
-                                                '& .MuiSvgIcon-root': {
-                                                    fontSize: '1.25rem',
-                                                    color: GRAY_COLOR,
-                                                },
-                                                '&.Mui-checked .MuiSvgIcon-root': {
-                                                    color: BLUE_COLOR,
-                                                }
-                                            }}
-                                        />
-                                    }
-                                    label={
-                                        <Typography sx={{
-                                            fontSize: fontSize,
-                                            textTransform: 'uppercase',
-                                            fontWeight: 500,
-                                            color: TEXT_COLOR,
-                                        }}>
-                                            {option || 'Select...'}
-                                        </Typography>
-                                    }
-                                    disabled={isLoading || saveLoading}
-                                    sx={{
-                                        marginRight: isMobile ? 1 : 2,
-                                        '& .MuiFormControlLabel-label': {
-                                            fontSize: fontSize,
+                    <TableCell
+                        size="small"
+                        sx={{
+                            padding: padding,
+                            backgroundColor: rowBgColor,
+                            width: '30%',
+                            textAlign: 'center',
+                        }}
+                    >
+                        <Box sx={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            width: '100%'
+                        }}>
+                            <RadioGroup
+                                row
+                                name={field.name}
+                                value={value}
+                                onChange={(e) => handleInputChange(field.name, e.target.value)}
+                                sx={{
+                                    gap: 1.5,
+                                    justifyContent: 'center',
+                                }}
+                            >
+                                {cleanOptions.map((option, optionIndex) => (
+                                    <FormControlLabel
+                                        key={`${option}-${optionIndex}`}
+                                        value={option}
+                                        control={
+                                            <Radio
+                                                size="small"
+                                                sx={{
+                                                    '& .MuiSvgIcon-root': {
+                                                        fontSize: '1rem',
+                                                        color: isInspection ? 'rgba(255,255,255,0.7)' : GRAY_COLOR,
+                                                    },
+                                                    '&.Mui-checked .MuiSvgIcon-root': {
+                                                        color: isInspection ? 'white' : BLUE_COLOR,
+                                                    },
+                                                    padding: '4px'
+                                                }}
+                                            />
                                         }
-                                    }}
-                                />
-                            ))}
-                        </RadioGroup>
+                                        label={
+                                            <Typography sx={{
+                                                fontSize: fontSize,
+                                                textTransform: 'uppercase',
+                                                fontWeight: 500,
+                                                color: cellTextColor,
+                                            }}>
+                                                {option || 'Select...'}
+                                            </Typography>
+                                        }
+                                        disabled={isLoading || saveLoading}
+                                        sx={{
+                                            marginRight: 0.5,
+                                            '& .MuiFormControlLabel-label': {
+                                                fontSize: fontSize,
+                                            }
+                                        }}
+                                    />
+                                ))}
+                            </RadioGroup>
+                        </Box>
                         {field.required && !value && (
                             <Typography variant="caption" sx={{
-                                color: RED_COLOR,
+                                color: isInspection ? 'rgba(255,255,255,0.8)' : RED_COLOR,
                                 display: 'block',
                                 mt: 0.5,
-                                fontSize: '0.75rem'
+                                fontSize: '0.7rem',
+                                textAlign: 'center',
                             }}>
                                 This field is required
+                            </Typography>
+                        )}
+                    </TableCell>
+                    <TableCell
+                        size="small"
+                        sx={{
+                            padding: padding,
+                            width: '12%',
+                            textAlign: 'center',
+                            backgroundColor: rowBgColor,
+                        }}
+                    >
+                        {hasStatus ? (
+                            <Typography
+                                sx={{
+                                    fontSize: '0.7rem',
+                                    fontWeight: 600,
+                                    color: field.status.toLowerCase() === 'deficient'
+                                        ? (isInspection ? 'rgba(255,200,200,0.9)' : RED_COLOR)
+                                        : cellTextColor,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                }}
+                            >
+                                {field.status}
+                            </Typography>
+                        ) : (
+                            <Typography
+                                sx={{
+                                    fontSize: '0.7rem',
+                                    fontStyle: 'italic',
+                                    color: isInspection ? 'rgba(255,255,255,0.5)' : alpha(TEXT_COLOR, 0.5),
+                                }}
+                            >
+                                -
                             </Typography>
                         )}
                     </TableCell>
@@ -367,28 +435,43 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                     key={uniqueKey}
                     sx={{
                         backgroundColor: rowBgColor,
+                        '&:hover': {
+                            backgroundColor: cellHoverBgColor
+                        }
                     }}
                 >
-                    <TableCell sx={{
-                        borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                        width: '70%',
-                        fontWeight: 600,
-                        fontSize: fontSize,
-                        color: 'white',
-                        verticalAlign: 'top',
-                        padding: '6px 16px',
-                    }}>
+                    <TableCell
+                        size="small"
+                        sx={{
+                            width: '80%',
+                            fontWeight: 600,
+                            fontSize: fontSize,
+                            color: cellTextColor,
+                            verticalAlign: 'top',
+                            padding: padding,
+                            lineHeight: 1.2,
+                            backgroundColor: rowBgColor,
+                        }}
+                    >
                         {field.label || field.name}
                         {field.required && (
-                            <Typography component="span" sx={{ color: 'white', ml: 0.5, fontSize: fontSize }}>
+                            <Typography component="span" sx={{
+                                color: 'white',
+                                ml: 0.5,
+                                fontSize: fontSize
+                            }}>
                                 *
                             </Typography>
                         )}
                     </TableCell>
-                    <TableCell sx={{
-                        borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                        padding: '5px 16px',
-                    }}>
+                    <TableCell
+                        size="small"
+                        sx={{
+                            padding: padding,
+                            backgroundColor: rowBgColor,
+                            width: '30%',
+                        }}
+                    >
                         <FormControl fullWidth size="small">
                             <StyledSelect
                                 value={value}
@@ -399,13 +482,14 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                 sx={{
                                     '& .MuiSelect-select': {
                                         fontSize: fontSize,
-                                        padding: '6px 12px',
+                                        padding: '4px 8px',
                                         color: TEXT_COLOR,
                                         fontWeight: 600,
                                         backgroundColor: 'white',
+                                        minHeight: 'auto'
                                     },
                                     '& .MuiOutlinedInput-notchedOutline': {
-                                        borderColor: alpha(BLUE_COLOR, 0.3),
+                                        borderColor: alpha(GRAY_COLOR, 0.3),
                                         borderWidth: '1px',
                                     },
                                     '&:hover .MuiOutlinedInput-notchedOutline': {
@@ -424,6 +508,8 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                             fontSize: fontSize,
                                             color: TEXT_COLOR,
                                             fontWeight: 400,
+                                            minHeight: 'auto',
+                                            padding: '4px 8px'
                                         }}
                                     >
                                         {option}
@@ -432,6 +518,41 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                             </StyledSelect>
                         </FormControl>
                     </TableCell>
+                    <TableCell
+                        size="small"
+                        sx={{
+                            padding: padding,
+                            width: '12%',
+                            textAlign: 'center',
+                            backgroundColor: rowBgColor,
+                        }}
+                    >
+                        {hasStatus ? (
+                            <Typography
+                                sx={{
+                                    fontSize: '0.7rem',
+                                    fontWeight: 600,
+                                    color: field.status.toLowerCase() === 'deficient'
+                                        ? 'rgba(255,200,200,0.9)'
+                                        : cellTextColor,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                }}
+                            >
+                                {field.status}
+                            </Typography>
+                        ) : (
+                            <Typography
+                                sx={{
+                                    fontSize: '0.7rem',
+                                    fontStyle: 'italic',
+                                    color: 'rgba(255,255,255,0.5)',
+                                }}
+                            >
+                                -
+                            </Typography>
+                        )}
+                    </TableCell>
                 </TableRow>
             );
         }
@@ -439,27 +560,47 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
         switch (field.type) {
             case 'select':
                 return (
-                    <TableRow key={uniqueKey} sx={{ backgroundColor: 'transparent' }}>
-                        <TableCell sx={{
-                            borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                            width: '70%',
-                            fontWeight: 600,
-                            fontSize: fontSize,
-                            color: TEXT_COLOR,
-                            verticalAlign: 'top',
-                            padding: padding,
-                        }}>
+                    <TableRow
+                        key={uniqueKey}
+                        sx={{
+                            backgroundColor: rowBgColor,
+                            '&:hover': {
+                                backgroundColor: cellHoverBgColor
+                            }
+                        }}
+                    >
+                        <TableCell
+                            size="small"
+                            sx={{
+                                width: '80%',
+                                fontWeight: 600,
+                                fontSize: fontSize,
+                                color: cellTextColor,
+                                verticalAlign: 'top',
+                                padding: padding,
+                                lineHeight: 1.2,
+                                backgroundColor: rowBgColor,
+                            }}
+                        >
                             {field.label || field.name}
                             {field.required && (
-                                <Typography component="span" sx={{ color: RED_COLOR, ml: 0.5, fontSize: fontSize }}>
+                                <Typography component="span" sx={{
+                                    color: isInspection ? 'white' : RED_COLOR,
+                                    ml: 0.5,
+                                    fontSize: fontSize
+                                }}>
                                     *
                                 </Typography>
                             )}
                         </TableCell>
-                        <TableCell sx={{
-                            borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                            padding: padding,
-                        }}>
+                        <TableCell
+                            size="small"
+                            sx={{
+                                padding: padding,
+                                backgroundColor: rowBgColor,
+                                width: '30%',
+                            }}
+                        >
                             <FormControl fullWidth size="small">
                                 <StyledSelect
                                     value={value}
@@ -470,15 +611,15 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                     sx={{
                                         '& .MuiSelect-select': {
                                             fontSize: fontSize,
-                                            padding: '8px 12px',
                                             color: TEXT_COLOR,
-                                            fontWeight: 400,
+                                            minHeight: 'auto'
                                         },
                                         '& .MuiOutlinedInput-notchedOutline': {
                                             borderColor: alpha(GRAY_COLOR, 0.3),
+                                            borderWidth: '1px'
                                         },
                                         '&:hover .MuiOutlinedInput-notchedOutline': {
-                                            borderColor: BLUE_COLOR,
+                                            borderColor: alpha(TEXT_COLOR, 0.8),
                                         }
                                     }}
                                 >
@@ -490,6 +631,8 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                                 fontSize: fontSize,
                                                 color: TEXT_COLOR,
                                                 fontWeight: 400,
+                                                minHeight: 'auto',
+                                                padding: '4px 8px'
                                             }}
                                         >
                                             {option}
@@ -498,398 +641,731 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                 </StyledSelect>
                             </FormControl>
                         </TableCell>
+                        <TableCell
+                            size="small"
+                            sx={{
+                                padding: padding,
+                                width: '12%',
+                                textAlign: 'center',
+                                backgroundColor: rowBgColor,
+                            }}
+                        >
+                            {hasStatus ? (
+                                <Typography
+                                    sx={{
+                                        fontSize: '0.7rem',
+                                        fontWeight: 600,
+                                        color: field.status.toLowerCase() === 'deficient'
+                                            ? RED_COLOR
+                                            : cellTextColor,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px',
+                                    }}
+                                >
+                                    {field.status}
+                                </Typography>
+                            ) : (
+                                <Typography
+                                    sx={{
+                                        fontSize: '0.7rem',
+                                        fontStyle: 'italic',
+                                        color: isInspection ? 'rgba(255,255,255,0.5)' : alpha(TEXT_COLOR, 0.5),
+                                    }}
+                                >
+                                    -
+                                </Typography>
+                            )}
+                        </TableCell>
                     </TableRow>
                 );
 
             case 'text':
                 return (
-                    <TableRow key={uniqueKey} sx={{ backgroundColor: 'transparent' }}>
-                        <TableCell sx={{
-                            borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                            width: '70%',
-                            fontWeight: 600,
-                            fontSize: fontSize,
-                            color: TEXT_COLOR,
-                            verticalAlign: 'top',
-                            padding: padding,
-                        }}>
+                    <TableRow
+                        key={uniqueKey}
+                        sx={{
+                            backgroundColor: rowBgColor,
+                            '&:hover': {
+                                backgroundColor: cellHoverBgColor
+                            }
+                        }}
+                    >
+                        <TableCell
+                            size="small"
+                            sx={{
+                                width: '80%',
+                                fontWeight: 600,
+                                fontSize: fontSize,
+                                color: cellTextColor,
+                                verticalAlign: 'top',
+                                padding: padding,
+                                lineHeight: 1.2,
+                                backgroundColor: rowBgColor,
+                            }}
+                        >
                             {field.label || field.name}
                             {field.required && (
-                                <Typography component="span" sx={{ color: RED_COLOR, ml: 0.5, fontSize: fontSize }}>
+                                <Typography component="span" sx={{
+                                    color: isInspection ? 'white' : RED_COLOR,
+                                    ml: 0.5,
+                                    fontSize: fontSize
+                                }}>
                                     *
                                 </Typography>
                             )}
                         </TableCell>
-                        <TableCell sx={{
-                            borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                            padding: padding,
-                        }}>
-                            <StyledTextarea
+                        <TableCell
+                            size="small"
+                            sx={{
+                                padding: padding,
+                                backgroundColor: rowBgColor,
+                                width: '30%',
+                            }}
+                        >
+                            <StyledTextField
                                 value={value}
                                 onChange={(e) => handleInputChange(field.name, e.target.value)}
                                 fullWidth
                                 size="small"
                                 disabled={isLoading || saveLoading}
-                                placeholder={field.placeholder}
+                                placeholder={field.placeholder || ''}
                                 error={field.required && !value}
                                 sx={{
                                     '& .MuiInputBase-input': {
                                         fontSize: fontSize,
-                                        padding: '8px 12px',
+                                        padding: '4px 8px',
                                         color: TEXT_COLOR,
                                         fontWeight: 400,
+                                        minHeight: 'auto'
                                     },
                                     '& .MuiOutlinedInput-notchedOutline': {
                                         borderColor: alpha(GRAY_COLOR, 0.3),
+                                        borderWidth: '1px'
                                     },
                                     '&:hover .MuiOutlinedInput-notchedOutline': {
-                                        borderColor: BLUE_COLOR,
+                                        borderColor: alpha(TEXT_COLOR, 0.8),
                                     }
                                 }}
                             />
+                        </TableCell>
+                        <TableCell
+                            size="small"
+                            sx={{
+                                padding: padding,
+                                width: '12%',
+                                textAlign: 'center',
+                                backgroundColor: rowBgColor,
+                            }}
+                        >
+                            {hasStatus ? (
+                                <Typography
+                                    sx={{
+                                        fontSize: '0.7rem',
+                                        fontWeight: 600,
+                                        color: field.status.toLowerCase() === 'deficient'
+                                            ? RED_COLOR
+                                            : cellTextColor,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px',
+                                    }}
+                                >
+                                    {field.status}
+                                </Typography>
+                            ) : (
+                                <Typography
+                                    sx={{
+                                        fontSize: '0.7rem',
+                                        fontStyle: 'italic',
+                                        color: isInspection ? 'rgba(255,255,255,0.5)' : alpha(TEXT_COLOR, 0.5),
+                                    }}
+                                >
+                                    -
+                                </Typography>
+                            )}
                         </TableCell>
                     </TableRow>
                 );
 
             case 'textarea':
                 return (
-                    <TableRow key={uniqueKey} sx={{ backgroundColor: 'transparent' }}>
-                        <TableCell sx={{
-                            borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                            width: '70%',
-                            fontWeight: 600,
-                            fontSize: fontSize,
-                            color: TEXT_COLOR,
-                            verticalAlign: 'top',
-                            padding: padding,
-                        }}>
+                    <TableRow
+                        key={uniqueKey}
+                        sx={{
+                            backgroundColor: rowBgColor,
+                            '&:hover': {
+                                backgroundColor: cellHoverBgColor
+                            }
+                        }}
+                    >
+                        <TableCell
+                            size="small"
+                            sx={{
+                                width: '80%',
+                                fontWeight: 600,
+                                fontSize: fontSize,
+                                color: cellTextColor,
+                                verticalAlign: 'top',
+                                padding: padding,
+                                lineHeight: 1.2,
+                                backgroundColor: rowBgColor,
+                            }}
+                        >
                             {field.label || field.name}
                             {field.required && (
-                                <Typography component="span" sx={{ color: RED_COLOR, ml: 0.5, fontSize: fontSize }}>
+                                <Typography component="span" sx={{
+                                    color: isInspection ? 'white' : RED_COLOR,
+                                    ml: 0.5,
+                                    fontSize: fontSize
+                                }}>
                                     *
                                 </Typography>
                             )}
                         </TableCell>
-                        <TableCell sx={{
-                            borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                            padding: padding,
-                        }}>
+                        <TableCell
+                            size="small"
+                            sx={{
+                                padding: padding,
+                                backgroundColor: rowBgColor,
+                                width: '30%',
+                            }}
+                        >
                             <StyledTextarea
                                 value={value}
                                 onChange={(e) => handleInputChange(field.name, e.target.value)}
                                 fullWidth
                                 multiline
-                                rows={field.rows || 3}
+                                minRows={2}
+                                maxRows={3}
                                 size="small"
                                 disabled={isLoading || saveLoading}
-                                placeholder={field.placeholder}
+                                placeholder={field.placeholder || ''}
                                 error={field.required && !value}
                                 sx={{
                                     '& .MuiInputBase-input': {
                                         fontSize: fontSize,
-                                        lineHeight: 1.5,
+                                        lineHeight: 1.4,
                                         color: TEXT_COLOR,
                                         fontWeight: 400,
+                                        padding: '6px 8px',
+                                        minHeight: 'auto'
                                     },
                                     '& .MuiOutlinedInput-notchedOutline': {
                                         borderColor: alpha(GRAY_COLOR, 0.3),
+                                        borderWidth: '1px'
                                     },
                                     '&:hover .MuiOutlinedInput-notchedOutline': {
-                                        borderColor: BLUE_COLOR,
+                                        borderColor: alpha(TEXT_COLOR, 0.8),
                                     }
                                 }}
                             />
+                        </TableCell>
+                        <TableCell
+                            size="small"
+                            sx={{
+                                padding: padding,
+                                width: '12%',
+                                textAlign: 'center',
+                                backgroundColor: rowBgColor,
+                            }}
+                        >
+                            {hasStatus ? (
+                                <Typography
+                                    sx={{
+                                        fontSize: '0.7rem',
+                                        fontWeight: 600,
+                                        color: field.status.toLowerCase() === 'deficient'
+                                            ? RED_COLOR
+                                            : cellTextColor,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px',
+                                    }}
+                                >
+                                    {field.status}
+                                </Typography>
+                            ) : (
+                                <Typography
+                                    sx={{
+                                        fontSize: '0.7rem',
+                                        fontStyle: 'italic',
+                                        color: isInspection ? 'rgba(255,255,255,0.5)' : alpha(TEXT_COLOR, 0.5),
+                                    }}
+                                >
+                                    -
+                                </Typography>
+                            )}
                         </TableCell>
                     </TableRow>
                 );
 
             default:
                 return (
-                    <TableRow key={uniqueKey} sx={{ backgroundColor: 'transparent' }}>
-                        <TableCell sx={{
-                            borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                            width: '70%',
-                            fontWeight: 600,
-                            fontSize: fontSize,
-                            color: TEXT_COLOR,
-                            verticalAlign: 'top',
-                            padding: padding,
-                        }}>
+                    <TableRow
+                        key={uniqueKey}
+                        sx={{
+                            backgroundColor: rowBgColor,
+                            '&:hover': {
+                                backgroundColor: cellHoverBgColor
+                            }
+                        }}
+                    >
+                        <TableCell
+                            size="small"
+                            sx={{
+                                width: '80%',
+                                fontWeight: 600,
+                                fontSize: fontSize,
+                                color: cellTextColor,
+                                verticalAlign: 'top',
+                                padding: padding,
+                                lineHeight: 1.2,
+                                backgroundColor: rowBgColor,
+                            }}
+                        >
                             {field.label || field.name}
                             {field.required && (
-                                <Typography component="span" sx={{ color: RED_COLOR, ml: 0.5, fontSize: fontSize }}>
+                                <Typography component="span" sx={{
+                                    color: isInspection ? 'white' : RED_COLOR,
+                                    ml: 0.5,
+                                    fontSize: fontSize
+                                }}>
                                     *
                                 </Typography>
                             )}
                         </TableCell>
-                        <TableCell sx={{
-                            borderBottom: index === formData.length - 1 ? 'none' : `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                            padding: padding,
-                        }}>
+                        <TableCell
+                            size="small"
+                            sx={{
+                                padding: padding,
+                                backgroundColor: rowBgColor,
+                                width: '30%',
+                            }}
+                        >
                             <Typography variant="body2" sx={{
-                                color: GRAY_COLOR,
+                                color: isInspection ? 'rgba(255,255,255,0.7)' : GRAY_COLOR,
                                 fontStyle: 'italic',
                                 fontSize: fontSize
                             }}>
                                 Unsupported field type: {field.type}
                             </Typography>
                         </TableCell>
+                        <TableCell
+                            size="small"
+                            sx={{
+                                padding: padding,
+                                width: '12%',
+                                textAlign: 'center',
+                                backgroundColor: rowBgColor,
+                            }}
+                        >
+                            {hasStatus ? (
+                                <Typography
+                                    sx={{
+                                        fontSize: '0.7rem',
+                                        fontWeight: 600,
+                                        color: field.status.toLowerCase() === 'deficient'
+                                            ? RED_COLOR
+                                            : cellTextColor,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px',
+                                    }}
+                                >
+                                    {field.status}
+                                </Typography>
+                            ) : (
+                                <Typography
+                                    sx={{
+                                        fontSize: '0.7rem',
+                                        fontStyle: 'italic',
+                                        color: isInspection ? 'rgba(255,255,255,0.5)' : alpha(TEXT_COLOR, 0.5),
+                                    }}
+                                >
+                                    -
+                                </Typography>
+                            )}
+                        </TableCell>
                     </TableRow>
                 );
         }
     };
 
-    const handleMoveToRecycleBin = async (id) => {
-        if (!id || !onMoveToRecycleBin) return;
-
-        try {
-            await onMoveToRecycleBin(id);
-            showSnackbar('Work order moved to recycle bin', 'success');
-            setShowFormNotFoundModal(false);
-            onClose();
-        } catch (error) {
-            showSnackbar('Failed to move to recycle bin', 'error');
-        }
-    };
-
     return (
-        <>
-            <Dialog
-                open={open}
-                onClose={onClose}
-                maxWidth="lg"
-                fullWidth
-                fullScreen={isMobile}
-                PaperProps={{
-                    sx: {
-                        bgcolor: 'white',
-                        borderRadius: isMobile ? 0 : '5px',
-                        maxHeight: isMobile ? '100%' : '90vh',
-                        width: isMobile ? '100%' : '1200px',
-                    }
-                }}
-            >
-                <DialogTitle sx={{
-                    borderBottom: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    py: 1.4,
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 1,
-                    backgroundColor: 'white',
-                }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth="lg"
+            fullWidth
+            fullScreen={isMobile}
+            PaperProps={{
+                sx: {
+                    bgcolor: 'white',
+                    borderRadius: isMobile ? 0 : '5px',
+                    maxHeight: isMobile ? '100%' : '90vh',
+                    width: isMobile ? '100%' : '1200px',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+                }
+            }}
+        >
+            <DialogTitle sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                py: 1,
+                position: 'sticky',
+                top: 0,
+                zIndex: 1,
+                backgroundColor: 'white',
+            }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    {showComponentForm ? (
+                        <IconButton
+                            size="small"
+                            onClick={() => setShowComponentForm(false)}
+                            sx={{
+                                color: GRAY_COLOR,
+                                p: 0.5,
+                                '&:hover': {
+                                    backgroundColor: alpha(GRAY_COLOR, 0.1),
+                                },
+                                flexShrink: 0
+                            }}
+                        >
+                            <ArrowLeft size={18} />
+                        </IconButton>
+                    ) : (
                         <Box sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: '8px',
+                            width: 36,
+                            height: 36,
+                            borderRadius: '6px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             backgroundColor: alpha(BLUE_COLOR, 0.1),
                             color: BLUE_COLOR,
                         }}>
-                            <Save size={20} />
+                            <Save size={18} />
                         </Box>
-                        <Box>
-                            <Typography variant="h6" sx={{
-                                fontSize: '1rem',
+                    )}
+                    <Box>
+                        <Typography variant="h6" sx={{
+                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                            color: TEXT_COLOR,
+                            mb: 0,
+                        }}>
+                            {showComponentForm ? 'Add Component' : 'Edit RME Form'}
+                        </Typography>
+                        <Typography variant="body2" sx={{
+                            fontSize: '0.7rem',
+                            color: GRAY_COLOR,
+                        }}>
+                            {workOrderData?.street || 'Work Order'}
+                        </Typography>
+                    </Box>
+                </Box>
+                <IconButton
+                    size="small"
+                    onClick={onClose}
+                    disabled={saveLoading}
+                    sx={{
+                        color: GRAY_COLOR,
+                        '&:hover': {
+                            backgroundColor: alpha(GRAY_COLOR, 0.1),
+                        },
+                    }}
+                >
+                    <X size={18} />
+                </IconButton>
+            </DialogTitle>
+
+            <DialogContent sx={{ p: 1.5, overflowY: 'auto' }}>
+                <Box sx={{ my: 1 }}>
+                    <Typography variant="h6" sx={{
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        mb: 0.5,
+                        color: TEXT_COLOR,
+                        letterSpacing: '0.3px'
+                    }}>
+                        Work Order Details
+                    </Typography>
+                    <Box sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 1.5,
+                        mb: 1.5,
+                        p: 1,
+                        backgroundColor: alpha(GRAY_COLOR, 0.03),
+                        borderRadius: '4px',
+                    }}>
+                        <Box sx={{ flex: '1 1 200px', minWidth: 0 }}>
+                            <Typography variant="body2" sx={{
+                                fontSize: '0.7rem',
+                                color: GRAY_COLOR,
+                                mb: 0.3,
+                                fontWeight: 500
+                            }}>
+                                Address
+                            </Typography>
+                            <Typography variant="body1" sx={{
+                                fontSize: '0.8rem',
                                 fontWeight: 600,
                                 color: TEXT_COLOR,
-                                mb: 0,
+                                lineHeight: 1.2
                             }}>
-                                Edit RME Form
+                                {workOrderData?.street || 'N/A'}
                             </Typography>
+                        </Box>
+                        <Box sx={{ flex: '1 1 150px', minWidth: 0 }}>
                             <Typography variant="body2" sx={{
-                                fontSize: '0.75rem',
+                                fontSize: '0.7rem',
                                 color: GRAY_COLOR,
+                                mb: 0.3,
+                                fontWeight: 500
                             }}>
-                                {workOrderData?.street || 'Work Order'}
+                                Technician
+                            </Typography>
+                            <Typography variant="body1" sx={{
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                color: TEXT_COLOR,
+                                lineHeight: 1.2
+                            }}>
+                                {workOrderData?.technician || 'N/A'}
                             </Typography>
                         </Box>
-                    </Box>
-                    <IconButton
-                        size="small"
-                        onClick={onClose}
-                        disabled={saveLoading}
-                        sx={{
-                            color: GRAY_COLOR,
-                            '&:hover': {
-                                backgroundColor: alpha(GRAY_COLOR, 0.1),
-                            },
-                        }}
-                    >
-                        <X size={20} />
-                    </IconButton>
-                </DialogTitle>
-
-                <DialogContent sx={{ p: 3, overflowY: 'auto' }}>
-                    {isLoading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
-                            <DashboardLoader />
+                        <Box sx={{ flex: '1 1 120px', minWidth: 0 }}>
+                            <Typography variant="body2" sx={{
+                                fontSize: '0.7rem',
+                                color: GRAY_COLOR,
+                                mb: 0.3,
+                                fontWeight: 500
+                            }}>
+                                Date
+                            </Typography>
+                            <Typography variant="body1" sx={{
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                color: TEXT_COLOR,
+                                lineHeight: 1.2
+                            }}>
+                                {workOrderData?.date || 'N/A'}
+                            </Typography>
                         </Box>
-                    ) : (
-                        <>
-                            <Box sx={{ my: 3 }}>
-                                <Typography variant="h6" sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 2, color: TEXT_COLOR }}>
-                                    Work Order Details
-                                </Typography>
-                                <Box sx={{
-                                    display: 'flex',
-                                    gap: 3,
-                                    flexWrap: 'wrap',
-                                    mb: 3,
-                                }}>
-                                    <Box>
-                                        <Typography variant="body2" sx={{ fontSize: '0.8rem', color: GRAY_COLOR, mb: 0.5 }}>
-                                            Address
-                                        </Typography>
-                                        <Typography variant="body1" sx={{ fontSize: '0.9rem', fontWeight: 600, color: TEXT_COLOR }}>
-                                            {workOrderData?.street || 'N/A'}
-                                        </Typography>
-                                    </Box>
-                                    <Box>
-                                        <Typography variant="body2" sx={{ fontSize: '0.8rem', color: GRAY_COLOR, mb: 0.5 }}>
-                                            Technician
-                                        </Typography>
-                                        <Typography variant="body1" sx={{ fontSize: '0.9rem', fontWeight: 600, color: TEXT_COLOR }}>
-                                            {workOrderData?.technician || 'N/A'}
-                                        </Typography>
-                                    </Box>
-                                    <Box>
-                                        <Typography variant="body2" sx={{ fontSize: '0.8rem', color: GRAY_COLOR, mb: 0.5 }}>
-                                            Date
-                                        </Typography>
-                                        <Typography variant="body1" sx={{ fontSize: '0.9rem', fontWeight: 600, color: TEXT_COLOR }}>
-                                            {workOrderData?.date || 'N/A'}
-                                        </Typography>
-                                    </Box>
-                                    <Box sx={{
-                                        ml: 'auto',
-                                        display: 'flex',
-                                        alignItems: 'flex-end',
-                                        flexDirection: 'column',
-                                        gap: 1
-                                    }}>
-                                        <UpdateButton
-                                            variant="contained"
-                                            size="small"
-                                            startIcon={<Plus size={16} />}
-                                            onClick={handleAddComponent}
+                        {!showComponentForm &&
 
-                                        >
-                                            Add Component
-                                        </UpdateButton>
-                                    </Box>
-                                </Box>
-                            </Box>
-
-                            {error && (
-                                <Alert
-                                    severity="error"
-                                    sx={{ mb: 2 }}
-                                    onClose={() => setError(null)}
+                            < Box sx={{
+                                flex: '0 0 auto',
+                                display: 'flex',
+                                alignItems: 'flex-end',
+                            }}>
+                                <GradientButton
+                                    variant="contained"
+                                    size="small"
+                                    startIcon={<Plus size={14} />}
+                                    onClick={handleAddComponent}
+                                    sx={{
+                                        fontSize: '0.75rem',
+                                        py: 0.5,
+                                        px: 1.5,
+                                        minHeight: '32px'
+                                    }}
                                 >
-                                    <Typography sx={{ fontSize: '0.85rem' }}>
-                                        {error}
-                                    </Typography>
-                                </Alert>
-                            )}
+                                    Add Component
+                                </GradientButton>
+                            </Box>
+                        }
+                    </Box>
+                </Box>
 
-                            <Typography variant="h6" sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 2, color: TEXT_COLOR }}>
-                                RME Form Fields
-                            </Typography>
+                {error && (
+                    <Alert
+                        severity="error"
+                        sx={{
+                            mb: 1,
+                            py: 0.5,
+                            '& .MuiAlert-message': {
+                                fontSize: '0.8rem',
+                                py: 0.5
+                            }
+                        }}
+                        onClose={() => setError(null)}
+                    >
+                        {error}
+                    </Alert>
+                )}
 
-                            {formData.length === 0 ? (
-                                <Box sx={{ textAlign: 'center', py: 4 }}>
-                                    <Alert severity="info" sx={{ mb: 2 }}>
-                                        <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                                            No form fields available for this work order
-                                        </Typography>
-                                    </Alert>
-                                </Box>
-                            ) : (
-                                <TableContainer sx={{
-                                    borderRadius: '2px',
-                                    border: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                                    maxHeight: '400px',
-                                    overflowY: 'auto',
-                                    '&::-webkit-scrollbar': {
-                                        width: '8px',
-                                    },
-                                    '&::-webkit-scrollbar-track': {
-                                        backgroundColor: alpha(GRAY_COLOR, 0.05),
-                                    },
-                                    '&::-webkit-scrollbar-thumb': {
-                                        backgroundColor: alpha(GRAY_COLOR, 0.2),
-                                        borderRadius: '4px',
-                                    },
+                {/* Combined loader that works for both states */}
+                {isLoading ? (
+                    <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        minHeight: '200px',
+                        width: '100%'
+                    }}>
+                        <DashboardLoader />
+                    </Box>
+                ) : (
+                    <>
+                        {showComponentForm ? (
+                            <UpdateComponent
+                                item={selectedItem}
+                                onSubmit={handleComponentFormSubmit}
+                                onClose={handleComponentFormClose}
+                                showBackButton={true}
+                            />
+                        ) : (
+                            <>
+                                <Typography variant="h6" sx={{
+                                    fontSize: '0.8rem',
+                                    fontWeight: 600,
+                                    mb: 1,
+                                    color: TEXT_COLOR,
+                                    letterSpacing: '0.3px'
                                 }}>
-                                    <Table size="small" sx={{ minWidth: 600 }}>
-                                        <TableBody>
-                                            {formData.map((field, index) => renderFormField(field, index))}
-                                        </TableBody>
-                                    </Table>
-                                </TableContainer>
-                            )}
-                        </>
-                    )}
-                </DialogContent>
+                                    RME Form Fields
+                                </Typography>
 
-                <DialogActions sx={{
-                    p: 3,
-                    pt: 2,
-                    borderTop: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                    position: 'sticky',
-                    bottom: 0,
-                    backgroundColor: 'white',
-                    zIndex: 1,
-                }}>
-                    <OutlineButton
-                        onClick={onClose}
-                        variant="outlined"
-                        color="error"
-                        size="small"
-                        disabled={saveLoading}
-                        sx={{ minWidth: 100, fontSize: '0.85rem' }}
-                    >
-                        Cancel
-                    </OutlineButton>
-                    <UpdateButton
-                        onClick={handleSubmit}
-                        variant="contained"
-                        color="primary"
-                        startIcon={saveLoading ? <CircularProgress size={16} color="inherit" /> : <Save size={18} />}
-                        disabled={isLoading || saveLoading || formData.length === 0}
-                        sx={{ minWidth: 150, fontSize: '0.85rem' }}
-                    >
-                        {saveLoading ? 'Saving...' : 'Save Changes'}
-                    </UpdateButton>
-                </DialogActions>
-            </Dialog>
+                                {formData.length === 0 ? (
+                                    <Box sx={{ textAlign: 'center', py: 3 }}>
+                                        <Alert severity="info" sx={{
+                                            mb: 2,
+                                            py: 0.5,
+                                            '& .MuiAlert-message': {
+                                                fontSize: '0.8rem',
+                                                py: 0.5
+                                            }
+                                        }}>
+                                            No form fields available for this work order
+                                        </Alert>
+                                    </Box>
+                                ) : (
+                                    <TableContainer sx={{
+                                        borderRadius: '3px',
+                                        maxHeight: '400px',
+                                        overflowY: 'auto',
+                                        '&::-webkit-scrollbar': {
+                                            width: '6px',
+                                        },
+                                        '&::-webkit-scrollbar-track': {
+                                            backgroundColor: alpha(GRAY_COLOR, 0.05),
+                                        },
+                                        '&::-webkit-scrollbar-thumb': {
+                                            backgroundColor: alpha(GRAY_COLOR, 0.3),
+                                            borderRadius: '3px',
+                                        },
+                                        '&::-webkit-scrollbar-thumb:hover': {
+                                            backgroundColor: alpha(GRAY_COLOR, 0.5),
+                                        },
+                                    }}>
+                                        <Table size="small" sx={{ minWidth: 600 }}>
+                                            <TableHead>
+                                                <TableRow>
+                                                    <TableCell
+                                                        size="small"
+                                                        sx={{
+                                                            width: '80%',
+                                                            fontWeight: 700,
+                                                            fontSize: '0.8rem',
+                                                            color: TEXT_COLOR,
+                                                            backgroundColor: alpha(GRAY_COLOR, 0.05),
+                                                            py: 1,
+                                                            padding: '8px'
+                                                        }}
+                                                    >
+                                                        Field Name
+                                                    </TableCell>
+                                                    <TableCell
+                                                        size="small"
+                                                        sx={{
+                                                            width: '30%',
+                                                            fontWeight: 700,
+                                                            fontSize: '0.8rem',
+                                                            color: TEXT_COLOR,
+                                                            backgroundColor: alpha(GRAY_COLOR, 0.05),
+                                                            py: 1,
+                                                            padding: '8px'
+                                                        }}
+                                                    >
+                                                        Value
+                                                    </TableCell>
+                                                    <TableCell
+                                                        size="small"
+                                                        sx={{
+                                                            width: '12%',
+                                                            fontWeight: 700,
+                                                            fontSize: '0.8rem',
+                                                            color: TEXT_COLOR,
+                                                            backgroundColor: alpha(GRAY_COLOR, 0.05),
+                                                            py: 1,
+                                                            padding: '8px',
+                                                            textAlign: 'center',
+                                                        }}
+                                                    >
+                                                        Status
+                                                    </TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {formData.map((field, index) => renderFormField(field, index))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                )}
+                            </>
+                        )}
+                    </>
+                )}
+            </DialogContent>
 
-            {/* UpdateDialog for adding components */}
-            {selectedItem && (
-                <UpdateDialog
-                    open={showUpdateDialog}
-                    onClose={handleUpdateDialogClose}
-                    item={selectedItem}
-                    onSubmit={handleUpdateSubmit}
-                />
-            )}
-
-            <FormNotFoundModal
-                open={showFormNotFoundModal}
-                onClose={() => {
-                    setShowFormNotFoundModal(false);
-                    onClose();
-                }}
-                workOrderData={workOrderData}
-                onMoveToRecycleBin={handleMoveToRecycleBin}
-            />
-        </>
+            {
+                !showComponentForm && (
+                    <DialogActions sx={{
+                        p: 1.5,
+                        pt: 1,
+                        position: 'sticky',
+                        bottom: 0,
+                        backgroundColor: 'white',
+                        zIndex: 1,
+                    }}>
+                        <OutlineButton
+                            onClick={onClose}
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            disabled={saveLoading}
+                            sx={{
+                                minWidth: 90,
+                                fontSize: '0.8rem',
+                                py: 0.5,
+                                px: 1.5,
+                                borderColor: alpha(GRAY_COLOR, 0.3),
+                                '&:hover': {
+                                    borderColor: RED_COLOR,
+                                }
+                            }}
+                        >
+                            Cancel
+                        </OutlineButton>
+                        <UpdateButton
+                            onClick={handleSubmit}
+                            variant="contained"
+                            color="primary"
+                            startIcon={saveLoading ? <CircularProgress size={14} color="inherit" /> : <Save size={16} />}
+                            disabled={isLoading || saveLoading || formData.length === 0}
+                            sx={{
+                                minWidth: 140,
+                                fontSize: '0.8rem',
+                                py: 0.5,
+                                px: 1.5
+                            }}
+                        >
+                            {saveLoading ? 'Saving...' : 'Save Changes'}
+                        </UpdateButton>
+                    </DialogActions>
+                )
+            }
+        </Dialog >
     );
 };
 

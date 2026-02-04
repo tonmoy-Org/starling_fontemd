@@ -19,6 +19,7 @@ const StyledSelect = styled(Select)(({ theme }) => ({
     '& .MuiSelect-select': {
         fontSize: '0.8rem',
         padding: '6px 12px',
+        backgroundColor: theme.palette.background.paper,
     },
 }));
 

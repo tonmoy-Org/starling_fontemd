@@ -15,7 +15,7 @@ const SearchInput = ({ value, onChange, placeholder, fullWidth = false, sx = {},
                     width: '100%',
                     '& .MuiInputBase-root': {
                         fontSize: '0.85rem',
-                        height: '36px',
+                        height: '34px',
                     },
                 }}
                 InputProps={{

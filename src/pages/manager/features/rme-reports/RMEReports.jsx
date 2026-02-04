@@ -418,7 +418,7 @@ const RMEReports = () => {
         }
     }, [selectedForRestore, bulkRestoreMutation]);
 
-    // Single item handlers for recycle bin - FIXED
+    // Single item handlers for recycle bin
     const handleSingleRestore = useCallback((item) => {
         setSelectedSingleItem(item);
         setSingleRestoreDialogOpen(true);
@@ -429,7 +429,7 @@ const RMEReports = () => {
         setSingleDeleteDialogOpen(true);
     }, []);
 
-    // FIXED: Single restore handler with proper modal closing
+    // Fixed: Single restore handler with proper modal closing
     const executeSingleRestore = useCallback(() => {
         if (selectedSingleItem) {
             restoreFromRecycleBinMutation.mutate(selectedSingleItem.id, {
@@ -445,7 +445,7 @@ const RMEReports = () => {
         }
     }, [selectedSingleItem, restoreFromRecycleBinMutation]);
 
-    // FIXED: Single delete handler with proper modal closing
+    // Fixed: Single delete handler with proper modal closing
     const executeSinglePermanentDelete = useCallback(() => {
         if (selectedSingleItem) {
             permanentDeleteFromRecycleBinMutation.mutate(selectedSingleItem.id, {
@@ -548,13 +548,21 @@ const RMEReports = () => {
                 <meta name="description" content="Super Admin RME Reports page" />
             </Helmet>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            {/* FIXED: Header section with better mobile layout */}
+            <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'flex-start',
+                flexDirection: isMobile ? 'column' : 'row',
+                mb: 3,
+                gap: isMobile ? 2 : 0
+            }}>
                 <Box>
                     <Typography
                         sx={{
                             fontWeight: 600,
                             mb: 0.5,
-                            fontSize: '1rem',
+                            fontSize: isMobile ? '0.95rem' : '1rem',
                             color: TEXT_COLOR,
                             letterSpacing: '-0.01em',
                         }}
@@ -565,7 +573,7 @@ const RMEReports = () => {
                         variant="body2"
                         sx={{
                             color: GRAY_COLOR,
-                            fontSize: '0.85rem',
+                            fontSize: isMobile ? '0.8rem' : '0.85rem',
                             fontWeight: 400,
                         }}
                     >
@@ -574,25 +582,28 @@ const RMEReports = () => {
                 </Box>
                 <Button
                     variant="outlined"
-                    startIcon={<History size={16} />}
+                    startIcon={<History size={isMobile ? 14 : 16} />}
                     onClick={() => setRecycleBinModalOpen(true)}
                     sx={{
                         textTransform: 'none',
-                        fontSize: '0.85rem',
+                        fontSize: isMobile ? '0.8rem' : '0.85rem',
                         fontWeight: 500,
                         color: PURPLE_COLOR,
                         borderColor: alpha(PURPLE_COLOR, 0.3),
+                        minWidth: isMobile ? 'auto' : undefined,
                         '&:hover': {
                             borderColor: PURPLE_COLOR,
                             backgroundColor: alpha(PURPLE_COLOR, 0.05),
                         },
                     }}
                 >
-                    {isMobile ? `Bin (${deletedWorkOrders.length})` : `Recycle Bin (${deletedWorkOrders.length})`}
+                    {isSmallMobile ? `Bin (${deletedWorkOrders.length})` : 
+                     isMobile ? `Recycle Bin (${deletedWorkOrders.length})` : 
+                     `Recycle Bin (${deletedWorkOrders.length})`}
                 </Button>
             </Box>
 
-            {/* Stage 1: Report Needed */}
+            {/* Stage 1: Report Needed - FIXED: Hide search when items selected */}
             <Section
                 title="Stage 1: Report Needed"
                 color={BLUE_COLOR}
@@ -600,23 +611,39 @@ const RMEReports = () => {
                 selectedCount={selectedReportNeeded.size}
                 additionalActions={
                     <Box sx={{
-                        display: 'flex',
-                        flexDirection: isMobile ? 'column' : 'row',
-                        gap: 1,
-                        width: isMobile ? '100%' : 'auto',
+                        width: '100%',
                         mt: isMobile ? 1 : 0
                     }}>
-                        <SearchInput
-                            value={searchReportNeeded}
-                            onChange={setSearchReportNeeded}
-                            placeholder="Search report needed..."
-                            fullWidth={isMobile}
-                            isMobile={isMobile}
-                        />
+                        {selectedReportNeeded.size > 0 ? (
+                            <Button
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                startIcon={<Trash2 size={16} />}
+                                onClick={() => handleSoftDelete(selectedReportNeeded, 'Report Needed')}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 500,
+                                    width: isMobile ? '100%' : 'auto',
+                                }}
+                            >
+                                {isMobile ? `Delete (${selectedReportNeeded.size})` : `Delete Selected (${selectedReportNeeded.size})`}
+                            </Button>
+                        ) : (
+                            <Box sx={{ width: '100%' }}>
+                                <SearchInput
+                                    value={searchReportNeeded}
+                                    onChange={setSearchReportNeeded}
+                                    placeholder="Search report needed..."
+                                    fullWidth
+                                    isMobile={isMobile}
+                                />
+                            </Box>
+                        )}
                     </Box>
                 }
-                showDeleteButton={selectedReportNeeded.size > 0} // REMOVED !isMobile condition
-                onDeleteAction={() => handleSoftDelete(selectedReportNeeded, 'Report Needed')}
+                showDeleteButton={false}
                 isMobile={isMobile}
             >
                 <ReportNeededTable
@@ -640,7 +667,7 @@ const RMEReports = () => {
                 />
             </Section>
 
-            {/* Stage 2: Report Submitted */}
+            {/* Stage 2: Report Submitted - FIXED: Hide search when items selected */}
             <Section
                 title="Stage 2: Report Submitted"
                 color={CYAN_COLOR}
@@ -648,23 +675,39 @@ const RMEReports = () => {
                 selectedCount={selectedReportSubmitted.size}
                 additionalActions={
                     <Box sx={{
-                        display: 'flex',
-                        flexDirection: isMobile ? 'column' : 'row',
-                        gap: 1,
-                        width: isMobile ? '100%' : 'auto',
+                        width: '100%',
                         mt: isMobile ? 1 : 0
                     }}>
-                        <SearchInput
-                            value={searchReportSubmitted}
-                            onChange={setSearchReportSubmitted}
-                            placeholder="Search report submitted..."
-                            fullWidth={isMobile}
-                            isMobile={isMobile}
-                        />
+                        {selectedReportSubmitted.size > 0 ? (
+                            <Button
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                startIcon={<Trash2 size={16} />}
+                                onClick={() => handleSoftDelete(selectedReportSubmitted, 'Report Submitted')}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 500,
+                                    width: isMobile ? '100%' : 'auto',
+                                }}
+                            >
+                                {isMobile ? `Delete (${selectedReportSubmitted.size})` : `Delete Selected (${selectedReportSubmitted.size})`}
+                            </Button>
+                        ) : (
+                            <Box sx={{ width: '100%' }}>
+                                <SearchInput
+                                    value={searchReportSubmitted}
+                                    onChange={setSearchReportSubmitted}
+                                    placeholder="Search report submitted..."
+                                    fullWidth
+                                    isMobile={isMobile}
+                                />
+                            </Box>
+                        )}
                     </Box>
                 }
-                showDeleteButton={selectedReportSubmitted.size > 0}
-                onDeleteAction={() => handleSoftDelete(selectedReportSubmitted, 'Report Submitted')}
+                showDeleteButton={false}
                 isMobile={isMobile}
             >
                 <ReportSubmittedTable
@@ -698,7 +741,7 @@ const RMEReports = () => {
                 />
             </Section>
 
-            {/* Stage 3: Holding */}
+            {/* Stage 3: Holding - FIXED: Hide search when items selected */}
             <Section
                 title="Stage 3: Holding"
                 color={ORANGE_COLOR}
@@ -706,23 +749,39 @@ const RMEReports = () => {
                 selectedCount={selectedHolding.size}
                 additionalActions={
                     <Box sx={{
-                        display: 'flex',
-                        flexDirection: isMobile ? 'column' : 'row',
-                        gap: 1,
-                        width: isMobile ? '100%' : 'auto',
+                        width: '100%',
                         mt: isMobile ? 1 : 0
                     }}>
-                        <SearchInput
-                            value={searchHolding}
-                            onChange={setSearchHolding}
-                            placeholder="Search holding..."
-                            fullWidth={isMobile}
-                            isMobile={isMobile}
-                        />
+                        {selectedHolding.size > 0 ? (
+                            <Button
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                startIcon={<Trash2 size={16} />}
+                                onClick={() => handleSoftDelete(selectedHolding, 'Holding')}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 500,
+                                    width: isMobile ? '100%' : 'auto',
+                                }}
+                            >
+                                {isMobile ? `Delete (${selectedHolding.size})` : `Delete Selected (${selectedHolding.size})`}
+                            </Button>
+                        ) : (
+                            <Box sx={{ width: '100%' }}>
+                                <SearchInput
+                                    value={searchHolding}
+                                    onChange={setSearchHolding}
+                                    placeholder="Search holding..."
+                                    fullWidth
+                                    isMobile={isMobile}
+                                />
+                            </Box>
+                        )}
                     </Box>
                 }
-                showDeleteButton={selectedHolding.size > 0}
-                onDeleteAction={() => handleSoftDelete(selectedHolding, 'Holding')}
+                showDeleteButton={false}
                 isMobile={isMobile}
             >
                 <HoldingTable
@@ -749,7 +808,7 @@ const RMEReports = () => {
                 />
             </Section>
 
-            {/* Stage 4: Finalized */}
+            {/* Stage 4: Finalized - FIXED: Hide search when items selected */}
             <Section
                 title="Stage 4: Finalized"
                 color={GREEN_COLOR}
@@ -757,23 +816,39 @@ const RMEReports = () => {
                 selectedCount={selectedFinalized.size}
                 additionalActions={
                     <Box sx={{
-                        display: 'flex',
-                        flexDirection: isMobile ? 'column' : 'row',
-                        gap: 1,
-                        width: isMobile ? '100%' : 'auto',
+                        width: '100%',
                         mt: isMobile ? 1 : 0
                     }}>
-                        <SearchInput
-                            value={searchFinalized}
-                            onChange={setSearchFinalized}
-                            placeholder="Search finalized..."
-                            fullWidth={isMobile}
-                            isMobile={isMobile}
-                        />
+                        {selectedFinalized.size > 0 ? (
+                            <Button
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                startIcon={<Trash2 size={16} />}
+                                onClick={() => handleSoftDelete(selectedFinalized, 'Finalized')}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 500,
+                                    width: isMobile ? '100%' : 'auto',
+                                }}
+                            >
+                                {isMobile ? `Delete (${selectedFinalized.size})` : `Delete Selected (${selectedFinalized.size})`}
+                            </Button>
+                        ) : (
+                            <Box sx={{ width: '100%' }}>
+                                <SearchInput
+                                    value={searchFinalized}
+                                    onChange={setSearchFinalized}
+                                    placeholder="Search finalized..."
+                                    fullWidth
+                                    isMobile={isMobile}
+                                />
+                            </Box>
+                        )}
                     </Box>
                 }
-                showDeleteButton={selectedFinalized.size > 0}
-                onDeleteAction={() => handleSoftDelete(selectedFinalized, 'Finalized')}
+                showDeleteButton={false}
                 isMobile={isMobile}
             >
                 <FinalizedTable
@@ -881,7 +956,6 @@ const RMEReports = () => {
             />
 
             {/* Single Item Dialogs for Recycle Bin */}
-            {/* Single Restore Dialog */}
             <Dialog
                 open={singleRestoreDialogOpen}
                 onClose={() => {
@@ -950,7 +1024,6 @@ const RMEReports = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* Single Delete Dialog */}
             <Dialog
                 open={singleDeleteDialogOpen}
                 onClose={() => {
