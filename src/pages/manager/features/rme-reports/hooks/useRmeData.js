@@ -30,6 +30,7 @@ export const useRmeData = () => {
         queryKey: ['rme-work-orders'],
         queryFn: async () => {
             const res = await axiosInstance.get('/work-orders-today/');
+            console.log(res.data);
             return Array.isArray(res.data) ? res.data : [];
         },
         staleTime: 1000,
@@ -96,7 +97,7 @@ export const useRmeData = () => {
 
             if (item.is_deleted) {
                 // Skip - these are handled separately
-            } else if (item.status === 'DELETED' && item.rme_completed) {
+            } else if (item.status === 'DELETED' || item.rme_completed) {
                 finalized.push({
                     ...report,
                     action: 'deleted',
@@ -108,7 +109,7 @@ export const useRmeData = () => {
                     statusColor: '#ef4444',
                     isStatusDeleted: true,
                 });
-            } else if (item.finalized_by && item.rme_completed) {
+            } else if (item.status === 'LOCKED' || item.finalized_by || item.rme_completed) {
                 finalized.push({
                     ...report,
                     action: 'locked',
