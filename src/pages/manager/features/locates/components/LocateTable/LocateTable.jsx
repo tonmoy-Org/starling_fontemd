@@ -67,7 +67,6 @@ const LocateTable = ({
     getCalledAtDate,
     isMobile = false,
 }) => {
-    const isSmallMobile = useMediaQuery('(max-width: 600px)');
     const [currentTime, setCurrentTime] = useState(() => getCurrentPacificTime());
 
     // MOVE getColumnCount HERE - BEFORE IT'S USED

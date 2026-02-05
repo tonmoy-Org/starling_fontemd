@@ -320,7 +320,7 @@ const Locates = () => {
       onSuccess: () => {
         clearSelectionRecycleBin();
         setPermanentDeleteDialogOpen(false);
-        showSnackbar(`${selectedRecycleBinItems.size} item(s) permanently deleted`, 'success');
+        showSnackbar(`${selectedRecycleBinItems.size} item(s) permanently deleted', 'success`);
       },
       onError: (err) => showSnackbar(err?.response?.data?.message || 'Bulk permanent delete failed', 'error'),
     });
@@ -510,31 +510,46 @@ const Locates = () => {
                 }}
               />
             </Typography>
-            {selectedPending.size > 0 && (
+          </Box>
+
+          {/* Show delete button when items are selected, otherwise show search bar */}
+          {selectedPending.size > 0 ? (
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              width: isMobile ? '100%' : 'auto',
+              justifyContent: 'flex-end',
+            }}>
               <OutlineButton
                 size="small"
                 onClick={() => confirmSoftDelete(selectedPending, 'Pending Locates')}
                 startIcon={<Trash2 size={14} />}
+                sx={{
+                  minWidth: 'auto',
+                  px: 1.5,
+                }}
               >
                 Delete ({selectedPending.size})
               </OutlineButton>
-            )}
-          </Box>
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.5,
-            width: isMobile ? '100%' : 'auto',
-            justifyContent: isMobile ? 'space-between' : 'flex-end',
-          }}>
-            <SearchInput
-              value={searchPending}
-              onChange={setSearchPending}
-              placeholder="Search pending locates..."
-              color={BLUE_COLOR}
-              fullWidth={isMobile}
-            />
-          </Box>
+            </Box>
+          ) : (
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              width: isMobile ? '100%' : 'auto',
+              justifyContent: isMobile ? 'space-between' : 'flex-end',
+            }}>
+              <SearchInput
+                value={searchPending}
+                onChange={setSearchPending}
+                placeholder="Search pending locates..."
+                color={BLUE_COLOR}
+                fullWidth={isMobile}
+              />
+            </Box>
+          )}
         </Box>
         <LocateTable
           items={pendingPageItems}
@@ -601,51 +616,66 @@ const Locates = () => {
                 }}
               />
             </Typography>
-            {selectedInProgress.size > 0 && (
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="contained"
-                  color="success"
-                  size="small"
-                  onClick={confirmBulkComplete}
-                  startIcon={<CheckCheck size={14} />}
-                  disabled={bulkCompleteWorkOrdersMutation.isPending}
-                  sx={{
-                    textTransform: 'none',
-                    fontSize: '0.75rem',
-                    px: 1.5,
-                    borderRadius: '2px',
-                    bgcolor: GREEN_COLOR,
-                    '&:hover': { bgcolor: alpha(GREEN_COLOR, 0.9) },
-                  }}
-                >
-                  Complete ({selectedInProgress.size})
-                </Button>
-                <OutlineButton
-                  size="small"
-                  onClick={() => confirmSoftDelete(selectedInProgress, 'In Progress')}
-                  startIcon={<Trash2 size={14} />}
-                >
-                  Delete ({selectedInProgress.size})
-                </OutlineButton>
-              </Box>
-            )}
           </Box>
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.5,
-            width: isMobile ? '100%' : 'auto',
-            justifyContent: isMobile ? 'space-between' : 'flex-end',
-          }}>
-            <SearchInput
-              value={searchInProgress}
-              onChange={setSearchInProgress}
-              placeholder="Search in progress..."
-              color={ORANGE_COLOR}
-              fullWidth={isMobile}
-            />
-          </Box>
+
+          {/* Show action buttons when items are selected, otherwise show search bar */}
+          {selectedInProgress.size > 0 ? (
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              width: isMobile ? '100%' : 'auto',
+              justifyContent: 'flex-end',
+              flexWrap: isMobile ? 'wrap' : 'nowrap',
+            }}>
+              <Button
+                variant="contained"
+                color="success"
+                size="small"
+                onClick={confirmBulkComplete}
+                startIcon={<CheckCheck size={14} />}
+                disabled={bulkCompleteWorkOrdersMutation.isPending}
+                sx={{
+                  textTransform: 'none',
+                  fontSize: '0.75rem',
+                  px: 1.5,
+                  borderRadius: '2px',
+                  bgcolor: GREEN_COLOR,
+                  minWidth: 'auto',
+                  '&:hover': { bgcolor: alpha(GREEN_COLOR, 0.9) },
+                }}
+              >
+                Complete ({selectedInProgress.size})
+              </Button>
+              <OutlineButton
+                size="small"
+                onClick={() => confirmSoftDelete(selectedInProgress, 'In Progress')}
+                startIcon={<Trash2 size={14} />}
+                sx={{
+                  minWidth: 'auto',
+                  px: 1.5,
+                }}
+              >
+                Delete ({selectedInProgress.size})
+              </OutlineButton>
+            </Box>
+          ) : (
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              width: isMobile ? '100%' : 'auto',
+              justifyContent: isMobile ? 'space-between' : 'flex-end',
+            }}>
+              <SearchInput
+                value={searchInProgress}
+                onChange={setSearchInProgress}
+                placeholder="Search in progress..."
+                color={ORANGE_COLOR}
+                fullWidth={isMobile}
+              />
+            </Box>
+          )}
         </Box>
         <LocateTable
           items={inProgressPageItems}
@@ -714,31 +744,46 @@ const Locates = () => {
                 }}
               />
             </Typography>
-            {selectedCompleted.size > 0 && (
+          </Box>
+
+          {/* Show delete button when items are selected, otherwise show search bar */}
+          {selectedCompleted.size > 0 ? (
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              width: isMobile ? '100%' : 'auto',
+              justifyContent: 'flex-end',
+            }}>
               <OutlineButton
                 size="small"
                 onClick={() => confirmSoftDelete(selectedCompleted, 'Completed')}
                 startIcon={<Trash2 size={14} />}
+                sx={{
+                  minWidth: 'auto',
+                  px: 1.5,
+                }}
               >
                 Delete ({selectedCompleted.size})
               </OutlineButton>
-            )}
-          </Box>
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.5,
-            width: isMobile ? '100%' : 'auto',
-            justifyContent: isMobile ? 'space-between' : 'flex-end',
-          }}>
-            <SearchInput
-              value={searchCompleted}
-              onChange={setSearchCompleted}
-              placeholder="Search completed..."
-              color={GREEN_COLOR}
-              fullWidth={isMobile}
-            />
-          </Box>
+            </Box>
+          ) : (
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              width: isMobile ? '100%' : 'auto',
+              justifyContent: isMobile ? 'space-between' : 'flex-end',
+            }}>
+              <SearchInput
+                value={searchCompleted}
+                onChange={setSearchCompleted}
+                placeholder="Search completed..."
+                color={GREEN_COLOR}
+                fullWidth={isMobile}
+              />
+            </Box>
+          )}
         </Box>
         <LocateTable
           items={completedPageItems}

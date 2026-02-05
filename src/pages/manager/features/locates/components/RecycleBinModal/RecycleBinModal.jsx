@@ -105,7 +105,7 @@ const RecycleBinModal = ({
         maxWidth: 1400,
         maxHeight: '90vh',
         bgcolor: 'white',
-        borderRadius: '8px',
+        borderRadius: '5px',
         boxShadow: 24,
         overflow: 'hidden',
         display: 'flex',
@@ -114,7 +114,7 @@ const RecycleBinModal = ({
       }}>
         {/* Header */}
         <Box sx={{
-          p: 2,
+          p: 1,
           borderBottom: `1px solid ${alpha(PURPLE_COLOR, 0.1)}`,
           bgcolor: alpha(PURPLE_COLOR, 0.03),
           display: 'flex',

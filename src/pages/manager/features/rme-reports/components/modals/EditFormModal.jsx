@@ -41,12 +41,13 @@ import UpdateButton from '../../../../../../components/ui/UpdateButton';
 import GradientButton from '../../../../../../components/ui/GradientButton';
 import UpdateComponent from '../modals/UpdateDialog';
 
-const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onMoveToRecycleBin }) => {
+const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [isLoading, setIsLoading] = useState(false);
     const [saveLoading, setSaveLoading] = useState(false);
     const [formData, setFormData] = useState([]);
+    const [septicComponentsData, setSepticComponentsData] = useState([]);
     const [error, setError] = useState(null);
     const [yesNoFields, setYesNoFields] = useState({});
     const [inspectionFields, setInspectionFields] = useState({});
@@ -61,9 +62,17 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
             setError(null);
             try {
                 const response = await axiosInstance.get(`/work-order-edit/${workOrderData.id}/`);
+                console.log('Full response:', response);
 
                 let serverData = response.data;
                 let formDataArray = [];
+                let componentsData = [];
+
+                // Check if septic_components_form_data exists in the response
+                if (serverData.septic_components_form_data && Array.isArray(serverData.septic_components_form_data)) {
+                    componentsData = serverData.septic_components_form_data;
+                    console.log('Septic Components Data:', componentsData);
+                }
 
                 if (serverData.data && serverData.data.form_data && Array.isArray(serverData.data.form_data)) {
                     formDataArray = serverData.data.form_data;
@@ -98,6 +107,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                     });
 
                     setFormData(processedFormData);
+                    setSepticComponentsData(componentsData);
 
                     const initialYesNoFields = {};
                     const initialInspectionFields = {};
@@ -143,6 +153,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
             } catch (error) {
                 setError(error.response?.data?.message || 'Failed to load form data');
                 setFormData([]);
+                setSepticComponentsData([]);
             } finally {
                 setIsLoading(false);
             }
@@ -160,6 +171,8 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
             technician: workOrderData?.technician || '',
             street: workOrderData?.street || '',
             date: workOrderData?.date || new Date().toISOString().split('T')[0],
+            // Pass existing components data to the UpdateComponent
+            existingComponents: septicComponentsData
         };
 
         setSelectedItem(componentData);
@@ -173,6 +186,12 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
 
     const handleComponentFormSubmit = (id, submittedData) => {
         console.log('Component submitted:', submittedData);
+
+        // Update local state with new component data if needed
+        if (submittedData && submittedData.components) {
+            setSepticComponentsData(submittedData.components);
+        }
+
         if (showSnackbar) {
             showSnackbar('Component added successfully', 'success');
         }
@@ -230,6 +249,11 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                 work_order_today: workOrderData.id,
                 updated_at: new Date().toISOString(),
             };
+
+            // If you need to save components data too, add it to payload
+            if (septicComponentsData.length > 0) {
+                payload.septic_components_form_data = septicComponentsData;
+            }
 
             const response = await axiosInstance.patch(`/work-order-edit/${workOrderData.id}/`, payload);
 
@@ -992,15 +1016,14 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
         <Dialog
             open={open}
             onClose={onClose}
-            maxWidth="lg"
+            maxWidth="xl"
             fullWidth
-            fullScreen={isMobile}
+            fullScreen
             PaperProps={{
                 sx: {
                     bgcolor: 'white',
                     borderRadius: isMobile ? 0 : '5px',
-                    maxHeight: isMobile ? '100%' : '90vh',
-                    width: isMobile ? '100%' : '1200px',
+                    maxHeight: isMobile ? '100%' : '100vh',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
                 }
             }}
@@ -1077,7 +1100,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ p: 1.5, overflowY: 'auto' }}>
+            <DialogContent sx={{ p: 1.5, overflowY: 'auto', height: '100%' }}>
                 <Box sx={{ my: 1 }}>
                     <Typography variant="h6" sx={{
                         fontSize: '0.8rem',
@@ -1213,6 +1236,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                 onSubmit={handleComponentFormSubmit}
                                 onClose={handleComponentFormClose}
                                 showBackButton={true}
+                                existingComponents={septicComponentsData}
                             />
                         ) : (
                             <>
@@ -1242,7 +1266,6 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                                 ) : (
                                     <TableContainer sx={{
                                         borderRadius: '3px',
-                                        maxHeight: '400px',
                                         overflowY: 'auto',
                                         '&::-webkit-scrollbar': {
                                             width: '6px',
@@ -1365,7 +1388,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar, onM
                     </DialogActions>
                 )
             }
-        </Dialog >
+        </Dialog>
     );
 };
 

@@ -14,7 +14,8 @@ const SearchInput = ({ value, onChange, placeholder, color, fullWidth = false, s
                 sx={{
                     width: '100%',
                     fontSize: '0.8rem',
-                    height: '36px',
+                    height: '34px',
+                    backgroundColor: 'white',
                     paddingLeft: '36px',
                     paddingRight: value ? '36px' : '16px',
                     border: `1px solid ${alpha(color, 0.2)}`,
