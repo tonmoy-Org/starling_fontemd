@@ -24,7 +24,7 @@ import {
     useMediaQuery
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { X, Save, Plus, ArrowLeft } from 'lucide-react';
+import { X, Save, ArrowLeft } from 'lucide-react';
 import axiosInstance from '../../../../../../api/axios';
 import StyledTextField from '../../../../../../components/ui/StyledTextField';
 import StyledTextarea from '../../../../../../components/ui/StyledTextarea';
@@ -38,7 +38,6 @@ import {
     RED_COLOR,
 } from '../../utils/constants';
 import UpdateButton from '../../../../../../components/ui/UpdateButton';
-import GradientButton from '../../../../../../components/ui/GradientButton';
 import UpdateComponent from '../modals/UpdateDialog';
 
 const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) => {
@@ -51,6 +50,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
     const [error, setError] = useState(null);
     const [yesNoFields, setYesNoFields] = useState({});
     const [inspectionFields, setInspectionFields] = useState({});
+    const [servicedFields, setServicedFields] = useState({});
     const [showComponentForm, setShowComponentForm] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
 
@@ -62,13 +62,11 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
             setError(null);
             try {
                 const response = await axiosInstance.get(`/work-order-edit/${workOrderData.id}/`);
-                console.log('Full response:', response);
-
+                console.log('Full response:', response.data);
                 let serverData = response.data;
                 let formDataArray = [];
                 let componentsData = [];
 
-                // Check if septic_components_form_data exists in the response
                 if (serverData.septic_components_form_data && Array.isArray(serverData.septic_components_form_data)) {
                     componentsData = serverData.septic_components_form_data;
                     console.log('Septic Components Data:', componentsData);
@@ -111,6 +109,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
 
                     const initialYesNoFields = {};
                     const initialInspectionFields = {};
+                    const initialServicedFields = {};
 
                     processedFormData.forEach((field) => {
                         if (field.type === 'select') {
@@ -130,22 +129,28 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                 cleanOptions.includes('Partially Inspected') &&
                                 cleanOptions.includes('Not Inspected');
 
+                            const isServicedField = cleanOptions.length === 3 &&
+                                cleanOptions.includes('Fully Serviced') &&
+                                cleanOptions.includes('Partially Serviced') &&
+                                cleanOptions.includes('Not Serviced');
+
                             if (isYesNoField) {
-                                initialYesNoFields[field.name] = {
-                                    isYesNo: true
-                                };
+                                initialYesNoFields[field.name] = { isYesNo: true };
                             }
 
                             if (isInspectionField) {
-                                initialInspectionFields[field.name] = {
-                                    isInspection: true
-                                };
+                                initialInspectionFields[field.name] = { isInspection: true };
+                            }
+
+                            if (isServicedField) {
+                                initialServicedFields[field.name] = { isServiced: true };
                             }
                         }
                     });
 
                     setYesNoFields(initialYesNoFields);
                     setInspectionFields(initialInspectionFields);
+                    setServicedFields(initialServicedFields);
                 } else {
                     setFormData([]);
                 }
@@ -164,21 +169,6 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
         }
     }, [workOrderData, open, showComponentForm]);
 
-    const handleAddComponent = () => {
-        const componentData = {
-            id: workOrderData?.id || '',
-            work_order_today: workOrderData?.id || '',
-            technician: workOrderData?.technician || '',
-            street: workOrderData?.street || '',
-            date: workOrderData?.date || new Date().toISOString().split('T')[0],
-            // Pass existing components data to the UpdateComponent
-            existingComponents: septicComponentsData
-        };
-
-        setSelectedItem(componentData);
-        setShowComponentForm(true);
-    };
-
     const handleComponentFormClose = () => {
         setShowComponentForm(false);
         setSelectedItem(null);
@@ -187,7 +177,6 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
     const handleComponentFormSubmit = (id, submittedData) => {
         console.log('Component submitted:', submittedData);
 
-        // Update local state with new component data if needed
         if (submittedData && submittedData.components) {
             setSepticComponentsData(submittedData.components);
         }
@@ -250,40 +239,48 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                 updated_at: new Date().toISOString(),
             };
 
-            // If you need to save components data too, add it to payload
             if (septicComponentsData.length > 0) {
                 payload.septic_components_form_data = septicComponentsData;
             }
 
-            const response = await axiosInstance.patch(`/work-order-edit/${workOrderData.id}/`, payload);
+            // 🔥 Close modal immediately after payload is ready
+            onClose();
+
+            // ℹ️ Inform user that saving is in progress
+            if (showSnackbar) {
+                showSnackbar('Saving changes… please wait', 'info');
+            }
+
+            const response = await axiosInstance.patch(
+                `/work-order-edit/${workOrderData.id}/`,
+                payload
+            );
 
             if (onSave) {
                 onSave(formDataArray, response.data);
             }
 
-            showSnackbar('Form saved successfully', 'success');
-
-            setTimeout(() => {
-                setSaveLoading(false);
-                onClose();
-            }, 1000);
+            if (showSnackbar) {
+                showSnackbar('Form saved successfully', 'success');
+            }
 
         } catch (error) {
-            setError(error.response?.data?.message || 'Failed to save form');
             if (showSnackbar) {
-                showSnackbar('Failed to save form', 'error');
+                showSnackbar(
+                    error.response?.data?.message || 'Failed to save form',
+                    'error'
+                );
             }
+        } finally {
             setSaveLoading(false);
         }
     };
 
-    const isYesNoField = (fieldName) => {
-        return yesNoFields[fieldName]?.isYesNo;
-    };
 
-    const isInspectionField = (fieldName) => {
-        return inspectionFields[fieldName]?.isInspection;
-    };
+
+    const isYesNoField = (fieldName) => yesNoFields[fieldName]?.isYesNo;
+    const isInspectionField = (fieldName) => inspectionFields[fieldName]?.isInspection;
+    const isServicedField = (fieldName) => servicedFields[fieldName]?.isServiced;
 
     const renderFormField = (field, index) => {
         const uniqueKey = `${field.name}-${index}`;
@@ -291,11 +288,12 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
         const cleanOptions = field.options ? field.options.filter(opt => opt !== '' && opt !== null && opt !== undefined) : [];
         const isYesNo = isYesNoField(field.name);
         const isInspection = isInspectionField(field.name);
+        const isServiced = isServicedField(field.name);
         const hasStatus = field.status && field.status !== '';
 
-        const rowBgColor = isInspection ? BLUE_COLOR : 'transparent';
-        const cellTextColor = isInspection ? 'white' : TEXT_COLOR;
-        const cellHoverBgColor = isInspection
+        const rowBgColor = (isInspection || isServiced) ? BLUE_COLOR : 'transparent';
+        const cellTextColor = (isInspection || isServiced) ? 'white' : TEXT_COLOR;
+        const cellHoverBgColor = (isInspection || isServiced)
             ? alpha(BLUE_COLOR, 0.9)
             : alpha(theme.palette.action.hover, 0.04);
 
@@ -329,7 +327,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                         {field.label || field.name}
                         {field.required && (
                             <Typography component="span" sx={{
-                                color: isInspection ? 'white' : RED_COLOR,
+                                color: (isInspection || isServiced) ? 'white' : RED_COLOR,
                                 ml: 0.5,
                                 fontSize: fontSize
                             }}>
@@ -372,10 +370,10 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                                 sx={{
                                                     '& .MuiSvgIcon-root': {
                                                         fontSize: '1rem',
-                                                        color: isInspection ? 'rgba(255,255,255,0.7)' : GRAY_COLOR,
+                                                        color: (isInspection || isServiced) ? 'rgba(255,255,255,0.7)' : GRAY_COLOR,
                                                     },
                                                     '&.Mui-checked .MuiSvgIcon-root': {
-                                                        color: isInspection ? 'white' : BLUE_COLOR,
+                                                        color: (isInspection || isServiced) ? 'white' : BLUE_COLOR,
                                                     },
                                                     padding: '4px'
                                                 }}
@@ -404,7 +402,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                         </Box>
                         {field.required && !value && (
                             <Typography variant="caption" sx={{
-                                color: isInspection ? 'rgba(255,255,255,0.8)' : RED_COLOR,
+                                color: (isInspection || isServiced) ? 'rgba(255,255,255,0.8)' : RED_COLOR,
                                 display: 'block',
                                 mt: 0.5,
                                 fontSize: '0.7rem',
@@ -429,7 +427,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                     fontSize: '0.7rem',
                                     fontWeight: 600,
                                     color: field.status.toLowerCase() === 'deficient'
-                                        ? (isInspection ? 'rgba(255,200,200,0.9)' : RED_COLOR)
+                                        ? ((isInspection || isServiced) ? 'rgba(255,200,200,0.9)' : RED_COLOR)
                                         : cellTextColor,
                                     textTransform: 'uppercase',
                                     letterSpacing: '0.5px',
@@ -442,7 +440,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                 sx={{
                                     fontSize: '0.7rem',
                                     fontStyle: 'italic',
-                                    color: isInspection ? 'rgba(255,255,255,0.5)' : alpha(TEXT_COLOR, 0.5),
+                                    color: (isInspection || isServiced) ? 'rgba(255,255,255,0.5)' : alpha(TEXT_COLOR, 0.5),
                                 }}
                             >
                                 -
@@ -453,7 +451,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
             );
         }
 
-        if (isInspection) {
+        if (isInspection || isServiced) {
             return (
                 <TableRow
                     key={uniqueKey}
@@ -609,7 +607,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                             {field.label || field.name}
                             {field.required && (
                                 <Typography component="span" sx={{
-                                    color: isInspection ? 'white' : RED_COLOR,
+                                    color: RED_COLOR,
                                     ml: 0.5,
                                     fontSize: fontSize
                                 }}>
@@ -693,7 +691,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                     sx={{
                                         fontSize: '0.7rem',
                                         fontStyle: 'italic',
-                                        color: isInspection ? 'rgba(255,255,255,0.5)' : alpha(TEXT_COLOR, 0.5),
+                                        color: alpha(TEXT_COLOR, 0.5),
                                     }}
                                 >
                                     -
@@ -730,7 +728,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                             {field.label || field.name}
                             {field.required && (
                                 <Typography component="span" sx={{
-                                    color: isInspection ? 'white' : RED_COLOR,
+                                    color: RED_COLOR,
                                     ml: 0.5,
                                     fontSize: fontSize
                                 }}>
@@ -800,7 +798,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                     sx={{
                                         fontSize: '0.7rem',
                                         fontStyle: 'italic',
-                                        color: isInspection ? 'rgba(255,255,255,0.5)' : alpha(TEXT_COLOR, 0.5),
+                                        color: alpha(TEXT_COLOR, 0.5),
                                     }}
                                 >
                                     -
@@ -837,7 +835,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                             {field.label || field.name}
                             {field.required && (
                                 <Typography component="span" sx={{
-                                    color: isInspection ? 'white' : RED_COLOR,
+                                    color: RED_COLOR,
                                     ml: 0.5,
                                     fontSize: fontSize
                                 }}>
@@ -911,7 +909,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                     sx={{
                                         fontSize: '0.7rem',
                                         fontStyle: 'italic',
-                                        color: isInspection ? 'rgba(255,255,255,0.5)' : alpha(TEXT_COLOR, 0.5),
+                                        color: alpha(TEXT_COLOR, 0.5),
                                     }}
                                 >
                                     -
@@ -948,7 +946,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                             {field.label || field.name}
                             {field.required && (
                                 <Typography component="span" sx={{
-                                    color: isInspection ? 'white' : RED_COLOR,
+                                    color: RED_COLOR,
                                     ml: 0.5,
                                     fontSize: fontSize
                                 }}>
@@ -965,7 +963,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                             }}
                         >
                             <Typography variant="body2" sx={{
-                                color: isInspection ? 'rgba(255,255,255,0.7)' : GRAY_COLOR,
+                                color: GRAY_COLOR,
                                 fontStyle: 'italic',
                                 fontSize: fontSize
                             }}>
@@ -1000,7 +998,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                     sx={{
                                         fontSize: '0.7rem',
                                         fontStyle: 'italic',
-                                        color: isInspection ? 'rgba(255,255,255,0.5)' : alpha(TEXT_COLOR, 0.5),
+                                        color: alpha(TEXT_COLOR, 0.5),
                                     }}
                                 >
                                     -
@@ -1018,12 +1016,12 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
             onClose={onClose}
             maxWidth="xl"
             fullWidth
-            fullScreen
+            fullScreen={isMobile}
             PaperProps={{
                 sx: {
                     bgcolor: 'white',
                     borderRadius: isMobile ? 0 : '5px',
-                    maxHeight: isMobile ? '100%' : '100vh',
+                    maxHeight: isMobile ? '100%' : '90vh',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
                 }
             }}
@@ -1174,29 +1172,6 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                 {workOrderData?.date || 'N/A'}
                             </Typography>
                         </Box>
-                        {/* {!showComponentForm &&
-
-                            < Box sx={{
-                                flex: '0 0 auto',
-                                display: 'flex',
-                                alignItems: 'flex-end',
-                            }}>
-                                <GradientButton
-                                    variant="contained"
-                                    size="small"
-                                    startIcon={<Plus size={14} />}
-                                    onClick={handleAddComponent}
-                                    sx={{
-                                        fontSize: '0.75rem',
-                                        py: 0.5,
-                                        px: 1.5,
-                                        minHeight: '32px'
-                                    }}
-                                >
-                                    Add Component
-                                </GradientButton>
-                            </Box>
-                        } */}
                     </Box>
                 </Box>
 
@@ -1217,7 +1192,6 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                     </Alert>
                 )}
 
-                {/* Combined loader that works for both states */}
                 {isLoading ? (
                     <Box sx={{
                         display: 'flex',
@@ -1341,53 +1315,51 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                 )}
             </DialogContent>
 
-            {
-                !showComponentForm && (
-                    <DialogActions sx={{
-                        p: 1.5,
-                        pt: 1,
-                        position: 'sticky',
-                        bottom: 0,
-                        backgroundColor: 'white',
-                        zIndex: 1,
-                    }}>
-                        <OutlineButton
-                            onClick={onClose}
-                            variant="outlined"
-                            color="error"
-                            size="small"
-                            disabled={saveLoading}
-                            sx={{
-                                minWidth: 90,
-                                fontSize: '0.8rem',
-                                py: 0.5,
-                                px: 1.5,
-                                borderColor: alpha(GRAY_COLOR, 0.3),
-                                '&:hover': {
-                                    borderColor: RED_COLOR,
-                                }
-                            }}
-                        >
-                            Cancel
-                        </OutlineButton>
-                        <UpdateButton
-                            onClick={handleSubmit}
-                            variant="contained"
-                            color="primary"
-                            startIcon={saveLoading ? <CircularProgress size={14} color="inherit" /> : <Save size={16} />}
-                            disabled={isLoading || saveLoading || formData.length === 0}
-                            sx={{
-                                minWidth: 140,
-                                fontSize: '0.8rem',
-                                py: 0.5,
-                                px: 1.5
-                            }}
-                        >
-                            {saveLoading ? 'Saving...' : 'Save Changes'}
-                        </UpdateButton>
-                    </DialogActions>
-                )
-            }
+            {!showComponentForm && (
+                <DialogActions sx={{
+                    p: 1.5,
+                    pt: 1,
+                    position: 'sticky',
+                    bottom: 0,
+                    backgroundColor: 'white',
+                    zIndex: 1,
+                }}>
+                    <OutlineButton
+                        onClick={onClose}
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        disabled={saveLoading}
+                        sx={{
+                            minWidth: 90,
+                            fontSize: '0.8rem',
+                            py: 0.5,
+                            px: 1.5,
+                            borderColor: alpha(GRAY_COLOR, 0.3),
+                            '&:hover': {
+                                borderColor: RED_COLOR,
+                            }
+                        }}
+                    >
+                        Cancel
+                    </OutlineButton>
+                    <UpdateButton
+                        onClick={handleSubmit}
+                        variant="contained"
+                        color="primary"
+                        startIcon={saveLoading ? <CircularProgress size={14} color="inherit" /> : <Save size={16} />}
+                        disabled={isLoading || saveLoading || formData.length === 0}
+                        sx={{
+                            minWidth: 140,
+                            fontSize: '0.8rem',
+                            py: 0.5,
+                            px: 1.5
+                        }}
+                    >
+                        {saveLoading ? 'Saving...' : 'Save Changes'}
+                    </UpdateButton>
+                </DialogActions>
+            )}
         </Dialog>
     );
 };

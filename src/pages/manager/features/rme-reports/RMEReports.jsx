@@ -234,15 +234,27 @@ const RMEReports = () => {
 
     const confirmLockedAction = useCallback(async () => {
         const { itemId } = lockedConfirmModal;
-        setLockedConfirmModal(prev => ({ ...prev, isLoading: true }));
+
+        // 🔥 CLOSE MODAL IMMEDIATELY
+        setLockedConfirmModal({
+            open: false,
+            itemId: null,
+            itemData: null,
+            isLoading: false,
+        });
+
+        // ℹ️ Show processing info
+        showSnackbar('Locking report… please wait', 'info');
 
         try {
             await lockReportMutation.mutateAsync({ id: itemId });
-            setLockedConfirmModal({ open: false, itemId: null, itemData: null, isLoading: false });
+
+            showSnackbar('Report locked successfully', 'success');
         } catch (error) {
-            setLockedConfirmModal(prev => ({ ...prev, isLoading: false }));
+            showSnackbar('Failed to lock report', 'error');
         }
-    }, [lockedConfirmModal, lockReportMutation]);
+    }, [lockedConfirmModal, lockReportMutation, showSnackbar]);
+
 
     const handleDiscardClick = useCallback((id, itemData) => {
         setDiscardConfirmModal({
@@ -255,15 +267,27 @@ const RMEReports = () => {
 
     const confirmDiscardAction = useCallback(async () => {
         const { itemId } = discardConfirmModal;
-        setDiscardConfirmModal(prev => ({ ...prev, isLoading: true }));
+
+        // 🔥 CLOSE MODAL IMMEDIATELY
+        setDiscardConfirmModal({
+            open: false,
+            itemId: null,
+            itemData: null,
+            isLoading: false,
+        });
+
+        // ℹ️ Show processing info
+        showSnackbar('Discarding report… please wait', 'info');
 
         try {
             await deleteReportMutation.mutateAsync({ id: itemId });
-            setDiscardConfirmModal({ open: false, itemId: null, itemData: null, isLoading: false });
+
+            showSnackbar('Report discarded successfully', 'success');
         } catch (error) {
-            setDiscardConfirmModal(prev => ({ ...prev, isLoading: false }));
+            showSnackbar('Failed to discard report', 'error');
         }
-    }, [discardConfirmModal, deleteReportMutation]);
+    }, [discardConfirmModal, deleteReportMutation, showSnackbar]);
+
 
     const handleWaitToLockToggle = useCallback((id) => {
         setWaitToLockAction(prev => {
@@ -549,9 +573,9 @@ const RMEReports = () => {
             </Helmet>
 
             {/* FIXED: Header section with better mobile layout */}
-            <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
+            <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
                 alignItems: 'flex-start',
                 flexDirection: isMobile ? 'column' : 'row',
                 mb: 3,
@@ -597,9 +621,9 @@ const RMEReports = () => {
                         },
                     }}
                 >
-                    {isSmallMobile ? `Bin (${deletedWorkOrders.length})` : 
-                     isMobile ? `Recycle Bin (${deletedWorkOrders.length})` : 
-                     `Recycle Bin (${deletedWorkOrders.length})`}
+                    {isSmallMobile ? `Bin (${deletedWorkOrders.length})` :
+                        isMobile ? `Recycle Bin (${deletedWorkOrders.length})` :
+                            `Recycle Bin (${deletedWorkOrders.length})`}
                 </Button>
             </Box>
 
