@@ -528,7 +528,7 @@ const SearchBar = React.memo(({
                     className={showResults ? 'visible' : ''}
                     sx={isMobileView ? {
                         position: 'fixed',
-                        top: '56px',
+                        top: '75px',
                         left: 0,
                         right: 0,
                         maxHeight: 'calc(100vh - 56px)',

@@ -19,7 +19,6 @@ import { Overview } from '../pages/superadmin/pages/Overview';
 import { Dispatch } from '../pages/superadmin/pages/Dispatch';
 import { LogisticsMap } from '../pages/superadmin/pages/LogisticsMap';
 import { Installations } from '../pages/superadmin/pages/Installations';
-import { Repairs } from '../pages/superadmin/pages/Repairs';
 import { Scheduling } from '../pages/superadmin/pages/Scheduling';
 import { Performance } from '../pages/superadmin/pages/Performance';
 import { Quotes } from '../pages/superadmin/pages/Quotes';
@@ -56,6 +55,7 @@ import { VehiclesPhotos } from '../pages/tech/pages/VehiclesPhotos';
 import { VehiclesInventory } from '../pages/tech/pages/VehiclesInventory';
 import { TeamDailyChecklist } from '../pages/tech/pages/TeamDailyChecklist';
 import { ResourcesLibrary } from '../pages/tech/pages/ResourcesLibrary';
+import Repairs from '../pages/superadmin/Repairs/Repairs';
 
 export const AppRoutes = () => {
   const { user } = useAuth();

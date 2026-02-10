@@ -41,13 +41,16 @@ export const calculateElapsedTime = (createdDate) => {
         if (diffHours < 1) {
             const diffMinutes = Math.floor(diffMs / (1000 * 60));
             return `${diffMinutes} MIN${diffMinutes !== 1 ? 'S' : ''}`;
+        } else if (diffHours < 128) {
+            return `${diffHours} HR${diffHours !== 1 ? 'S' : ''}`;
+        } else {
+            return created.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
         }
-
-        return `${diffHours} HR${diffHours !== 1 ? 'S' : ''}`;
     } catch {
         return '—';
     }
 };
+
 
 export const getElapsedColor = (createdDate) => {
     if (!createdDate) return GRAY_COLOR;
