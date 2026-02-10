@@ -30,26 +30,30 @@ export const formatDateTimeWithTZ = (dateString) => {
 
 export const calculateElapsedTime = (createdDate) => {
     if (!createdDate) return '—';
+
     try {
         const now = new Date();
         const created = new Date(createdDate);
         if (isNaN(created)) return '—';
 
         const diffMs = now - created;
+
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
         if (diffHours < 1) {
-            const diffMinutes = Math.floor(diffMs / (1000 * 60));
             return `${diffMinutes} MIN${diffMinutes !== 1 ? 'S' : ''}`;
         } else if (diffHours < 128) {
             return `${diffHours} HR${diffHours !== 1 ? 'S' : ''}`;
         } else {
-            return created.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            return `${diffDays} DAY${diffDays !== 1 ? 'S' : ''}`;
         }
     } catch {
         return '—';
     }
 };
+
 
 
 export const getElapsedColor = (createdDate) => {
