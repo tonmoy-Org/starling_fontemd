@@ -218,27 +218,27 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
                     icon: <LayoutDashboard size={18} />,
                     path: '/super-admin-dashboard',
                 },
-                {
-                    text: 'Overview',
-                    icon: <BarChart3 size={18} />,
-                    path: '/super-admin-dashboard/overview',
-                },
+                // {
+                //     text: 'Overview',
+                //     icon: <BarChart3 size={18} />,
+                //     path: '/super-admin-dashboard/overview',
+                // },
                 {
                     text: 'Operations',
                     icon: <Briefcase size={18} />,
                     isExpandable: true,
                     sectionId: 'operations-subsection',
                     subItems: [
-                        {
-                            text: 'Dispatch',
-                            icon: <Truck size={16} />,
-                            path: '/super-admin-dashboard/dispatch',
-                        },
-                        {
-                            text: 'Logistics Map',
-                            icon: <Map size={16} />,
-                            path: '/super-admin-dashboard/logistics-map',
-                        },
+                        // {
+                        //     text: 'Dispatch',
+                        //     icon: <Truck size={16} />,
+                        //     path: '/super-admin-dashboard/dispatch',
+                        // },
+                        // {
+                        //     text: 'Logistics Map',
+                        //     icon: <Map size={16} />,
+                        //     path: '/super-admin-dashboard/logistics-map',
+                        // },
                         {
                             text: 'Locates',
                             icon: <MapPin size={16} />,
@@ -252,13 +252,13 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
                     isExpandable: true,
                     sectionId: 'workorders-subsection',
                     subItems: [
+                        // {
+                        //     text: 'Installations',
+                        //     icon: <Settings size={16} />,
+                        //     path: '/super-admin-dashboard/installations',
+                        // },
                         {
-                            text: 'Installations',
-                            icon: <Settings size={16} />,
-                            path: '/super-admin-dashboard/installations',
-                        },
-                        {
-                            text: 'Repairs',
+                            text: 'Tank Repairs',
                             icon: <Wrench size={16} />,
                             path: '/super-admin-dashboard/repairs',
                         },
@@ -289,36 +289,36 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
                             icon: <Users size={16} />,
                             path: '/super-admin-dashboard/all-technicians',
                         },
-                        {
-                            text: 'Scheduling',
-                            icon: <Calendar size={16} />,
-                            path: '/super-admin-dashboard/scheduling',
-                        },
-                        {
-                            text: 'Performance',
-                            icon: <Activity size={16} />,
-                            path: '/super-admin-dashboard/performance',
-                        },
+                        // {
+                        //     text: 'Scheduling',
+                        //     icon: <Calendar size={16} />,
+                        //     path: '/super-admin-dashboard/scheduling',
+                        // },
+                        // {
+                        //     text: 'Performance',
+                        //     icon: <Activity size={16} />,
+                        //     path: '/super-admin-dashboard/performance',
+                        // },
                     ],
                 },
-                {
-                    text: 'Sales',
-                    icon: <ClipboardList size={18} />,
-                    isExpandable: true,
-                    sectionId: 'sales-subsection',
-                    subItems: [
-                        {
-                            text: 'Quotes',
-                            icon: <Quote size={16} />,
-                            path: '/super-admin-dashboard/quotes',
-                        },
-                        {
-                            text: 'Leads',
-                            icon: <Target size={16} />,
-                            path: '/super-admin-dashboard/leads',
-                        },
-                    ],
-                },
+                // {
+                //     text: 'Sales',
+                //     icon: <ClipboardList size={18} />,
+                //     isExpandable: true,
+                //     sectionId: 'sales-subsection',
+                //     subItems: [
+                //         {
+                //             text: 'Quotes',
+                //             icon: <Quote size={16} />,
+                //             path: '/super-admin-dashboard/quotes',
+                //         },
+                //         {
+                //             text: 'Leads',
+                //             icon: <Target size={16} />,
+                //             path: '/super-admin-dashboard/leads',
+                //         },
+                //     ],
+                // },
             ],
         },
 
@@ -328,24 +328,24 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
             sectionId: 'system-section',
             isExpandable: true,
             items: [
-                {
-                    text: 'Assets',
-                    icon: <Database size={18} />,
-                    isExpandable: true,
-                    sectionId: 'assets-subsection',
-                    subItems: [
-                        {
-                            text: 'Vehicles & Tools',
-                            icon: <TruckIcon size={16} />,
-                            path: '/super-admin-dashboard/vehicles-tools',
-                        },
-                        {
-                            text: 'Inventory',
-                            icon: <Package size={16} />,
-                            path: '/super-admin-dashboard/inventory',
-                        },
-                    ],
-                },
+                // {
+                //     text: 'Assets',
+                //     icon: <Database size={18} />,
+                //     isExpandable: true,
+                //     sectionId: 'assets-subsection',
+                //     subItems: [
+                //         {
+                //             text: 'Vehicles & Tools',
+                //             icon: <TruckIcon size={16} />,
+                //             path: '/super-admin-dashboard/vehicles-tools',
+                //         },
+                //         {
+                //             text: 'Inventory',
+                //             icon: <Package size={16} />,
+                //             path: '/super-admin-dashboard/inventory',
+                //         },
+                //     ],
+                // },
                 {
                     text: 'Reports',
                     icon: <SignalHigh size={18} />,
@@ -363,53 +363,53 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
                                     icon: <ClipboardCheck size={14} />,
                                     path: '/super-admin-dashboard/health-department-report-tracking/rme',
                                 },
-                                {
-                                    text: 'RSS Reports',
-                                    icon: <Activity size={14} />,
-                                    path: '/super-admin-dashboard/health-department-report-tracking/rss',
-                                },
-                                {
-                                    text: 'TOS Reports',
-                                    icon: <BarChart3 size={14} />,
-                                    path: '/super-admin-dashboard/health-department-report-tracking/tos',
-                                },
+                                // {
+                                //     text: 'RSS Reports',
+                                //     icon: <Activity size={14} />,
+                                //     path: '/super-admin-dashboard/health-department-report-tracking/rss',
+                                // },
+                                // {
+                                //     text: 'TOS Reports',
+                                //     icon: <BarChart3 size={14} />,
+                                //     path: '/super-admin-dashboard/health-department-report-tracking/tos',
+                                // },
                             ],
                         },
-                        {
-                            text: 'Risk Management',
-                            icon: <Shield size={16} />,
-                            path: '/super-admin-dashboard/risk-management',
-                        },
-                        {
-                            text: 'Scorecards',
-                            icon: <Award size={16} />,
-                            path: '/super-admin-dashboard/scorecards',
-                        },
+                        // {
+                        //     text: 'Risk Management',
+                        //     icon: <Shield size={16} />,
+                        //     path: '/super-admin-dashboard/risk-management',
+                        // },
+                        // {
+                        //     text: 'Scorecards',
+                        //     icon: <Award size={16} />,
+                        //     path: '/super-admin-dashboard/scorecards',
+                        // },
                     ],
                 },
-                {
-                    text: 'Forms',
-                    icon: <FileText size={18} />,
-                    isExpandable: true,
-                    sectionId: 'forms-subsection',
-                    subItems: [
-                        {
-                            text: 'Forms',
-                            icon: <FileEdit size={16} />,
-                            path: '/super-admin-dashboard/forms',
-                        },
-                        {
-                            text: 'Review Forms',
-                            icon: <ClipboardCheck size={16} />,
-                            path: '/super-admin-dashboard/review-forms',
-                        },
-                        {
-                            text: 'Approvals',
-                            icon: <CheckSquare size={16} />,
-                            path: '/super-admin-dashboard/approvals',
-                        },
-                    ],
-                }
+                // {
+                //     text: 'Forms',
+                //     icon: <FileText size={18} />,
+                //     isExpandable: true,
+                //     sectionId: 'forms-subsection',
+                //     subItems: [
+                //         {
+                //             text: 'Forms',
+                //             icon: <FileEdit size={16} />,
+                //             path: '/super-admin-dashboard/forms',
+                //         },
+                //         {
+                //             text: 'Review Forms',
+                //             icon: <ClipboardCheck size={16} />,
+                //             path: '/super-admin-dashboard/review-forms',
+                //         },
+                //         {
+                //             text: 'Approvals',
+                //             icon: <CheckSquare size={16} />,
+                //             path: '/super-admin-dashboard/approvals',
+                //         },
+                //     ],
+                // }
             ],
         },
 
@@ -424,21 +424,21 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
                     icon: <Search size={18} />,
                     path: 'https://dashboard.sterlingsepticandplumbing.com/lookup',
                 },
-                {
-                    text: 'Training',
-                    icon: <GraduationCap size={18} />,
-                    path: '/super-admin-dashboard/training',
-                },
-                {
-                    text: 'Tasks',
-                    icon: <ClipboardList size={18} />,
-                    path: '/super-admin-dashboard/tasks',
-                },
-                {
-                    text: 'Library',
-                    icon: <LibraryBig size={18} />,
-                    path: '/super-admin-dashboard/library',
-                }
+                // {
+                //     text: 'Training',
+                //     icon: <GraduationCap size={18} />,
+                //     path: '/super-admin-dashboard/training',
+                // },
+                // {
+                //     text: 'Tasks',
+                //     icon: <ClipboardList size={18} />,
+                //     path: '/super-admin-dashboard/tasks',
+                // },
+                // {
+                //     text: 'Library',
+                //     icon: <LibraryBig size={18} />,
+                //     path: '/super-admin-dashboard/library',
+                // }
             ],
         },
     ];

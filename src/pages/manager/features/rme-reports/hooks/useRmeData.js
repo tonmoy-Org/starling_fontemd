@@ -8,7 +8,7 @@ import {
     getElapsedColor,
     getTechnicianInitial,
     formatDateTimeWithTZ,
-    formatTime 
+    formatTime
 } from '../utils/formatters';
 
 export const useRmeData = () => {
@@ -30,7 +30,7 @@ export const useRmeData = () => {
         queryKey: ['rme-work-orders'],
         queryFn: async () => {
             const res = await axiosInstance.get('/work-orders-today/');
-            return Array.isArray(res.data) ? res.data : [];
+            return Array.isArray(res.data) ? res.data.slice().reverse() : [];
         },
         staleTime: 1000,
         refetchInterval: 30000,
