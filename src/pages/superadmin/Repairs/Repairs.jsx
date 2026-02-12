@@ -93,7 +93,7 @@ const REPAIR_STAGES = [
   { id: 'creation', name: '1: Job Creation', color: GRAY_COLOR },
   { id: 'moreWork', name: '1B: More Work Needed', color: ORANGE_COLOR },
   { id: 'permitting', name: '2: Permitting', color: BLUE_COLOR },
-  { id: 'approved', name: '3: Approved - In Progress', color: YELLOW_COLOR },
+  { id: 'approved', name: '3: Approved', color: YELLOW_COLOR },
   { id: 'testing', name: '4: Testing', color: TEAL_COLOR },
   { id: 'completed', name: '5: Project Complete', color: GREEN_COLOR }
 ];
@@ -1964,7 +1964,7 @@ const Repairs = () => {
               fontSize: isMobileView ? '0.65rem' : '0.75rem',
               fontWeight: 500
             }}>
-              {item.readyToSchedule ? 'APPROVED – READY TO SCHEDULE' : 'Awaiting Approval'}
+              {item.readyToSchedule ? 'APPROVED – READY TO SCHEDULE' : 'Approved - In Progress'}
             </Typography>
           </Stack>
         );
