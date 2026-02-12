@@ -33,7 +33,6 @@ const ReportNeededTable = ({
 }) => {
     const allSelectedOnPage = items.length > 0 && items.every(item => selected.has(item.id));
     const someSelectedOnPage = items.length > 0 && items.some(item => selected.has(item.id));
-    console.log('items', items)
 
     return (
         <TableContainer sx={{

@@ -242,10 +242,10 @@ const DeleteConfirmationModal = ({
       fullWidth
       fullScreen={isMobile}
       PaperProps={{
-        sx: isMobile ? { 
-          margin: 0, 
-          maxHeight: '100%', 
-          position: 'absolute', 
+        sx: isMobile ? {
+          margin: 0,
+          maxHeight: '100%',
+          position: 'absolute',
           bottom: 0,
           borderBottomLeftRadius: 0,
           borderBottomRightRadius: 0
@@ -276,8 +276,8 @@ const DeleteConfirmationModal = ({
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: isMobile ? 2 : 3, py: 2, flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 1 : 0 }}>
-        <OutlineButton 
-          onClick={onClose} 
+        <OutlineButton
+          onClick={onClose}
           fullWidth={isMobile}
           sx={{ fontSize: isMobile ? '0.8rem' : '0.85rem' }}
         >
@@ -2336,7 +2336,7 @@ const Repairs = () => {
                     fontWeight: 600,
                     py: isMobileView ? 1 : 1.5,
                   }}>
-                    Status Details
+                    Next Steps
                   </TableCell>
                   <TableCell sx={{
                     color: TEXT_COLOR,
@@ -2582,11 +2582,11 @@ const Repairs = () => {
         <title>Tank Repairs | Sterling Septic & Plumbing LLC</title>
         <meta name="description" content="Manage tank repair process and tracking" />
       </Helmet>
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: isMobile ? 'column' : 'row', 
-        justifyContent: 'space-between', 
-        alignItems: isMobile ? 'flex-start' : 'center', 
+      <Box sx={{
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        justifyContent: 'space-between',
+        alignItems: isMobile ? 'flex-start' : 'center',
         mb: isMobile ? 2 : 3,
         gap: isMobile ? 2 : 0
       }}>
@@ -2613,9 +2613,9 @@ const Repairs = () => {
             Track and manage tank repairs through each stage of the process
           </Typography>
         </Box>
-        <Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
           gap: isMobile ? 1 : 2,
           width: isMobile ? '100%' : 'auto',
           flexWrap: isMobile ? 'wrap' : 'nowrap'
@@ -2657,13 +2657,13 @@ const Repairs = () => {
         </Box>
       </Box>
       {renderTopDashboard()}
-      <Paper sx={{ 
-        p: isMobile ? 1.5 : 2, 
-        mb: isMobile ? 2 : 3, 
-        display: 'flex', 
+      <Paper sx={{
+        p: isMobile ? 1.5 : 2,
+        mb: isMobile ? 2 : 3,
+        display: 'flex',
         flexDirection: isMobile ? 'column' : 'row',
-        gap: isMobile ? 2 : 2, 
-        alignItems: isMobile ? 'stretch' : 'center' 
+        gap: isMobile ? 2 : 2,
+        alignItems: isMobile ? 'stretch' : 'center'
       }}>
         <StyledTextField
           size="small"
@@ -2692,11 +2692,11 @@ const Repairs = () => {
           }}
         />
         <Box sx={{ flex: 1 }} />
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: isMobile ? 'column' : 'row', 
-          alignItems: isMobile ? 'flex-start' : 'center', 
-          gap: isMobile ? 1 : 2 
+        <Box sx={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: isMobile ? 'flex-start' : 'center',
+          gap: isMobile ? 1 : 2
         }}>
           <Typography variant="body2" sx={{ color: GRAY_COLOR, fontSize: isMobile ? '0.75rem' : '0.85rem' }}>
             Filter by stage:
@@ -2764,9 +2764,9 @@ const Repairs = () => {
         fullWidth
         fullScreen={isMobile}
         PaperProps={{
-          sx: isMobile ? { 
-            margin: 0, 
-            maxHeight: '100%', 
+          sx: isMobile ? {
+            margin: 0,
+            maxHeight: '100%',
             borderRadius: 0
           } : {}
         }}
@@ -2923,14 +2923,14 @@ const Repairs = () => {
                 View As-Built Requirements
               </OutlineButton>
             </DialogContent>
-            <DialogActions sx={{ 
-              px: isMobile ? 2 : 3, 
-              py: 2, 
-              flexDirection: isMobile ? 'column' : 'row', 
-              gap: isMobile ? 1 : 0 
+            <DialogActions sx={{
+              px: isMobile ? 2 : 3,
+              py: 2,
+              flexDirection: isMobile ? 'column' : 'row',
+              gap: isMobile ? 1 : 0
             }}>
-              <OutlineButton 
-                onClick={() => setDetailsDialogOpen(false)} 
+              <OutlineButton
+                onClick={() => setDetailsDialogOpen(false)}
                 fullWidth={isMobile}
                 sx={{ fontSize: isMobile ? '0.8rem' : '0.85rem' }}
               >
@@ -2971,9 +2971,9 @@ const Repairs = () => {
         fullWidth
         fullScreen={isMobile}
         PaperProps={{
-          sx: isMobile ? { 
-            margin: 0, 
-            maxHeight: '100%', 
+          sx: isMobile ? {
+            margin: 0,
+            maxHeight: '100%',
             borderRadius: 0
           } : {}
         }}
@@ -2995,17 +2995,17 @@ const Repairs = () => {
             <DialogContent dividers sx={{ px: isMobile ? 2 : 3 }}>
               {renderStageContent(activeStep, 'edit')}
             </DialogContent>
-            <DialogActions sx={{ 
-              justifyContent: 'space-between', 
-              px: isMobile ? 2 : 3, 
+            <DialogActions sx={{
+              justifyContent: 'space-between',
+              px: isMobile ? 2 : 3,
               py: 2,
               flexDirection: isMobile ? 'column' : 'row',
               gap: isMobile ? 1 : 0
             }}>
               <Box sx={{ width: isMobile ? '100%' : 'auto' }}>
                 {activeStep > 0 && (
-                  <OutlineButton 
-                    onClick={() => setActiveStep(prev => prev - 1)} 
+                  <OutlineButton
+                    onClick={() => setActiveStep(prev => prev - 1)}
                     fullWidth={isMobile}
                     sx={{ fontSize: isMobile ? '0.8rem' : '0.85rem' }}
                   >
@@ -3013,14 +3013,14 @@ const Repairs = () => {
                   </OutlineButton>
                 )}
               </Box>
-              <Box sx={{ 
-                display: 'flex', 
-                gap: 1, 
+              <Box sx={{
+                display: 'flex',
+                gap: 1,
                 width: isMobile ? '100%' : 'auto',
-                flexDirection: isMobile ? 'column' : 'row' 
+                flexDirection: isMobile ? 'column' : 'row'
               }}>
-                <OutlineButton 
-                  onClick={() => setEditDialogOpen(false)} 
+                <OutlineButton
+                  onClick={() => setEditDialogOpen(false)}
                   fullWidth={isMobile}
                   sx={{ fontSize: isMobile ? '0.8rem' : '0.85rem' }}
                 >
@@ -3036,9 +3036,9 @@ const Repairs = () => {
                     Next Stage
                   </GradientButton>
                 ) : (
-                  <UpdateButton 
-                    variant="contained" 
-                    onClick={handleSaveRepair} 
+                  <UpdateButton
+                    variant="contained"
+                    onClick={handleSaveRepair}
                     fullWidth={isMobile}
                     sx={{ fontSize: isMobile ? '0.8rem' : '0.85rem' }}
                   >
@@ -3057,9 +3057,9 @@ const Repairs = () => {
         fullWidth
         fullScreen={isMobile}
         PaperProps={{
-          sx: isMobile ? { 
-            margin: 0, 
-            maxHeight: '100%', 
+          sx: isMobile ? {
+            margin: 0,
+            maxHeight: '100%',
             borderRadius: 0
           } : {}
         }}
@@ -3101,17 +3101,17 @@ const Repairs = () => {
               renderStageContent(activeStep - 1, 'new')
             )}
           </DialogContent>
-          <DialogActions sx={{ 
-            justifyContent: 'space-between', 
-            px: isMobile ? 2 : 3, 
+          <DialogActions sx={{
+            justifyContent: 'space-between',
+            px: isMobile ? 2 : 3,
             py: 2,
             flexDirection: isMobile ? 'column' : 'row',
             gap: isMobile ? 1 : 0
           }}>
             <Box sx={{ width: isMobile ? '100%' : 'auto' }}>
               {activeStep > 0 && (
-                <OutlineButton 
-                  onClick={() => setActiveStep(prev => prev - 1)} 
+                <OutlineButton
+                  onClick={() => setActiveStep(prev => prev - 1)}
                   fullWidth={isMobile}
                   sx={{ fontSize: isMobile ? '0.8rem' : '0.85rem' }}
                 >
@@ -3119,14 +3119,14 @@ const Repairs = () => {
                 </OutlineButton>
               )}
             </Box>
-            <Box sx={{ 
-              display: 'flex', 
-              gap: 1, 
+            <Box sx={{
+              display: 'flex',
+              gap: 1,
               width: isMobile ? '100%' : 'auto',
-              flexDirection: isMobile ? 'column' : 'row' 
+              flexDirection: isMobile ? 'column' : 'row'
             }}>
-              <OutlineButton 
-                onClick={() => setNewRepairDialogOpen(false)} 
+              <OutlineButton
+                onClick={() => setNewRepairDialogOpen(false)}
                 fullWidth={isMobile}
                 sx={{ fontSize: isMobile ? '0.8rem' : '0.85rem' }}
               >
@@ -3143,9 +3143,9 @@ const Repairs = () => {
                   Next
                 </GradientButton>
               ) : (
-                <UpdateButton 
-                  variant="contained" 
-                  onClick={handleAddNewRepair} 
+                <UpdateButton
+                  variant="contained"
+                  onClick={handleAddNewRepair}
                   fullWidth={isMobile}
                   sx={{ fontSize: isMobile ? '0.8rem' : '0.85rem' }}
                 >
