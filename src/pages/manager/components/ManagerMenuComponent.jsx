@@ -265,54 +265,54 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
         },
 
         // 🛠️ MANAGEMENT
-        {
-            sectionName: 'MANAGEMENT',
-            sectionId: 'management-section',
-            isExpandable: true,
-            items: [
-                {
-                    text: 'Technicians',
-                    icon: <Users size={18} />,
-                    isExpandable: true,
-                    sectionId: 'technicians-subsection',
-                    subItems: [
-                        {
-                            text: 'All Technicians',
-                            icon: <Users size={16} />,
-                            path: '/manager-dashboard/all-technicians',
-                        },
-                        // {
-                        //     text: 'Scheduling',
-                        //     icon: <Calendar size={16} />,
-                        //     path: '/manager-dashboard/scheduling',
-                        // },
-                        // {
-                        //     text: 'Performance',
-                        //     icon: <Activity size={16} />,
-                        //     path: '/manager-dashboard/performance',
-                        // },
-                    ],
-                },
-                // {
-                //     text: 'Sales',
-                //     icon: <ClipboardList size={18} />,
-                //     isExpandable: true,
-                //     sectionId: 'sales-subsection',
-                //     subItems: [
-                //         {
-                //             text: 'Quotes',
-                //             icon: <Quote size={16} />,
-                //             path: '/manager-dashboard/quotes',
-                //         },
-                //         {
-                //             text: 'Leads',
-                //             icon: <Target size={16} />,
-                //             path: '/manager-dashboard/leads',
-                //         },
-                //     ],
-                // },
-            ],
-        },
+        // {
+        //     sectionName: 'MANAGEMENT',
+        //     sectionId: 'management-section',
+        //     isExpandable: true,
+        //     items: [
+        //         {
+        //             text: 'Technicians',
+        //             icon: <Users size={18} />,
+        //             isExpandable: true,
+        //             sectionId: 'technicians-subsection',
+        //             subItems: [
+        //                 {
+        //                     text: 'All Technicians',
+        //                     icon: <Users size={16} />,
+        //                     path: '/manager-dashboard/all-technicians',
+        //                 },
+        //                 // {
+        //                 //     text: 'Scheduling',
+        //                 //     icon: <Calendar size={16} />,
+        //                 //     path: '/manager-dashboard/scheduling',
+        //                 // },
+        //                 // {
+        //                 //     text: 'Performance',
+        //                 //     icon: <Activity size={16} />,
+        //                 //     path: '/manager-dashboard/performance',
+        //                 // },
+        //             ],
+        //         },
+        //         // {
+        //         //     text: 'Sales',
+        //         //     icon: <ClipboardList size={18} />,
+        //         //     isExpandable: true,
+        //         //     sectionId: 'sales-subsection',
+        //         //     subItems: [
+        //         //         {
+        //         //             text: 'Quotes',
+        //         //             icon: <Quote size={16} />,
+        //         //             path: '/manager-dashboard/quotes',
+        //         //         },
+        //         //         {
+        //         //             text: 'Leads',
+        //         //             icon: <Target size={16} />,
+        //         //             path: '/manager-dashboard/leads',
+        //         //         },
+        //         //     ],
+        //         // },
+        //     ],
+        // },
 
         // ⚙️ SYSTEM
         {

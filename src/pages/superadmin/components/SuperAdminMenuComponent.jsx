@@ -278,29 +278,29 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
                     icon: <Users size={18} />,
                     path: '/super-admin-dashboard/users',
                 },
-                {
-                    text: 'Technicians',
-                    icon: <Users size={18} />,
-                    isExpandable: true,
-                    sectionId: 'technicians-subsection',
-                    subItems: [
-                        {
-                            text: 'All Technicians',
-                            icon: <Users size={16} />,
-                            path: '/super-admin-dashboard/all-technicians',
-                        },
-                        // {
-                        //     text: 'Scheduling',
-                        //     icon: <Calendar size={16} />,
-                        //     path: '/super-admin-dashboard/scheduling',
-                        // },
-                        // {
-                        //     text: 'Performance',
-                        //     icon: <Activity size={16} />,
-                        //     path: '/super-admin-dashboard/performance',
-                        // },
-                    ],
-                },
+                // {
+                //     text: 'Technicians',
+                //     icon: <Users size={18} />,
+                //     isExpandable: true,
+                //     sectionId: 'technicians-subsection',
+                //     subItems: [
+                //         {
+                //             text: 'All Technicians',
+                //             icon: <Users size={16} />,
+                //             path: '/super-admin-dashboard/all-technicians',
+                //         },
+                //         // {
+                //         //     text: 'Scheduling',
+                //         //     icon: <Calendar size={16} />,
+                //         //     path: '/super-admin-dashboard/scheduling',
+                //         // },
+                //         // {
+                //         //     text: 'Performance',
+                //         //     icon: <Activity size={16} />,
+                //         //     path: '/super-admin-dashboard/performance',
+                //         // },
+                //     ],
+                // },
                 // {
                 //     text: 'Sales',
                 //     icon: <ClipboardList size={18} />,
