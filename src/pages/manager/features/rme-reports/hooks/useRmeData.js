@@ -35,7 +35,7 @@ export const useRmeData = () => {
         staleTime: 1000,
         refetchInterval: 30000,
     });
-
+    
     const { data: deletedWorkOrders = [] } = useQuery({
         queryKey: ['rme-deleted-work-orders'],
         queryFn: async () => {
@@ -92,6 +92,7 @@ export const useRmeData = () => {
                 movedToHoldingDateFormatted: formatDateTimeWithTZ(item.moved_to_holding_date),
                 rawData: item,
                 currentUser: currentUser,
+                task:item.task_name || '-',
             };
 
             if (item.is_deleted) {

@@ -33,6 +33,7 @@ const ReportNeededTable = ({
 }) => {
     const allSelectedOnPage = items.length > 0 && items.every(item => selected.has(item.id));
     const someSelectedOnPage = items.length > 0 && items.some(item => selected.has(item.id));
+    console.log('items', items)
 
     return (
         <TableContainer sx={{
@@ -87,6 +88,9 @@ const ReportNeededTable = ({
                         </TableCell>
                         <TableCell sx={{ minWidth: 150 }}>
                             {isMobile ? 'Date/Time' : 'W.O Date & Elapsed Time'}
+                        </TableCell>
+                        <TableCell sx={{ minWidth: 150 }}>
+                            Task
                         </TableCell>
                         <TableCell sx={{ minWidth: 120 }}>
                             Technician
@@ -183,6 +187,18 @@ const ReportNeededTable = ({
                                                 {item.elapsedTime}
                                             </Typography>
                                         </Box>
+                                    </TableCell>
+                                    <TableCell sx={{ py: 1.5 }}>
+                                        <Typography
+                                            variant="body2"
+                                            sx={{
+                                                color: '#0F1115',
+                                                fontSize: '0.85rem',
+                                                fontWeight: 400,
+                                            }}
+                                        >
+                                            {item.task}
+                                        </Typography>
                                     </TableCell>
                                     <TableCell sx={{ py: 1.5 }}>
                                         <Typography
