@@ -856,8 +856,8 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                 onChange={(e) => handleInputChange(field.name, e.target.value)}
                                 fullWidth
                                 multiline
-                                minRows={2}
-                                maxRows={3}
+                                minRows={8}
+                                maxRows={8}
                                 size="small"
                                 disabled={isLoading || saveLoading}
                                 placeholder={field.placeholder || ''}

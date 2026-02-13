@@ -5,6 +5,7 @@ import { useAuth } from '../../../../../auth/AuthProvider';
 import {
     formatDate,
     calculateElapsedTime,
+    calculateCompletedElapsedTime,
     getElapsedColor,
     getTechnicianInitial,
     formatDateTimeWithTZ,
@@ -35,6 +36,8 @@ export const useRmeData = () => {
         staleTime: 1000,
         refetchInterval: 30000,
     });
+
+    console.log('workOrders', workOrders);
     
     const { data: deletedWorkOrders = [] } = useQuery({
         queryKey: ['rme-deleted-work-orders'],
@@ -59,7 +62,9 @@ export const useRmeData = () => {
                 woNumber: item.wo_number || 'N/A',
                 date: formatDate(item.scheduled_date),
                 scheduledDate: item.scheduled_date,
+                completedDate: item.completed_date,
                 elapsedTime: calculateElapsedTime(item.scheduled_date),
+                completedElapsedTime: calculateCompletedElapsedTime(item.completed_date),
                 elapsedColor: getElapsedColor(item.scheduled_date),
                 technician: item.technician || 'Unassigned',
                 technicianInitial: getTechnicianInitial(item.technician),

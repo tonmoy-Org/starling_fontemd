@@ -162,6 +162,14 @@ const transformRepairData = (apiData) => {
     stageColor: apiData.stage_color || GRAY_COLOR,
     createdDate: apiData.created_date || new Date().toISOString(),
     lastUpdated: apiData.last_updated || new Date().toISOString(),
+    stageEntryDates: {
+      creation: apiData.created_date || new Date().toISOString(),
+      moreWork: apiData.more_work_entry_date || null,
+      permitting: apiData.permitting_entry_date || null,
+      approved: apiData.approved_entry_date || null,
+      testing: apiData.testing_entry_date || null,
+      completed: apiData.completed_entry_date || null
+    },
     stressTest: apiData.stress_test || null,
     stressTestDescription: apiData.stress_test_description ||
       (apiData.stress_test ? STRESS_TEST_OPTIONS.find(opt => opt.value === apiData.stress_test)?.label : null),
@@ -214,6 +222,13 @@ const transformToAPIFormat = (data) => {
   if (data.stageColor !== undefined) apiData.stage_color = data.stageColor;
   if (data.createdDate !== undefined) apiData.created_date = data.createdDate;
   if (data.lastUpdated !== undefined) apiData.last_updated = data.lastUpdated;
+  if (data.stageEntryDates !== undefined) {
+    if (data.stageEntryDates.moreWork) apiData.more_work_entry_date = data.stageEntryDates.moreWork;
+    if (data.stageEntryDates.permitting) apiData.permitting_entry_date = data.stageEntryDates.permitting;
+    if (data.stageEntryDates.approved) apiData.approved_entry_date = data.stageEntryDates.approved;
+    if (data.stageEntryDates.testing) apiData.testing_entry_date = data.stageEntryDates.testing;
+    if (data.stageEntryDates.completed) apiData.completed_entry_date = data.stageEntryDates.completed;
+  }
   if (data.isDeleted !== undefined) apiData.is_deleted = data.isDeleted;
   if (data.deletedBy !== undefined) apiData.deleted_by = data.deletedBy;
   if (data.deletedByEmail !== undefined) apiData.deleted_by_email = data.deletedByEmail;
@@ -640,14 +655,37 @@ const Repairs = () => {
   }, [isMobile]);
 
   const getDaysInStage = (repair) => {
-    if (!repair || !repair.lastUpdated) return 0;
-    const lastUpdate = new Date(repair.lastUpdated);
-    if (!lastUpdate || isNaN(lastUpdate.getTime())) return 0;
-    const now = currentTime;
-    const diffTime = Math.abs(now - lastUpdate);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, diffDays);
+    if (!repair) return "0 min";
+
+    let stageEntryDate = null;
+    if (repair.stage === 'creation') {
+      stageEntryDate = repair.createdDate;
+    } else {
+      stageEntryDate = repair.stageEntryDates?.[repair.stage] || repair.createdDate;
+    }
+
+    if (!stageEntryDate) return "0 min";
+
+    const entryDate = new Date(stageEntryDate);
+    if (!entryDate || isNaN(entryDate.getTime())) return "0 min";
+
+    const now = currentTime; // make sure currentTime is a Date object
+    const diffMs = Math.abs(now - entryDate);
+
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffMinutes / (60 * 24));
+
+    if (diffMinutes < 60) {
+      return `${diffMinutes} min`;
+    } else if (diffHours < 24) {
+      return `${diffHours} hr`;
+    } else {
+      return `${diffDays} d`;
+    }
   };
+
+
 
   const getWhatsMissing = (repair) => {
     if (!repair) return [];
@@ -694,7 +732,6 @@ const Repairs = () => {
         original: fullAddress,
       };
     } catch (error) {
-      console.error('Error parsing address:', error);
       return { street: fullAddress, city: '', state: '', zip: '', original: fullAddress };
     }
   };
@@ -813,27 +850,38 @@ const Repairs = () => {
 
   const handleSaveRepair = () => {
     if (!selectedRepair) return;
+
     const updateData = {
       ...editForm,
       lastUpdated: new Date().toISOString()
     };
+
+    const stageEntryDates = { ...selectedRepair.stageEntryDates };
+
     if (selectedRepair.stage === 'permitting' && editForm.readyToSchedule) {
       updateData.stage = 'approved';
       updateData.stageName = '3: Approved';
       updateData.stageColor = YELLOW_COLOR;
       updateData.approvedDate = new Date().toISOString();
+      stageEntryDates.approved = new Date().toISOString();
+      updateData.stageEntryDates = stageEntryDates;
     } else if (selectedRepair.stage === 'approved' &&
       (editForm.waterTightnessTest || editForm.followUpReport)) {
       updateData.stage = 'testing';
       updateData.stageName = '4: Testing';
       updateData.stageColor = TEAL_COLOR;
+      stageEntryDates.testing = new Date().toISOString();
+      updateData.stageEntryDates = stageEntryDates;
     } else if (selectedRepair.stage === 'testing' &&
       editForm.waterTightnessTest && editForm.followUpReport) {
       updateData.stage = 'completed';
       updateData.stageName = '5: Project Complete';
       updateData.stageColor = GREEN_COLOR;
       updateData.completionDate = new Date().toISOString();
+      stageEntryDates.completed = new Date().toISOString();
+      updateData.stageEntryDates = stageEntryDates;
     }
+
     updateRepairMutation.mutate({
       id: selectedRepair.id,
       data: updateData
@@ -847,10 +895,20 @@ const Repairs = () => {
       showSnackbar('Please fill in name and address', 'error');
       return;
     }
+
     let stage = 'creation';
     let stageName = '1: Job Creation';
     let neededItems = [];
     let stageColor = GRAY_COLOR;
+    const stageEntryDates = {
+      creation: new Date().toISOString(),
+      moreWork: null,
+      permitting: null,
+      approved: null,
+      testing: null,
+      completed: null
+    };
+
     if (newRepair.stressTest === 'failed' ||
       newRepair.asBuiltCondition === 'insufficient' ||
       newRepair.rmeReport === 'missing' ||
@@ -858,6 +916,8 @@ const Repairs = () => {
       stage = 'moreWork';
       stageName = '1B: More Work Needed';
       stageColor = ORANGE_COLOR;
+      stageEntryDates.moreWork = new Date().toISOString();
+
       if (newRepair.stressTest === 'failed') neededItems.push('Drain Field Repair');
       if (newRepair.asBuiltCondition === 'insufficient') neededItems.push('As-Built Creation');
       if (newRepair.rmeReport === 'missing' || !newRepair.rmeInspectionFiled) {
@@ -870,25 +930,29 @@ const Repairs = () => {
       stage = 'permitting';
       stageName = '2: Permitting';
       stageColor = BLUE_COLOR;
+      stageEntryDates.permitting = new Date().toISOString();
     }
+
     const repairData = {
       name: newRepair.name,
       address: newRepair.address,
       stage: stage,
       stageName: stageName,
       stageColor: stageColor,
+      stageEntryDates: stageEntryDates,
       stressTest: newRepair.stressTest,
       asBuiltCondition: newRepair.asBuiltCondition,
       rmeReport: newRepair.rmeReport,
       rmeInspectionFiled: newRepair.rmeInspectionFiled,
       neededItems: neededItems,
       notes: 'New repair job created',
-      createdDate: new Date().toISOString().split('T')[0],
-      lastUpdated: new Date().toISOString().split('T')[0],
+      createdDate: new Date().toISOString(),
+      lastUpdated: new Date().toISOString(),
       isDeleted: false,
       assignedTo: 'Unassigned',
       priority: 'Standard'
     };
+
     createRepairMutation.mutate(repairData);
     setNewRepairDialogOpen(false);
   };
@@ -896,8 +960,10 @@ const Repairs = () => {
   const handleMoveStage = (repairId, direction) => {
     const repair = activeRepairs.find(r => r.id === repairId);
     if (!repair) return;
+
     const currentStageIndex = REPAIR_STAGES.findIndex(s => s.id === repair.stage);
     let newStageIndex = currentStageIndex;
+
     if (direction === 'forward' && currentStageIndex < REPAIR_STAGES.length - 1) {
       newStageIndex = currentStageIndex + 1;
     } else if (direction === 'backward' && currentStageIndex > 0) {
@@ -905,14 +971,22 @@ const Repairs = () => {
     } else {
       return;
     }
+
     const newStage = REPAIR_STAGES[newStageIndex];
+    const stageEntryDates = { ...repair.stageEntryDates };
+
+    if (direction === 'forward') {
+      stageEntryDates[newStage.id] = new Date().toISOString();
+    }
+
     patchRepairMutation.mutate({
       id: repairId,
       data: {
         stage: newStage.id,
         stageName: newStage.name,
         stageColor: newStage.color,
-        lastUpdated: new Date().toISOString().split('T')[0]
+        stageEntryDates: stageEntryDates,
+        lastUpdated: new Date().toISOString()
       }
     });
   };
@@ -920,12 +994,15 @@ const Repairs = () => {
   const handleCompleteItem = (repairId, item) => {
     const repair = activeRepairs.find(r => r.id === repairId);
     if (!repair) return;
+
     const currentNeededItems = Array.isArray(repair.neededItems) ? repair.neededItems : [];
     const newNeededItems = currentNeededItems.filter(i => i !== item);
+
     const updateData = {
       neededItems: newNeededItems,
-      lastUpdated: new Date().toISOString().split('T')[0]
+      lastUpdated: new Date().toISOString()
     };
+
     if (newNeededItems.length === 0 && repair.stage === 'moreWork') {
       if (repair.stressTest && repair.stressTest !== 'failed' &&
         repair.asBuiltCondition === 'meets_criteria' &&
@@ -935,8 +1012,13 @@ const Repairs = () => {
         updateData.stage = 'permitting';
         updateData.stageName = newStage.name;
         updateData.stageColor = newStage.color;
+
+        const stageEntryDates = { ...repair.stageEntryDates };
+        stageEntryDates.permitting = new Date().toISOString();
+        updateData.stageEntryDates = stageEntryDates;
       }
     }
+
     patchRepairMutation.mutate({
       id: repairId,
       data: updateData
@@ -1707,7 +1789,7 @@ const Repairs = () => {
               PERMITTING - Submitted: Waiting for Approval
             </Typography>
             <Stack spacing={2}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexDirection: isMobileView ? 'column' : 'row', alignItems: isMobileView ? 'flex-start' : 'center' }}>
+              <Box sx={{ display: 'flex', gap: 2, flexDirection: isMobileView ? 'column' : 'row', alignItems: isMobileView ? 'flex-start' : 'center' }}>
                 <Clock size={isMobileView ? 20 : 24} color={BLUE_COLOR} />
                 <Box>
                   <Typography variant="body2" fontWeight={500} sx={{ fontSize: isMobileView ? '0.8rem' : '0.85rem' }}>
@@ -1721,7 +1803,7 @@ const Repairs = () => {
                 </Box>
               </Box>
               <Paper variant="outlined" sx={{ p: isMobileView ? 1.5 : 2, bgcolor: alpha(BLUE_COLOR, 0.05) }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexDirection: isMobileView ? 'column' : 'row', alignItems: isMobileView ? 'flex-start' : 'center' }}>
+                <Box sx={{ display: 'flex', gap: 2, flexDirection: isMobileView ? 'column' : 'row', alignItems: isMobileView ? 'flex-start' : 'center' }}>
                   <Timer size={isMobileView ? 18 : 20} color={BLUE_COLOR} />
                   <Box>
                     <Typography variant="body2" fontWeight={500} sx={{ fontSize: isMobileView ? '0.8rem' : '0.85rem' }}>
@@ -2148,7 +2230,7 @@ const Repairs = () => {
                           fontWeight: row.daysInStage > 14 ? 600 : 400,
                           color: row.daysInStage > 14 ? ORANGE_COLOR : TEXT_COLOR
                         }}>
-                          {row.daysInStage}d
+                          {row.daysInStage}
                         </Typography>
                         {row.daysInStage > 14 && (
                           <AlertTriangle size={isMobile ? 12 : 14} color={ORANGE_COLOR} />

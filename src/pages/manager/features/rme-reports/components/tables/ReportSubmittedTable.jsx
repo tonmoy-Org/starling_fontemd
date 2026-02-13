@@ -60,7 +60,7 @@ const ReportSubmittedTable = ({
     onViewPDF,
     isMobile,
 }) => {
- 
+
     const allSelectedOnPage = items.length > 0 && items.every(item => selected.has(item.id));
     const someSelectedOnPage = items.length > 0 && items.some(item => selected.has(item.id));
 
@@ -225,7 +225,7 @@ const ReportSubmittedTable = ({
                                                         fontSize: '0.8rem',
                                                     }}>
                                                         <Timer size={12} />
-                                                        {item.elapsedTime}
+                                                        {item.completedElapsedTime}
                                                     </Typography>
                                                 </Box>
                                             </TableCell>
