@@ -36,8 +36,6 @@ export const useRmeData = () => {
         staleTime: 1000,
         refetchInterval: 30000,
     });
-
-    console.log('workOrders', workOrders);
     
     const { data: deletedWorkOrders = [] } = useQuery({
         queryKey: ['rme-deleted-work-orders'],
