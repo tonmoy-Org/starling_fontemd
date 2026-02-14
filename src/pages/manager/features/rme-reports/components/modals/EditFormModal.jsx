@@ -856,8 +856,6 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                 onChange={(e) => handleInputChange(field.name, e.target.value)}
                                 fullWidth
                                 multiline
-                                minRows={8}
-                                maxRows={8}
                                 size="small"
                                 disabled={isLoading || saveLoading}
                                 placeholder={field.placeholder || ''}
@@ -877,7 +875,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                     },
                                     '&:hover .MuiOutlinedInput-notchedOutline': {
                                         borderColor: alpha(TEXT_COLOR, 0.8),
-                                    }
+                                    },
                                 }}
                             />
                         </TableCell>
