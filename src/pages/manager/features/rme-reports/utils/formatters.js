@@ -56,39 +56,41 @@ export const calculateElapsedTime = (createdDate) => {
 
 export const calculateCompletedElapsedTime = (completedDate) => {
     if (!completedDate) return '-';
-  
+
     try {
-      const now = new Date();
-  
-      // Parse MM/DD/YYYY
-      const parts = completedDate.split('/');
-      if (parts.length !== 3) return '-';
-  
-      const month = parseInt(parts[0], 10) - 1; // JS months 0-based
-      const day = parseInt(parts[1], 10);
-      const year = parseInt(parts[2], 10);
-  
-      const completed = new Date(year, month, day);
-      if (isNaN(completed.getTime())) return '-';
-  
-      const diffMs = now - completed;
-  
-      const diffMinutes = Math.floor(diffMs / (1000 * 60));
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
-      if (diffHours < 1) {
-        return `${diffMinutes} MIN${diffMinutes !== 1 ? 'S' : ''}`;
-      } else if (diffHours < 128) {
-        return `${diffHours} HR${diffHours !== 1 ? 'S' : ''}`;
-      } else {
-        return `${diffDays} DAY${diffDays !== 1 ? 'S' : ''}`;
-      }
+        const now = new Date();
+
+        // Parse MM/DD/YYYY
+        const parts = completedDate.split('/');
+        if (parts.length !== 3) return '-';
+
+        const month = parseInt(parts[0], 10) - 1; // JS months 0-based
+        const day = parseInt(parts[1], 10);
+        const year = parseInt(parts[2], 10);
+
+        const completed = new Date(year, month, day);
+        if (isNaN(completed.getTime())) return '-';
+
+        const diffMs = now - completed;
+
+        // Don't show negative time (future dates)
+        if (diffMs < 0) return '-';
+
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffHours < 1) {
+            return `${diffMinutes} MIN${diffMinutes !== 1 ? 'S' : ''}`;
+        } else if (diffHours < 128) {
+            return `${diffHours} HR${diffHours !== 1 ? 'S' : ''}`;
+        } else {
+            return `${diffDays} DAY${diffDays !== 1 ? 'S' : ''}`;
+        }
     } catch {
-      return '-';
+        return '-';
     }
-  };
-  
+};
 
 
 
