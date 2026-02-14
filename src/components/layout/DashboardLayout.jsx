@@ -789,6 +789,7 @@ const DashboardLayout = ({ children, title, menuItems }) => {
             >
               <Badge
                 badgeContent={badgeCount}
+                disableScrollLock={true}
                 color="error"
                 sx={{
                   '& .MuiBadge-badge': {
@@ -833,6 +834,7 @@ const DashboardLayout = ({ children, title, menuItems }) => {
               anchorEl={menuAnchorEl}
               open={Boolean(menuAnchorEl)}
               onClose={handleMenuClose}
+              disableScrollLock={true}
               PaperProps={{
                 sx: {
                   mt: 0.5,
@@ -990,6 +992,7 @@ const DashboardLayout = ({ children, title, menuItems }) => {
               anchorEl={menuAnchorEl}
               open={Boolean(menuAnchorEl)}
               onClose={handleMenuClose}
+              disableScrollLock={true}
               PaperProps={{
                 sx: {
                   mt: 0.5,
