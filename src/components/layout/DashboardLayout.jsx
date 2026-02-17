@@ -80,11 +80,25 @@ const openedMixin = (theme) => ({
   borderRight: `1px solid ${colors.borderLight}`,
   boxShadow: '1px 0 4px rgba(0,0,0,0.04)',
   zIndex: theme.zIndex.drawer,
+  // Always show scrollbar but make it transparent/very thin
   '&::-webkit-scrollbar': {
-    display: 'none',
+    width: '4px',
   },
-  msOverflowStyle: 'none',
-  scrollbarWidth: 'none',
+  '&::-webkit-scrollbar-track': {
+    background: 'transparent',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    background: 'transparent',
+  },
+  '&:hover::-webkit-scrollbar-thumb': {
+    background: alpha(colors.gray, 0.3),
+  },
+  msOverflowStyle: 'auto',
+  scrollbarWidth: 'thin',
+  scrollbarColor: 'transparent transparent',
+  '&:hover': {
+    scrollbarColor: `${alpha(colors.gray, 0.3)} transparent`,
+  },
 });
 
 const closedMixin = (theme) => ({
@@ -98,11 +112,25 @@ const closedMixin = (theme) => ({
   borderRight: `1px solid ${colors.borderLight}`,
   boxShadow: '1px 0 4px rgba(0,0,0,0.04)',
   zIndex: theme.zIndex.drawer,
+  // Always show scrollbar but make it transparent/very thin
   '&::-webkit-scrollbar': {
-    display: 'none',
+    width: '4px',
   },
-  msOverflowStyle: 'none',
-  scrollbarWidth: 'none',
+  '&::-webkit-scrollbar-track': {
+    background: 'transparent',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    background: 'transparent',
+  },
+  '&:hover::-webkit-scrollbar-thumb': {
+    background: alpha(colors.gray, 0.3),
+  },
+  msOverflowStyle: 'auto',
+  scrollbarWidth: 'thin',
+  scrollbarColor: 'transparent transparent',
+  '&:hover': {
+    scrollbarColor: `${alpha(colors.gray, 0.3)} transparent`,
+  },
 });
 
 const DrawerHeader = styled('div')(({ theme }) => ({
@@ -131,6 +159,8 @@ const AppBar = styled(MuiAppBar, {
     marginLeft: drawerWidth,
     width: `calc(100% - ${drawerWidth}px)`,
   }),
+  // Prevent layout shift when scrollbar disappears
+  paddingRight: '0px !important',
 }));
 
 const PermanentDrawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
@@ -157,17 +187,25 @@ const ScrollableBox = styled(Box)({
   flex: 1,
   overflowY: 'auto',
   overflowX: 'hidden',
+  // Always reserve space for scrollbar
+  scrollbarGutter: 'stable',
+  // Custom scrollbar that doesn't cause layout shift
   '&::-webkit-scrollbar': {
-    display: 'none',
+    width: '5px',
   },
   '&::-webkit-scrollbar-track': {
-    background: 'transparent',
+    background: '#f1f5f9',
+    borderRadius: '2px',
   },
   '&::-webkit-scrollbar-thumb': {
-    background: 'transparent',
+    background: '#cbd5e0',
+    borderRadius: '2px',
+    '&:hover': {
+      background: '#a0aec0',
+    },
   },
-  msOverflowStyle: 'none',
-  scrollbarWidth: 'none',
+  scrollbarWidth: 'thin',
+  scrollbarColor: '#cbd5e0 #f1f5f9',
 });
 
 const MobileActionsContainer = styled(Box)(({ theme }) => ({
@@ -177,14 +215,14 @@ const MobileActionsContainer = styled(Box)(({ theme }) => ({
   [theme.breakpoints.down('md')]: {
     display: 'flex',
     alignItems: 'center',
-    gap: 0.75,
+    gap: theme.spacing(0.75),
   },
 }));
 
 const DesktopActionsContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  gap: 1.5,
+  gap: theme.spacing(1.5),
   flex: 1,
   justifyContent: 'flex-end',
   maxWidth: '550px',
@@ -232,6 +270,74 @@ const DrawerCloseButton = styled(IconButton)(({ theme }) => ({
   [theme.breakpoints.up('md')]: {
     display: 'none',
   },
+}));
+
+// Styled components for better responsive behavior
+const MainContent = styled(Box)(({ theme }) => ({
+  flexGrow: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  minHeight: '100vh',
+  width: '100%',
+  overflow: 'hidden',
+  transition: theme.transitions.create('margin', {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.enteringScreen,
+  }),
+}));
+
+const ContentWrapper = styled(Box)(({ theme }) => ({
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  padding: theme.spacing(1),
+  paddingTop: theme.spacing(1.5),
+  [theme.breakpoints.up('md')]: {
+    padding: theme.spacing(1),
+    paddingTop: theme.spacing(2.5),
+  },
+  overflow: 'hidden',
+}));
+
+const ContentCard = styled(Box)(({ theme }) => ({
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  backgroundColor: colors.white,
+  borderRadius: '6px',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+  border: `1px solid ${colors.borderLight}`,
+  overflow: 'hidden',
+}));
+
+const ScrollableContent = styled(Box)(({ theme }) => ({
+  flex: 1,
+  padding: theme.spacing(1),
+  [theme.breakpoints.up('sm')]: {
+    padding: theme.spacing(2),
+  },
+  overflowY: 'auto',
+  overflowX: 'hidden',
+  // Prevent layout shift by always reserving space for scrollbar
+  scrollbarGutter: 'stable',
+  // Custom scrollbar that doesn't cause layout shift
+  '&::-webkit-scrollbar': {
+    width: '5px',
+    height: '5px',
+  },
+  '&::-webkit-scrollbar-track': {
+    background: '#f1f5f9',
+    borderRadius: '2px',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    background: '#cbd5e0',
+    borderRadius: '2px',
+    '&:hover': {
+      background: '#a0aec0',
+    },
+  },
+  scrollbarWidth: 'thin',
+  scrollbarColor: '#cbd5e0 #f1f5f9',
 }));
 
 const generateBreadcrumb = (path) => {
@@ -316,6 +422,22 @@ const DashboardLayout = ({ children, title, menuItems }) => {
   const [searchValue, setSearchValue] = React.useState('');
   const [expandedItems, setExpandedItems] = React.useState(new Set());
 
+  // Prevent body scroll locking issues
+  React.useEffect(() => {
+    // Save original body styles
+    const originalStyles = {
+      overflow: document.body.style.overflow,
+      paddingRight: document.body.style.paddingRight,
+    };
+
+    return () => {
+      // Restore original styles on unmount
+      document.body.style.overflow = originalStyles.overflow;
+      document.body.style.paddingRight = originalStyles.paddingRight;
+    };
+  }, []);
+
+  // Handle drawer state on screen size changes
   React.useEffect(() => {
     setOpen(!isMobile);
   }, [isMobile]);
@@ -529,6 +651,8 @@ const DashboardLayout = ({ children, title, menuItems }) => {
         borderColor: colors.borderLight,
       },
       position: 'relative',
+      // Prevent layout shift by always reserving space for scrollbar
+      scrollbarGutter: 'stable',
     }}>
       {isMobile && (
         <DrawerCloseButton onClick={handleDrawerClose}>
@@ -584,7 +708,7 @@ const DashboardLayout = ({ children, title, menuItems }) => {
                 mb: 0.25,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'flex-start', // Changed to flex-start
+                justifyContent: 'flex-start',
               }}>
                 <Typography
                   variant="caption"
@@ -599,7 +723,6 @@ const DashboardLayout = ({ children, title, menuItems }) => {
                 >
                   {section.sectionName}
                 </Typography>
-                {/* REMOVED BADGE from section header - NO badges on section headers */}
               </Box>
             )}
 
@@ -625,8 +748,104 @@ const DashboardLayout = ({ children, title, menuItems }) => {
     </Box>
   );
 
+  // Menu component for reuse (desktop and mobile)
+  const renderUserMenu = () => (
+    <Menu
+      anchorEl={menuAnchorEl}
+      open={Boolean(menuAnchorEl)}
+      onClose={handleMenuClose}
+      disableScrollLock={true}
+      PaperProps={{
+        sx: {
+          mt: 0.5,
+          minWidth: 160,
+          backgroundColor: colors.appBarBg,
+          backdropFilter: 'blur(10px)',
+          color: colors.textPrimary,
+          border: `1px solid ${alpha('#ffffff', 0.2)}`,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          '& .MuiMenuItem-root': {
+            fontSize: '0.8rem',
+            py: 0.5,
+            px: 1.25,
+            color: colors.textPrimary,
+            '&:hover': {
+              backgroundColor: alpha('#ffffff', 0.15),
+              color: colors.primary,
+            },
+            '& .MuiListItemIcon-root': {
+              color: 'inherit',
+              minWidth: 32,
+            },
+          },
+        },
+      }}
+      transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+      anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+    >
+      <Box sx={{
+        px: 1.25,
+        py: 0.75,
+        borderBottom: `1px solid ${alpha('#ffffff', 0.2)}`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1,
+      }}>
+        <Avatar
+          sx={{
+            width: 32,
+            height: 32,
+            bgcolor: colors.primary,
+            color: colors.white,
+            fontSize: '0.75rem',
+            fontWeight: 600,
+          }}
+        >
+          {getInitials(user?.name)}
+        </Avatar>
+        <Box>
+          <Typography variant="subtitle2" sx={{
+            fontWeight: 600,
+            color: colors.textPrimary,
+            fontSize: '0.8rem',
+            lineHeight: 1.2,
+          }}>
+            {user?.name || 'Jenny Wilson'}
+          </Typography>
+          <Typography variant="caption" sx={{
+            color: alpha(colors.textPrimary, 0.7),
+            fontSize: '0.7rem',
+            lineHeight: 1.2,
+          }}>
+            {user?.email || 'jennywilson@gmail.com'}
+          </Typography>
+        </Box>
+      </Box>
+      <MenuItem onClick={handleProfileClick}>
+        <ListItemIcon>
+          <User size={16} color={colors.textPrimary} />
+        </ListItemIcon>
+        <Typography sx={{ fontSize: '0.8rem', color: 'inherit' }}>Profile</Typography>
+      </MenuItem>
+      <Divider sx={{
+        my: 0.5,
+        borderColor: alpha('#ffffff', 0.2),
+      }} />
+      <MenuItem onClick={handleLogout}>
+        <ListItemIcon>
+          <LogOut size={16} color={colors.textPrimary} />
+        </ListItemIcon>
+        <Typography sx={{ fontSize: '0.8rem', color: 'inherit' }}>Logout</Typography>
+      </MenuItem>
+    </Menu>
+  );
+
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', overflow: 'hidden' }}>
+    <Box sx={{
+      display: 'flex',
+      minHeight: '100vh',
+      overflow: 'hidden',
+    }}>
       <CssBaseline />
 
       <AppBar
@@ -638,16 +857,12 @@ const DashboardLayout = ({ children, title, menuItems }) => {
           backdropFilter: 'blur(10px)',
           boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
           transition: 'all 0.3s ease',
-          px: { xs: 1.5, sm: 0 }
+          px: { xs: 1.5, md: 0 },
         }}
       >
         <Toolbar sx={{
           minHeight: 56,
-          px: { xs: 1.5, sm: 2.5 },
           py: { xs: 1, sm: 0 },
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
           gap: 1.5,
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
@@ -703,6 +918,7 @@ const DashboardLayout = ({ children, title, menuItems }) => {
               <Typography
                 variant="h6"
                 noWrap
+                component="div"
                 sx={{
                   fontWeight: 600,
                   color: colors.textPrimary,
@@ -762,7 +978,7 @@ const DashboardLayout = ({ children, title, menuItems }) => {
               </Typography>
             </BreadcrumbContainer>
           </Box>
-
+          <Box sx={{ flex: 1 }} />
           <DesktopActionsContainer>
             {/* Use the SearchBar component */}
             <SearchBar
@@ -830,94 +1046,7 @@ const DashboardLayout = ({ children, title, menuItems }) => {
               </Avatar>
             </IconButton>
 
-            <Menu
-              anchorEl={menuAnchorEl}
-              open={Boolean(menuAnchorEl)}
-              onClose={handleMenuClose}
-              disableScrollLock={true}
-              PaperProps={{
-                sx: {
-                  mt: 0.5,
-                  minWidth: 160,
-                  backgroundColor: colors.appBarBg,
-                  backdropFilter: 'blur(10px)',
-                  color: colors.textPrimary,
-                  border: `1px solid ${alpha('#ffffff', 0.2)}`,
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                  '& .MuiMenuItem-root': {
-                    fontSize: '0.8rem',
-                    py: 0.5,
-                    px: 1.25,
-                    color: colors.textPrimary,
-                    '&:hover': {
-                      backgroundColor: alpha('#ffffff', 0.15),
-                      color: colors.primary,
-                    },
-                    '& .MuiListItemIcon-root': {
-                      color: 'inherit',
-                      minWidth: 32,
-                    },
-                  },
-                },
-              }}
-              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            >
-              <Box sx={{
-                px: 1.25,
-                py: 0.75,
-                borderBottom: `1px solid ${alpha('#ffffff', 0.2)}`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-              }}>
-                <Avatar
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    bgcolor: colors.primary,
-                    color: colors.white,
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  {getInitials(user?.name)}
-                </Avatar>
-                <Box>
-                  <Typography variant="subtitle2" sx={{
-                    fontWeight: 600,
-                    color: colors.textPrimary,
-                    fontSize: '0.8rem',
-                    lineHeight: 1.2,
-                  }}>
-                    {user?.name || 'Jenny Wilson'}
-                  </Typography>
-                  <Typography variant="caption" sx={{
-                    color: alpha(colors.textPrimary, 0.7),
-                    fontSize: '0.7rem',
-                    lineHeight: 1.2,
-                  }}>
-                    {user?.email || 'jennywilson@gmail.com'}
-                  </Typography>
-                </Box>
-              </Box>
-              <MenuItem onClick={handleProfileClick}>
-                <ListItemIcon>
-                  <User size={16} color={colors.textPrimary} />
-                </ListItemIcon>
-                <Typography sx={{ fontSize: '0.8rem', color: 'inherit' }}>Profile</Typography>
-              </MenuItem>
-              <Divider sx={{
-                my: 0.5,
-                borderColor: alpha('#ffffff', 0.2),
-              }} />
-              <MenuItem onClick={handleLogout}>
-                <ListItemIcon>
-                  <LogOut size={16} color={colors.textPrimary} />
-                </ListItemIcon>
-                <Typography sx={{ fontSize: '0.8rem', color: 'inherit' }}>Logout</Typography>
-              </MenuItem>
-            </Menu>
+            {renderUserMenu()}
           </DesktopActionsContainer>
 
           <MobileActionsContainer>
@@ -988,94 +1117,7 @@ const DashboardLayout = ({ children, title, menuItems }) => {
               </Avatar>
             </IconButton>
 
-            <Menu
-              anchorEl={menuAnchorEl}
-              open={Boolean(menuAnchorEl)}
-              onClose={handleMenuClose}
-              disableScrollLock={true}
-              PaperProps={{
-                sx: {
-                  mt: 0.5,
-                  minWidth: 160,
-                  backgroundColor: colors.appBarBg,
-                  backdropFilter: 'blur(10px)',
-                  color: colors.textPrimary,
-                  border: `1px solid ${alpha('#ffffff', 0.2)}`,
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                  '& .MuiMenuItem-root': {
-                    fontSize: '0.8rem',
-                    py: 0.5,
-                    px: 1.25,
-                    color: colors.textPrimary,
-                    '&:hover': {
-                      backgroundColor: alpha('#ffffff', 0.15),
-                      color: colors.primary,
-                    },
-                    '& .MuiListItemIcon-root': {
-                      color: 'inherit',
-                      minWidth: 32,
-                    },
-                  },
-                },
-              }}
-              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            >
-              <Box sx={{
-                px: 1.25,
-                py: 0.75,
-                borderBottom: `1px solid ${alpha('#ffffff', 0.2)}`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1,
-              }}>
-                <Avatar
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    bgcolor: colors.primary,
-                    color: colors.white,
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  {getInitials(user?.name)}
-                </Avatar>
-                <Box>
-                  <Typography variant="subtitle2" sx={{
-                    fontWeight: 600,
-                    color: colors.textPrimary,
-                    fontSize: '0.8rem',
-                    lineHeight: 1.2,
-                  }}>
-                    {user?.name || 'Jenny Wilson'}
-                  </Typography>
-                  <Typography variant="caption" sx={{
-                    color: alpha(colors.textPrimary, 0.7),
-                    fontSize: '0.7rem',
-                    lineHeight: 1.2,
-                  }}>
-                    {user?.email || 'jennywilson@gmail.com'}
-                  </Typography>
-                </Box>
-              </Box>
-              <MenuItem onClick={handleProfileClick}>
-                <ListItemIcon>
-                  <User size={16} color={colors.textPrimary} />
-                </ListItemIcon>
-                <Typography sx={{ fontSize: '0.8rem', color: 'inherit' }}>Profile</Typography>
-              </MenuItem>
-              <Divider sx={{
-                my: 0.5,
-                borderColor: alpha('#ffffff', 0.2),
-              }} />
-              <MenuItem onClick={handleLogout}>
-                <ListItemIcon>
-                  <LogOut size={16} color={colors.textPrimary} />
-                </ListItemIcon>
-                <Typography sx={{ fontSize: '0.8rem', color: 'inherit' }}>Logout</Typography>
-              </MenuItem>
-            </Menu>
+            {renderUserMenu()}
           </MobileActionsContainer>
         </Toolbar>
       </AppBar>
@@ -1095,10 +1137,20 @@ const DashboardLayout = ({ children, title, menuItems }) => {
               backgroundColor: colors.drawerBg,
               borderRight: `1px solid ${colors.borderLight}`,
               '&::-webkit-scrollbar': {
-                display: 'none',
+                width: '4px',
               },
-              msOverflowStyle: 'none',
-              scrollbarWidth: 'none',
+              '&::-webkit-scrollbar-track': {
+                background: '#f1f5f9',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: '#cbd5e0',
+                borderRadius: '2px',
+                '&:hover': {
+                  background: '#a0aec0',
+                },
+              },
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#cbd5e0 #f1f5f9',
               top: 0,
               height: '100%',
               zIndex: theme.zIndex.drawer + 10,
@@ -1116,75 +1168,16 @@ const DashboardLayout = ({ children, title, menuItems }) => {
         </PermanentDrawer>
       )}
 
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: '100vh',
-          backgroundColor: '#f7fafc',
-          width: '100%',
-          overflow: 'hidden',
-          transition: theme.transitions.create('margin', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
-        }}
-      >
+      <MainContent>
         <DrawerHeader />
 
-        <Box
-          sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            p: { xs: 1, sm: 1 },
-            pt: { xs: 1.5, md: 2.5 },
-            overflow: 'hidden',
-          }}
-        >
-          <Box
-            sx={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              backgroundColor: colors.white,
-              borderRadius: '6px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              border: `1px solid ${colors.borderLight}`,
-              overflow: 'hidden',
-            }}
-          >
-            <Box
-              sx={{
-                flex: 1,
-                p: { xs: 1, sm: 2 },
-                overflowY: 'auto',
-                overflowX: 'hidden',
-                '&::-webkit-scrollbar': {
-                  width: '5px',
-                  height: '5px',
-                },
-                '&::-webkit-scrollbar-track': {
-                  background: '#f1f5f9',
-                  borderRadius: '2px',
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  background: '#cbd5e0',
-                  borderRadius: '2px',
-                  '&:hover': {
-                    background: '#a0aec0',
-                  },
-                },
-                scrollbarWidth: 'thin',
-                scrollbarColor: '#cbd5e0 #f1f5f9',
-              }}
-            >
+        <ContentWrapper>
+          <ContentCard>
+            <ScrollableContent>
               {children}
-            </Box>
-          </Box>
-        </Box>
+            </ScrollableContent>
+          </ContentCard>
+        </ContentWrapper>
 
         <Box sx={{
           borderTop: `1px solid ${colors.borderLight}`,
@@ -1194,7 +1187,7 @@ const DashboardLayout = ({ children, title, menuItems }) => {
         }}>
           <DashboardFooter />
         </Box>
-      </Box>
+      </MainContent>
 
       {/* Notification Drawer */}
       <SwipeableDrawer
@@ -1221,6 +1214,8 @@ const DashboardLayout = ({ children, title, menuItems }) => {
                 background: '#a0aec0',
               },
             },
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cbd5e0 #f1f5f9',
             [theme.breakpoints.down('sm')]: {
               width: '100%',
             },

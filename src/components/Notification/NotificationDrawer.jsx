@@ -39,8 +39,9 @@ const NotificationScrollableBox = styled(Box)({
     flex: 1,
     overflowY: 'auto',
     overflowX: 'hidden',
+    scrollbarWidth: 'thin',
     '&::-webkit-scrollbar': {
-        width: '6px',
+        width: '4px',
     },
     '&::-webkit-scrollbar-track': {
         background: '#f1f5f9',
@@ -54,6 +55,7 @@ const NotificationScrollableBox = styled(Box)({
         },
     },
 });
+
 
 // Helpers
 const formatDate = (dateString) => {
@@ -171,7 +173,7 @@ const NotificationDrawer = ({ onClose }) => {
             const locateIds = notificationsArray
                 .filter(n => n.type === 'locate')
                 .map(n => n.entityId);
-            
+
             const workOrderIds = notificationsArray
                 .filter(n => n.type === 'RME')
                 .map(n => n.entityId);
@@ -355,15 +357,15 @@ const NotificationDrawer = ({ onClose }) => {
 
         // Redirect based on notification type
         if (notification.type === 'locate') {
-            navigate(`${dashboardBasePath}/locates`, { 
-                state: { 
+            navigate(`${dashboardBasePath}/locates`, {
+                state: {
                     highlightLocateId: notification.entityId,
                     fromNotifications: true
                 }
             });
         } else if (notification.type === 'RME') {
-            navigate(`${dashboardBasePath}/health-department-report-tracking/rme`, { 
-                state: { 
+            navigate(`${dashboardBasePath}/health-department-report-tracking/rme`, {
+                state: {
                     highlightWorkOrderId: notification.entityId,
                     fromNotifications: true
                 }
@@ -554,8 +556,8 @@ const NotificationDrawer = ({ onClose }) => {
                                                 onClick={() => handleNotificationClick(notification)}
                                                 sx={{
                                                     p: 2,
-                                                    backgroundColor: notification.is_seen 
-                                                        ? NOTIFICATION_COLORS.bg 
+                                                    backgroundColor: notification.is_seen
+                                                        ? NOTIFICATION_COLORS.bg
                                                         : alpha(notification.color, 0.03),
                                                     cursor: 'pointer',
                                                     '&:hover': {
@@ -583,8 +585,8 @@ const NotificationDrawer = ({ onClose }) => {
                                                     primary={
                                                         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 0.5 }}>
                                                             <Typography variant="body2" sx={{
-                                                                color: notification.is_seen 
-                                                                    ? NOTIFICATION_COLORS.textSecondary 
+                                                                color: notification.is_seen
+                                                                    ? NOTIFICATION_COLORS.textSecondary
                                                                     : NOTIFICATION_COLORS.textPrimary,
                                                                 fontWeight: notification.is_seen ? 500 : 600,
                                                                 fontSize: '0.75rem',
@@ -609,8 +611,8 @@ const NotificationDrawer = ({ onClose }) => {
                                                     secondary={
                                                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                                                             <Typography variant="caption" sx={{
-                                                                color: notification.is_seen 
-                                                                    ? NOTIFICATION_COLORS.textTertiary 
+                                                                color: notification.is_seen
+                                                                    ? NOTIFICATION_COLORS.textTertiary
                                                                     : NOTIFICATION_COLORS.textSecondary,
                                                                 display: 'flex',
                                                                 alignItems: 'center',

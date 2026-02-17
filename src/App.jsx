@@ -5,12 +5,14 @@ import { AppRoutes } from './routes/AppRoutes';
 import {
   QueryClient,
   QueryClientProvider,
-} from '@tanstack/react-query'
+} from '@tanstack/react-query';
+
 import CustomTheme from './styles/theme';
 import { HelmetProvider } from 'react-helmet-async';
+import { GlobalSnackbarProvider } from './context/GlobalSnackbarContext';
 
 // Create a client
-const queryClient = new QueryClient()
+const queryClient = new QueryClient();
 
 function App() {
   return (
@@ -18,7 +20,9 @@ function App() {
       <HelmetProvider>
         <AuthProvider>
           <QueryClientProvider client={queryClient}>
-            <AppRoutes />
+            <GlobalSnackbarProvider>
+              <AppRoutes />
+            </GlobalSnackbarProvider>
           </QueryClientProvider>
         </AuthProvider>
       </HelmetProvider>

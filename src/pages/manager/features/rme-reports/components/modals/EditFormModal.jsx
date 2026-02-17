@@ -62,14 +62,13 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
             setError(null);
             try {
                 const response = await axiosInstance.get(`/work-order-edit/${workOrderData.id}/`);
-                console.log('Full response:', response.data);
+
                 let serverData = response.data;
                 let formDataArray = [];
                 let componentsData = [];
 
                 if (serverData.septic_components_form_data && Array.isArray(serverData.septic_components_form_data)) {
                     componentsData = serverData.septic_components_form_data;
-                    console.log('Septic Components Data:', componentsData);
                 }
 
                 if (serverData.data && serverData.data.form_data && Array.isArray(serverData.data.form_data)) {
@@ -1096,12 +1095,34 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                 </IconButton>
             </DialogTitle>
 
-            <DialogContent sx={{ p: 1.5, overflowY: 'auto', height: '100%' }}>
+            <DialogContent
+                sx={{
+                    p: 1.5,
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    scrollbarWidth: 'thin',
+                    '&::-webkit-scrollbar': {
+                        width: '4px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                        background: '#f1f5f9',
+                        borderRadius: '4px',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        background: '#cbd5e0',
+                        borderRadius: '4px',
+                        '&:hover': {
+                            background: '#94a3b8',
+                        },
+                    },
+                }}
+            >
                 <Box sx={{ my: 1 }}>
                     <Typography variant="h6" sx={{
                         fontSize: '0.8rem',
                         fontWeight: 600,
                         mb: 0.5,
+                        pt: 1,
                         color: TEXT_COLOR,
                         letterSpacing: '0.3px'
                     }}>
@@ -1236,23 +1257,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                         </Alert>
                                     </Box>
                                 ) : (
-                                    <TableContainer sx={{
-                                        borderRadius: '3px',
-                                        overflowY: 'auto',
-                                        '&::-webkit-scrollbar': {
-                                            width: '6px',
-                                        },
-                                        '&::-webkit-scrollbar-track': {
-                                            backgroundColor: alpha(GRAY_COLOR, 0.05),
-                                        },
-                                        '&::-webkit-scrollbar-thumb': {
-                                            backgroundColor: alpha(GRAY_COLOR, 0.3),
-                                            borderRadius: '3px',
-                                        },
-                                        '&::-webkit-scrollbar-thumb:hover': {
-                                            backgroundColor: alpha(GRAY_COLOR, 0.5),
-                                        },
-                                    }}>
+                                    <TableContainer>
                                         <Table size="small" sx={{ minWidth: 600 }}>
                                             <TableHead>
                                                 <TableRow>

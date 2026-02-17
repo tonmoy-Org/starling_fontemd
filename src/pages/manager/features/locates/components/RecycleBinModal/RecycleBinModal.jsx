@@ -111,6 +111,8 @@ const RecycleBinModal = ({
         display: 'flex',
         flexDirection: 'column',
         m: isMobile ? 1 : 0,
+        // Prevent layout shift by always reserving space for scrollbar
+        scrollbarGutter: 'stable',
       }}>
         {/* Header */}
         <Box sx={{
@@ -248,8 +250,27 @@ const RecycleBinModal = ({
           </Box>
         </Box>
 
-        {/* Content */}
-        <Box sx={{ flex: 1, overflow: 'auto' }}>
+        {/* Content - Main scrollable area */}
+        <Box sx={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          scrollbarWidth: 'thin',
+          '&::-webkit-scrollbar': {
+            width: '4px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: '#f1f5f9',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: '#cbd5e0',
+            borderRadius: '4px',
+            '&:hover': {
+              background: '#94a3b8',
+            },
+          },
+        }}>
           {isRecycleBinLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
               <CircularProgress size={24} sx={{ color: PURPLE_COLOR }} />
@@ -274,12 +295,24 @@ const RecycleBinModal = ({
           ) : (
             <TableContainer sx={{
               overflowX: 'auto',
-              '&::-webkit-scrollbar': { height: '8px' },
-              '&::-webkit-scrollbar-track': { backgroundColor: alpha(PURPLE_COLOR, 0.05) },
-              '&::-webkit-scrollbar-thumb': {
-                backgroundColor: alpha(PURPLE_COLOR, 0.2),
+              // Thinner horizontal scrollbar styles
+              '&::-webkit-scrollbar': {
+                height: '4px', // Thin horizontal scrollbar
+              },
+              '&::-webkit-scrollbar-track': {
+                background: alpha(PURPLE_COLOR, 0.05),
                 borderRadius: '4px',
               },
+              '&::-webkit-scrollbar-thumb': {
+                background: alpha(PURPLE_COLOR, 0.2),
+                borderRadius: '4px',
+                '&:hover': {
+                  background: alpha(PURPLE_COLOR, 0.3),
+                },
+              },
+              // Firefox scrollbar for horizontal
+              scrollbarWidth: 'thin',
+              scrollbarColor: `${alpha(PURPLE_COLOR, 0.2)} ${alpha(PURPLE_COLOR, 0.05)}`,
             }}>
               <Table size="small" sx={{ minWidth: isMobile ? 1000 : 'auto' }}>
                 <TableHead>

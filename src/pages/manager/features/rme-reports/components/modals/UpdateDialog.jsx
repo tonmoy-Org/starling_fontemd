@@ -37,7 +37,7 @@ import septic_components from '../../data/septic_components.json';
 import StyledTextField from '../../../../../../components/ui/StyledTextField';
 import UpdateButton from '../../../../../../components/ui/UpdateButton';
 
-const UpdateComponent = ({ item, onSubmit, onClose, showBackButton = false, existingComponents = [] }) => {
+const UpdateComponent = ({ item, onSubmit, onClose, existingComponents = [] }) => {
     const [formData, setFormData] = useState({
         category: '',
         componentType: '',

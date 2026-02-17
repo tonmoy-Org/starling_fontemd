@@ -20,12 +20,13 @@ import { AlertTriangle, History, RotateCcw, Trash2 } from 'lucide-react';
 // Hooks
 import { useRmeData } from './hooks/useRmeData';
 import { useRmeMutations } from './hooks/useRmeMutations';
+import { useGlobalSnackbar } from '../../../../context/GlobalSnackbarContext';
 
 // Components
 import DashboardLoader from '../../../../components/Loader/DashboardLoader';
 import Section from './components/shared/Section';
 import SearchInput from './components/shared/SearchInput';
-import SnackbarAlert from './components/shared/SnackbarAlert';
+// Remove SnackbarAlert import since it's now global
 
 // Tables
 import ReportNeededTable from './components/tables/ReportNeededTable';
@@ -62,6 +63,9 @@ const RMEReports = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+    // Use global snackbar instead of local state
+    const { showSnackbar } = useGlobalSnackbar();
 
     // State
     const [selectedReportNeeded, setSelectedReportNeeded] = useState(new Set());
@@ -122,12 +126,6 @@ const RMEReports = () => {
         isLoading: false,
     });
 
-    const [snackbar, setSnackbar] = useState({
-        open: false,
-        message: '',
-        severity: 'success',
-    });
-
     // Single item actions for recycle bin
     const [selectedSingleItem, setSelectedSingleItem] = useState(null);
     const [singleRestoreDialogOpen, setSingleRestoreDialogOpen] = useState(false);
@@ -141,11 +139,7 @@ const RMEReports = () => {
         currentUser
     } = useRmeData();
 
-    const showSnackbar = useCallback((message, severity = 'success') => {
-        setSnackbar({ open: true, message, severity });
-    }, []);
-
-    // Get all mutations
+    // Get all mutations - pass showSnackbar to useRmeMutations
     const {
         bulkSoftDeleteMutation,
         singleSoftDeleteMutation,
@@ -218,11 +212,6 @@ const RMEReports = () => {
         setEditFormModalOpen(false);
     }, [showSnackbar, invalidateAndRefetch]);
 
-    const handleCloseSnackbar = useCallback((event, reason) => {
-        if (reason === 'clickaway') return;
-        setSnackbar(prev => ({ ...prev, open: false }));
-    }, []);
-
     const handleLockedClick = useCallback((id, itemData) => {
         setLockedConfirmModal({
             open: true,
@@ -248,13 +237,11 @@ const RMEReports = () => {
 
         try {
             await lockReportMutation.mutateAsync({ id: itemId });
-
             showSnackbar('Report locked successfully', 'success');
         } catch (error) {
             showSnackbar('Failed to lock report', 'error');
         }
     }, [lockedConfirmModal, lockReportMutation, showSnackbar]);
-
 
     const handleDiscardClick = useCallback((id, itemData) => {
         setDiscardConfirmModal({
@@ -281,13 +268,11 @@ const RMEReports = () => {
 
         try {
             await deleteReportMutation.mutateAsync({ id: itemId });
-
             showSnackbar('Report discarded successfully', 'success');
         } catch (error) {
             showSnackbar('Failed to discard report', 'error');
         }
     }, [discardConfirmModal, deleteReportMutation, showSnackbar]);
-
 
     const handleWaitToLockToggle = useCallback((id) => {
         setWaitToLockAction(prev => {
@@ -1113,11 +1098,7 @@ const RMEReports = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* Snackbar */}
-            <SnackbarAlert
-                snackbar={snackbar}
-                onClose={handleCloseSnackbar}
-            />
+            {/* Snackbar is now global - removed from here */}
         </Box>
     );
 };

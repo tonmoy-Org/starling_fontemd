@@ -18,7 +18,7 @@ import {
     TablePagination
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useTheme, useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material';
 import { X, Search, Trash2, RotateCcw, History } from 'lucide-react';
 import StyledTextField from '../../../../../../components/ui/StyledTextField';
 import {
@@ -58,7 +58,6 @@ const RmeRecycleBinModal = ({
     isSmallMobile = false,
 }) => {
     const theme = useTheme();
-
     const filteredRecycleBinItems = useMemo(() => {
         if (!recycleBinSearch) return recycleBinItems;
         const searchLower = recycleBinSearch.toLowerCase();
@@ -282,7 +281,26 @@ const RmeRecycleBinModal = ({
                     </Box>
                 </Box>
 
-                <Box sx={{ flex: 1, overflow: 'auto' }}>
+                <Box sx={{
+                    flex: 1,
+                    overflow: 'auto',
+                    overflowX: 'hidden',
+                    scrollbarWidth: 'thin',
+                    '&::-webkit-scrollbar': {
+                        width: '4px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                        background: '#f1f5f9',
+                        borderRadius: '4px',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                        background: '#cbd5e0',
+                        borderRadius: '4px',
+                        '&:hover': {
+                            background: '#94a3b8',
+                        },
+                    },
+                }}>
                     {isRecycleBinLoading ? (
                         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -321,19 +339,7 @@ const RmeRecycleBinModal = ({
                             </Typography>
                         </Box>
                     ) : (
-                        <TableContainer sx={{
-                            overflowX: 'auto',
-                            '&::-webkit-scrollbar': {
-                                height: '8px',
-                            },
-                            '&::-webkit-scrollbar-track': {
-                                backgroundColor: alpha(PURPLE_COLOR, 0.05),
-                            },
-                            '&::-webkit-scrollbar-thumb': {
-                                backgroundColor: alpha(PURPLE_COLOR, 0.2),
-                                borderRadius: '4px',
-                            },
-                        }}>
+                        <TableContainer>
                             <Table size="small" sx={{ minWidth: isMobile ? 1000 : 'auto' }}>
                                 <TableHead>
                                     <TableRow sx={{
