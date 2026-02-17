@@ -321,7 +321,7 @@ const Repairs = () => {
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { showSnackbar } = useGlobalSnackbar(); // Use global snackbar
+  const { showSnackbar } = useGlobalSnackbar();
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [selectedRepairs, setSelectedRepairs] = useState({
@@ -353,13 +353,6 @@ const Repairs = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStage, setFilterStage] = useState('all');
-
-  // Remove local snackbar state
-  // const [snackbar, setSnackbar] = useState({
-  //   open: false,
-  //   message: '',
-  //   severity: 'success',
-  // });
 
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedRepair, setSelectedRepair] = useState(null);
@@ -656,17 +649,35 @@ const Repairs = () => {
     setRecycleBinRowsPerPage(isMobile ? 5 : 10);
   }, [isMobile]);
 
-  // Remove local snackbar functions
-  // const showSnackbar = (message, severity = 'success') => {
-  //   setSnackbar({ open: true, message, severity });
-  // };
+  // Enhanced search filter function
+  const filterBySearchTerm = (repair) => {
+    if (!searchTerm.trim()) return true;
 
-  // const handleCloseSnackbar = (event, reason) => {
-  //   if (reason === 'clickaway') {
-  //     return;
-  //   }
-  //   setSnackbar(prev => ({ ...prev, open: false }));
-  // };
+    const searchLower = searchTerm.toLowerCase().trim();
+    const address = parseDashboardAddress(repair.address);
+
+    // Search across multiple fields
+    const searchableFields = [
+      repair.name?.toLowerCase() || '',
+      repair.address?.toLowerCase() || '',
+      address.street?.toLowerCase() || '',
+      address.city?.toLowerCase() || '',
+      address.state?.toLowerCase() || '',
+      address.zip?.toLowerCase() || '',
+      repair.workOrderNumber?.toLowerCase() || '',
+      repair.stageName?.toLowerCase() || '',
+      repair.stressTestDescription?.toLowerCase() || '',
+      repair.asBuiltCondition?.toLowerCase() || '',
+      repair.rmeReport?.toLowerCase() || '',
+      repair.assignedTo?.toLowerCase() || '',
+      repair.priority?.toLowerCase() || '',
+      repair.notes?.toLowerCase() || '',
+      ...(Array.isArray(repair.neededItems) ? repair.neededItems.map(item => item.toLowerCase()) : [])
+    ];
+
+    // Check if any field contains the search term
+    return searchableFields.some(field => field.includes(searchLower));
+  };
 
   const getDaysInStage = (repair) => {
     if (!repair) return "0 min";
@@ -769,31 +780,35 @@ const Repairs = () => {
   }, [repairsData]);
 
   const topDashboardData = useMemo(() => {
-    return activeRepairs.map(repair => {
-      const address = parseDashboardAddress(repair.address);
-      const stage = REPAIR_STAGES.find(s => s.id === repair.stage);
-      return {
-        id: repair.id,
-        address: repair.address,
-        street: address.street,
-        cityState: `${address.city}, ${address.state} ${address.zip}`.trim().replace(/^,\s*/, ''),
-        customer: repair.name,
-        currentStage: stage?.name || repair.stageName,
-        stageColor: repair.stageColor,
-        whatsMissing: getWhatsMissing(repair),
-        daysInStage: getDaysInStage(repair),
-        repair
-      };
-    });
-  }, [activeRepairs, currentTime]);
+    return activeRepairs
+      .filter(filterBySearchTerm)
+      .map(repair => {
+        const address = parseDashboardAddress(repair.address);
+        const stage = REPAIR_STAGES.find(s => s.id === repair.stage);
+        return {
+          id: repair.id,
+          address: repair.address,
+          street: address.street,
+          cityState: `${address.city}, ${address.state} ${address.zip}`.trim().replace(/^,\s*/, ''),
+          customer: repair.name,
+          currentStage: stage?.name || repair.stageName,
+          stageColor: repair.stageColor,
+          whatsMissing: getWhatsMissing(repair),
+          daysInStage: getDaysInStage(repair),
+          repair
+        };
+      });
+  }, [activeRepairs, currentTime, searchTerm]);
 
   const repairsByStage = useMemo(() => {
     const grouped = {};
     REPAIR_STAGES.forEach(stage => {
-      grouped[stage.id] = activeRepairs.filter(r => r.stage === stage.id);
+      grouped[stage.id] = activeRepairs
+        .filter(r => r.stage === stage.id)
+        .filter(filterBySearchTerm);
     });
     return grouped;
-  }, [activeRepairs]);
+  }, [activeRepairs, searchTerm]);
 
   const handleOpenDetails = (repair) => {
     setSelectedRepair(repair);
@@ -2425,7 +2440,7 @@ const Repairs = () => {
                             fontWeight: 500,
                           }}
                         >
-                          No repairs in this stage
+                          {searchTerm ? 'No repairs match your search' : 'No repairs in this stage'}
                         </Typography>
                       </Box>
                     </TableCell>
@@ -2722,33 +2737,6 @@ const Repairs = () => {
         gap: isMobile ? 2 : 2,
         alignItems: isMobile ? 'stretch' : 'center'
       }}>
-        <StyledTextField
-          size="small"
-          placeholder="Search repairs..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ width: isMobile ? '100%' : 250 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search size={isMobile ? 14 : 16} color={GRAY_COLOR} />
-              </InputAdornment>
-            ),
-            endAdornment: searchTerm && (
-              <InputAdornment position="end">
-                <IconButton
-                  size="small"
-                  onClick={() => setSearchTerm('')}
-                  edge="end"
-                  sx={{ p: 0.5 }}
-                >
-                  <X size={isMobile ? 14 : 16} />
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        />
-        <Box sx={{ flex: 1 }} />
         <Box sx={{
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',
@@ -2784,6 +2772,35 @@ const Repairs = () => {
             ))}
           </Box>
         </Box>
+        <Box sx={{ flex: 1 }} />
+        <StyledTextField
+          size="small"
+          placeholder="Search"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ width: isMobile ? '100%' : 300 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search size={isMobile ? 14 : 16} color={GRAY_COLOR} />
+              </InputAdornment>
+            ),
+            endAdornment: searchTerm && (
+              <InputAdornment position="end">
+                <IconButton
+                  size="small"
+                  onClick={() => setSearchTerm('')}
+                  edge="end"
+                  sx={{ p: 0.5 }}
+                >
+                  <X size={isMobile ? 14 : 16} />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+          helperText={searchTerm ? `Searching across all fields...` : ''}
+          FormHelperTextProps={{ sx: { fontSize: isMobile ? '0.65rem' : '0.7rem', mt: 0.5 } }}
+        />
       </Paper>
       {filterStage === 'all' ? (
         REPAIR_STAGES.map(stage => renderStageCard(stage))
