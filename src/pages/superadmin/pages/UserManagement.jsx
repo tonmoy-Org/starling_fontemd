@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     Box,
     Typography,
     Tooltip,
     IconButton,
-    Snackbar,
-    Alert,
     useTheme,
     useMediaQuery,
 } from '@mui/material';
@@ -17,9 +15,6 @@ import {
     UserCheck,
     UserX,
     Mail,
-    CheckCircle,
-    AlertCircle,
-    AlertTriangle,
 } from 'lucide-react';
 import GradientButton from '../../../components/ui/GradientButton';
 import DashboardLoader from '../../../components/Loader/DashboardLoader';
@@ -29,34 +24,21 @@ import { DeleteConfirmationModal } from '../../../components/ui/DeleteConfirmati
 import { StatusToggleModal } from '../../../components/ui/StatusToggleModal';
 import { DataTable } from '../../../components/DataTable/DataTable';
 import { useAuth } from '../../../auth/AuthProvider';
+import { useGlobalSnackbar } from '../../../context/GlobalSnackbarContext';
 
 const TEXT_COLOR = '#0F1115';
 const BLUE_COLOR = '#1976d2';
 const GREEN_COLOR = '#10b981';
 const RED_COLOR = '#ef4444';
-const ORANGE_COLOR = '#f59e0b';
 const GRAY_COLOR = '#6b7280';
 
 export const UserManagement = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { user: currentUser } = useAuth();
-
-    const [snackbar, setSnackbar] = useState({
-        open: false,
-        message: '',
-        severity: 'success',
-    });
+    const { showSnackbar } = useGlobalSnackbar();
 
     const [isTogglingStatus, setIsTogglingStatus] = useState(false);
-
-    // Track previous modal states to detect when they close
-    const [prevOpenDialog, setPrevOpenDialog] = useState(false);
-    const [prevOpenDeleteDialog, setPrevOpenDeleteDialog] = useState(false);
-    const [prevOpenStatusDialog, setPrevOpenStatusDialog] = useState(false);
-
-    // Track pending snackbar messages
-    const [pendingSnackbar, setPendingSnackbar] = useState(null);
 
     const {
         users,
@@ -88,62 +70,12 @@ export const UserManagement = () => {
         setOpenStatusDialog,
     } = useUsers('/users', 'users');
 
-    // Effect to detect when modals close and show snackbar
-    useEffect(() => {
-        // Check if UserFormModal just closed
-        if (prevOpenDialog && !openDialog && pendingSnackbar) {
-            showSnackbar(pendingSnackbar.message, pendingSnackbar.severity);
-            setPendingSnackbar(null);
-        }
-        setPrevOpenDialog(openDialog);
-    }, [openDialog, prevOpenDialog, pendingSnackbar]);
-
-    useEffect(() => {
-        // Check if DeleteConfirmationModal just closed
-        if (prevOpenDeleteDialog && !openDeleteDialog && pendingSnackbar) {
-            showSnackbar(pendingSnackbar.message, pendingSnackbar.severity);
-            setPendingSnackbar(null);
-        }
-        setPrevOpenDeleteDialog(openDeleteDialog);
-    }, [openDeleteDialog, prevOpenDeleteDialog, pendingSnackbar]);
-
-    useEffect(() => {
-        // Check if StatusToggleModal just closed
-        if (prevOpenStatusDialog && !openStatusDialog && pendingSnackbar) {
-            showSnackbar(pendingSnackbar.message, pendingSnackbar.severity);
-            setPendingSnackbar(null);
-        }
-        setPrevOpenStatusDialog(openStatusDialog);
-    }, [openStatusDialog, prevOpenStatusDialog, pendingSnackbar]);
-
-    const showSnackbar = (message, severity = 'success') => {
-        setSnackbar({
-            open: true,
-            message,
-            severity,
-        });
-    };
-
-    const handleCloseSnackbar = (event, reason) => {
-        if (reason === 'clickaway') {
-            return;
-        }
-        setSnackbar(prev => ({ ...prev, open: false }));
-    };
-
     const handleEnhancedDeleteConfirm = async () => {
         try {
             await handleDeleteConfirm();
-            // Store snackbar message to show after modal closes
-            setPendingSnackbar({
-                message: 'User deleted successfully',
-                severity: 'success'
-            });
+            showSnackbar('User deleted successfully', 'success');
         } catch (err) {
-            setPendingSnackbar({
-                message: err.message || 'Failed to delete user',
-                severity: 'error'
-            });
+            showSnackbar(err.message || 'Failed to delete user', 'error');
             throw err;
         }
     };
@@ -153,16 +85,10 @@ export const UserManagement = () => {
         try {
             const result = await handleToggleStatusConfirm();
             const action = userToToggle?.isActive ? 'deactivated' : 'activated';
-            setPendingSnackbar({
-                message: `User ${action} successfully`,
-                severity: 'success'
-            });
+            showSnackbar(`User ${action} successfully`, 'success');
             return result;
         } catch (err) {
-            setPendingSnackbar({
-                message: err.message || 'Failed to update user status',
-                severity: 'error'
-            });
+            showSnackbar(err.message || 'Failed to update user status', 'error');
             throw err;
         } finally {
             setIsTogglingStatus(false);
@@ -173,16 +99,10 @@ export const UserManagement = () => {
         try {
             const result = await handleSubmit();
             const action = selectedUser ? 'updated' : 'created';
-            setPendingSnackbar({
-                message: `User ${action} successfully`,
-                severity: 'success'
-            });
+            showSnackbar(`User ${action} successfully`, 'success');
             return result;
         } catch (err) {
-            setPendingSnackbar({
-                message: err.message || 'Failed to save user',
-                severity: 'error'
-            });
+            showSnackbar(err.message || 'Failed to save user', 'error');
             throw err;
         }
     };
@@ -475,6 +395,12 @@ export const UserManagement = () => {
             variant="contained"
             startIcon={<UserPlus size={16} />}
             onClick={() => handleOpenDialog()}
+            sx={{
+                fontSize: '0.85rem',
+                textTransform: 'none',
+                px: 2,
+                py: 1,
+            }}
         >
             Add User
         </GradientButton>
@@ -491,7 +417,14 @@ export const UserManagement = () => {
                 <meta name="description" content="Manage users and their roles" />
             </Helmet>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mb: 3,
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: isMobile ? 2 : 0,
+            }}>
                 <Box>
                     <Typography
                         sx={{
@@ -508,14 +441,21 @@ export const UserManagement = () => {
                         variant="body2"
                         sx={{
                             color: GRAY_COLOR,
-                            fontSize: '0.8rem',
+                            fontSize: '0.85rem',
                             fontWeight: 400,
                         }}
                     >
                         Manage users and their roles
                     </Typography>
                 </Box>
+                {!isMobile && headerActions}
             </Box>
+
+            {isMobile && (
+                <Box sx={{ mb: 2 }}>
+                    {headerActions}
+                </Box>
+            )}
 
             <DataTable
                 data={paginatedUsers}
@@ -531,9 +471,10 @@ export const UserManagement = () => {
                 totalCount={filteredUsers.length}
                 onPageChange={handleChangePage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
-                headerActions={headerActions}
+                headerActions={isMobile ? null : headerActions}
                 emptyStateTitle="No users found."
                 emptyStateDescription="Create one to get started."
+                isMobile={isMobile}
             />
 
             <UserFormModal
@@ -574,56 +515,6 @@ export const UserManagement = () => {
                 title="User"
                 itemNameKey="name"
             />
-
-            <Snackbar
-                open={snackbar.open}
-                autoHideDuration={3000}
-                onClose={handleCloseSnackbar}
-                anchorOrigin={{
-                    vertical: isMobile ? 'top' : 'bottom',
-                    horizontal: 'right',
-                }}
-            >
-                <Alert
-                    onClose={handleCloseSnackbar}
-                    severity={snackbar.severity}
-                    iconMapping={{
-                        success: <CheckCircle size={20} />,
-                        error: <AlertCircle size={20} />,
-                        warning: <AlertTriangle size={20} />,
-                        info: <AlertCircle size={20} />,
-                    }}
-                    sx={{
-                        width: '100%',
-                        borderRadius: '6px',
-                        backgroundColor: snackbar.severity === 'success'
-                            ? 'success'
-                            : snackbar.severity === 'error'
-                                ? 'error'
-                                : snackbar.severity === 'warning'
-                                    ? 'warning'
-                                    : 'info',
-                        borderLeft: `4px solid ${snackbar.severity === 'success' ? GREEN_COLOR :
-                            snackbar.severity === 'error' ? RED_COLOR :
-                                snackbar.severity === 'warning' ? ORANGE_COLOR : BLUE_COLOR}`,
-                        '& .MuiAlert-icon': {
-                            color: snackbar.severity === 'success' ? GREEN_COLOR :
-                                snackbar.severity === 'error' ? RED_COLOR :
-                                    snackbar.severity === 'warning' ? ORANGE_COLOR : BLUE_COLOR,
-                        },
-                        '& .MuiAlert-message': { py: 0.5 },
-                    }}
-                    elevation={6}
-                >
-                    <Typography sx={{
-                        fontSize: '0.85rem',
-                        fontWeight: 500,
-                        color: TEXT_COLOR,
-                    }}>
-                        {snackbar.message}
-                    </Typography>
-                </Alert>
-            </Snackbar>
         </Box>
     );
 };

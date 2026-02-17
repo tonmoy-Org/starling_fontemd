@@ -4,8 +4,6 @@ import {
   Typography,
   Paper,
   Chip,
-  Snackbar,
-  Alert,
   Button,
   useMediaQuery,
   useTheme,
@@ -13,6 +11,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Alert,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { Helmet } from 'react-helmet-async';
@@ -20,8 +19,6 @@ import { useAuth } from '../../../../auth/AuthProvider';
 import DashboardLoader from '../../../../components/Loader/DashboardLoader';
 import OutlineButton from '../../../../components/ui/OutlineButton';
 import {
-  CheckCircle,
-  AlertCircle,
   AlertTriangle,
   History,
   Trash2,
@@ -40,6 +37,7 @@ import {
   CompleteDialog,
   PermanentDeleteDialog
 } from './components/ConfirmationDialogs';
+import { useGlobalSnackbar } from '../../../../context/GlobalSnackbarContext';
 
 import {
   BLUE_COLOR,
@@ -72,6 +70,7 @@ const Locates = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user } = useAuth();
+  const { showSnackbar } = useGlobalSnackbar();
 
   const [pagePending, setPagePending] = useState(0);
   const [rowsPerPagePending, setRowsPerPagePending] = useState(isMobile ? 5 : 10);
@@ -97,11 +96,7 @@ const Locates = () => {
   const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
   const [selectedSingleItem, setSelectedSingleItem] = useState(null);
 
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
+  // Remove local snackbar state - now using global
 
   const currentUserName = user?.name || 'Admin User';
   const currentUserEmail = user?.email || 'admin@company.com';
@@ -231,14 +226,7 @@ const Locates = () => {
     setRecycleBinPage(0);
   };
 
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const handleCloseSnackbar = (event, reason) => {
-    if (reason === 'clickaway') return;
-    setSnackbar(prev => ({ ...prev, open: false }));
-  };
+  // Remove local showSnackbar and handleCloseSnackbar functions
 
   const handleMarkCalled = (id, callType) => {
     markCalledMutation.mutate(
@@ -320,7 +308,7 @@ const Locates = () => {
       onSuccess: () => {
         clearSelectionRecycleBin();
         setPermanentDeleteDialogOpen(false);
-        showSnackbar(`${selectedRecycleBinItems.size} item(s) permanently deleted', 'success`);
+        showSnackbar(`${selectedRecycleBinItems.size} item(s) permanently deleted`, 'success');
       },
       onError: (err) => showSnackbar(err?.response?.data?.message || 'Bulk permanent delete failed', 'error'),
     });
@@ -897,56 +885,7 @@ const Locates = () => {
         showWarning
       />
 
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{
-          vertical: isMobile ? 'top' : 'bottom',
-          horizontal: 'right',
-        }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          iconMapping={{
-            success: <CheckCircle size={20} />,
-            error: <AlertCircle size={20} />,
-            warning: <AlertTriangle size={20} />,
-            info: <AlertCircle size={20} />,
-          }}
-          sx={{
-            width: '100%',
-            borderRadius: '6px',
-            backgroundColor: snackbar.severity === 'success'
-              ? 'success'
-              : snackbar.severity === 'error'
-                ? 'error'
-                : snackbar.severity === 'warning'
-                  ? 'warning'
-                  : 'info',
-            borderLeft: `4px solid ${snackbar.severity === 'success' ? GREEN_COLOR :
-              snackbar.severity === 'error' ? RED_COLOR :
-                snackbar.severity === 'warning' ? ORANGE_COLOR : BLUE_COLOR}`,
-            '& .MuiAlert-icon': {
-              color: snackbar.severity === 'success' ? GREEN_COLOR :
-                snackbar.severity === 'error' ? RED_COLOR :
-                  snackbar.severity === 'warning' ? ORANGE_COLOR : BLUE_COLOR,
-            },
-            '& .MuiAlert-message': { py: 0.5 },
-          }}
-          elevation={6}
-        >
-          <Typography sx={{
-            fontSize: '0.85rem',
-            fontWeight: 500,
-            color: TEXT_COLOR,
-          }}>
-            {snackbar.message}
-          </Typography>
-        </Alert>
-      </Snackbar>
+      {/* Remove local Snackbar component - now using global */}
     </Box>
   );
 };

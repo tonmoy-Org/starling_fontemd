@@ -4,6 +4,11 @@ import { useTheme } from '@mui/material/styles';
 import { CheckCircle, AlertCircle, AlertTriangle } from 'lucide-react';
 import { TEXT_COLOR } from '../../../locates/utils/constants';
 
+const GREEN_COLOR = '#10b981';
+const RED_COLOR = '#ef4444';
+const ORANGE_COLOR = '#ed6c02';
+const BLUE_COLOR = '#1976d2';
+
 const SnackbarAlert = ({ snackbar, onClose }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -11,13 +16,13 @@ const SnackbarAlert = ({ snackbar, onClose }) => {
     const getBorderColor = (severity) => {
         switch (severity) {
             case 'success':
-                return 'success';
+                return GREEN_COLOR;
             case 'error':
-                return 'error';
+                return RED_COLOR;
             case 'warning':
-                return 'warning';
+                return ORANGE_COLOR;
             default:
-                return 'info';
+                return BLUE_COLOR;
         }
     };
 
@@ -43,18 +48,7 @@ const SnackbarAlert = ({ snackbar, onClose }) => {
                 sx={{
                     width: '100%',
                     borderRadius: '6px',
-                    backgroundColor:
-                        snackbar.severity === 'success'
-                            ? 'success'
-                            : snackbar.severity === 'error'
-                                ? 'error'
-                                : snackbar.severity === 'warning'
-                                    ? 'warning'
-                                    : 'info',
                     borderLeft: `4px solid ${getBorderColor(snackbar.severity)}`,
-                    '& .MuiAlert-icon': {
-                        color: getBorderColor(snackbar.severity),
-                    },
                     '& .MuiAlert-message': {
                         py: 0.5,
                     },

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -8,14 +8,13 @@ import {
   ListItemText,
   ListItemIcon,
   Chip,
-  CircularProgress,
   Alert,
   IconButton,
   Divider,
   Stack,
   alpha,
   Button,
-  Tooltip
+  Tooltip,
 } from '@mui/material';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import {
@@ -25,12 +24,14 @@ import {
   Clock,
   TrendingUp,
   Check,
-  X
+  X,
 } from 'lucide-react';
 import { useNotifications } from '../../hook/useNotifications';
 import { Helmet } from 'react-helmet-async';
 import axiosInstance from '../../api/axios';
 import { useNavigate } from 'react-router-dom';
+import { useGlobalSnackbar } from '../../context/GlobalSnackbarContext';
+import DashboardLoader from '../Loader/DashboardLoader';
 
 const TEXT_COLOR = '#0F1115';
 const BLUE_COLOR = '#1976d2';
@@ -105,6 +106,8 @@ export default function Notifications() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { notifications: combinedData, isLoading, error, refetch } = useNotifications();
+  const { showSnackbar } = useGlobalSnackbar();
+  const prevNotificationsRef = useRef([]);
 
   // Get user from localStorage or your auth context
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -200,6 +203,33 @@ export default function Notifications() {
     return allNotifications.sort((a, b) => b.timestamp - a.timestamp);
   }, [combinedData]);
 
+  // Check for new notifications and show snackbar alerts
+  useEffect(() => {
+    if (notifications.length > 0) {
+      const prevNotifications = prevNotificationsRef.current;
+
+      // Find new notifications that weren't in the previous list
+      const newNotifications = notifications.filter(notification => {
+        return !prevNotifications.some(prev => prev.id === notification.id);
+      });
+
+      // Show snackbar for each new notification (limit to first 3 to avoid spam)
+      newNotifications.slice(0, 3).forEach((notification, index) => {
+        // Add a slight delay for multiple notifications
+        setTimeout(() => {
+          const message = notification.type === 'locate'
+            ? `New locate request: ${notification.customerName || 'No New Notification'}`
+            : `New RME: ${notification.customerName || 'No New Notification'}`;
+
+          showSnackbar(message, 'info');
+        }, index * 300);
+      });
+
+      // Update ref with current notifications
+      prevNotificationsRef.current = notifications;
+    }
+  }, [notifications, showSnackbar]);
+
   // Group notifications by date
   const groupedNotifications = useMemo(() => {
     const groups = {};
@@ -282,7 +312,7 @@ export default function Notifications() {
       const locateIds = notifications
         .filter(n => n.type === 'locate' && !n.is_seen)
         .map(n => n.entityId);
-      
+
       const workOrderIds = notifications
         .filter(n => n.type === 'RME' && !n.is_seen)
         .map(n => n.entityId);
@@ -309,15 +339,18 @@ export default function Notifications() {
       // Invalidate and refetch notifications data
       queryClient.invalidateQueries(['notifications-data']);
       refetch();
+      showSnackbar(`Marked ${counts.unseenCount} notification(s) as read`, 'success');
     },
     onError: (error) => {
       console.error('Error marking all notifications as seen:', error);
+      showSnackbar('Failed to mark notifications as read', 'error');
     }
   });
 
   const handleRefresh = () => {
     queryClient.invalidateQueries(['notifications-data']);
     refetch();
+    showSnackbar('Notifications refreshed', 'success');
   };
 
   const handleMarkAllSeen = () => {
@@ -348,19 +381,19 @@ export default function Notifications() {
 
     // Redirect based on notification type
     if (notification.type === 'locate') {
-      navigate(`${dashboardBasePath}/locates`, { 
-        state: { 
+      navigate(`${dashboardBasePath}/locates`, {
+        state: {
           highlightLocateId: notification.entityId,
           fromNotifications: true,
           scrollToTop: true
         }
       });
     } else if (notification.type === 'RME') {
-      navigate(`${dashboardBasePath}/health-department-report-tracking/rme`, { 
-        state: { 
+      navigate(`${dashboardBasePath}/health-department-report-tracking/rme`, {
+        state: {
           highlightWorkOrderId: notification.entityId,
           fromNotifications: true,
-          scrollToTop: true 
+          scrollToTop: true
         }
       });
     }
@@ -370,7 +403,7 @@ export default function Notifications() {
   const handleMarkNotificationSeen = (notification, event) => {
     // Stop event propagation to prevent the ListItem onClick from firing
     event.stopPropagation();
-    
+
     // Mark the notification as seen
     markAsSeenMutation.mutate(notification);
   };
@@ -380,24 +413,22 @@ export default function Notifications() {
     scrollToTop();
   }, []);
 
+
   if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <DashboardLoader />;
   }
 
   if (error) {
     return (
       <Alert
         severity="error"
-        sx={{ mt: 2 }}
+        sx={{ mt: 2, fontSize: '0.85rem' }}
         action={
           <Button
             color="inherit"
             size="small"
             onClick={() => refetch()}
+            sx={{ fontSize: '0.8rem' }}
           >
             Retry
           </Button>
@@ -414,7 +445,7 @@ export default function Notifications() {
         <title>Notifications | Sterling Septic & Plumbing LLC</title>
         <meta name="description" content="View and manage notifications" />
       </Helmet>
-      
+
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
@@ -423,7 +454,7 @@ export default function Notifications() {
               sx={{
                 fontWeight: 600,
                 mb: 0.5,
-                fontSize: '0.95rem',
+                fontSize: '1rem',
                 color: TEXT_COLOR,
                 letterSpacing: '-0.01em',
               }}
@@ -434,25 +465,25 @@ export default function Notifications() {
               variant="body2"
               sx={{
                 color: GRAY_COLOR,
-                fontSize: '0.8rem',
+                fontSize: '0.85rem',
                 fontWeight: 400,
               }}
             >
               Last 30 days activity
             </Typography>
           </Box>
-          
+
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             {counts.unseenCount > 0 && (
               <Button
                 variant="outlined"
                 size="small"
-                startIcon={<Check size={14} />}
+                startIcon={<Check size={16} />}
                 onClick={handleMarkAllSeen}
-                disabled={markAllAsSeenMutation.isLoading}
+                disabled={markAllAsSeenMutation.isPending}
                 sx={{
                   textTransform: 'none',
-                  fontSize: '0.75rem',
+                  fontSize: '0.85rem',
                   color: GREEN_COLOR,
                   borderColor: alpha(GREEN_COLOR, 0.3),
                   '&:hover': {
@@ -468,59 +499,78 @@ export default function Notifications() {
                 Mark all read
               </Button>
             )}
-            
-            <IconButton
-              onClick={() => {
-                handleRefresh();
-                scrollToTop(); // Also scroll to top on refresh
-              }}
-              size="small"
-              sx={{
-                color: GRAY_COLOR,
-                '&:hover': {
-                  backgroundColor: alpha(GRAY_COLOR, 0.1)
-                }
-              }}
-            >
-              <TrendingUp size={18} />
-            </IconButton>
+
+            <Tooltip title="Refresh">
+              <IconButton
+                onClick={handleRefresh}
+                size="small"
+                sx={{
+                  color: GRAY_COLOR,
+                  '&:hover': {
+                    backgroundColor: alpha(GRAY_COLOR, 0.1)
+                  }
+                }}
+              >
+                <TrendingUp size={18} />
+              </IconButton>
+            </Tooltip>
           </Box>
         </Box>
 
         {/* Stats Cards */}
-        <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
           <Paper
             elevation={0}
             sx={{
               p: 2,
               flex: 1,
-              borderRadius: '8px',
+              borderRadius: '6px',
               border: `1px solid ${alpha(BLUE_COLOR, 0.2)}`,
               bgcolor: alpha(BLUE_COLOR, 0.05),
             }}
           >
-            <Typography variant="caption" sx={{ color: GRAY_COLOR, fontWeight: 500, display: 'block', mb: 0.5 }}>
+            <Typography variant="caption" sx={{
+              color: GRAY_COLOR,
+              fontWeight: 500,
+              display: 'block',
+              mb: 0.5,
+              fontSize: '0.75rem'
+            }}>
               Total Notifications
             </Typography>
-            <Typography variant="h5" sx={{ color: TEXT_COLOR, fontWeight: 600 }}>
+            <Typography variant="h5" sx={{
+              color: TEXT_COLOR,
+              fontWeight: 600,
+              fontSize: '1.5rem'
+            }}>
               {counts.total}
             </Typography>
           </Paper>
-          
+
           <Paper
             elevation={0}
             sx={{
               p: 2,
               flex: 1,
-              borderRadius: '8px',
+              borderRadius: '6px',
               border: `1px solid ${alpha(GREEN_COLOR, 0.2)}`,
               bgcolor: alpha(GREEN_COLOR, 0.05),
             }}
           >
-            <Typography variant="caption" sx={{ color: GRAY_COLOR, fontWeight: 500, display: 'block', mb: 0.5 }}>
+            <Typography variant="caption" sx={{
+              color: GRAY_COLOR,
+              fontWeight: 500,
+              display: 'block',
+              mb: 0.5,
+              fontSize: '0.75rem'
+            }}>
               New (Unread)
             </Typography>
-            <Typography variant="h5" sx={{ color: TEXT_COLOR, fontWeight: 600 }}>
+            <Typography variant="h5" sx={{
+              color: TEXT_COLOR,
+              fontWeight: 600,
+              fontSize: '1.5rem'
+            }}>
               {counts.unseenCount}
             </Typography>
           </Paper>
@@ -534,15 +584,24 @@ export default function Notifications() {
           sx={{
             p: 6,
             textAlign: 'center',
-            borderRadius: '8px',
+            borderRadius: '6px',
             border: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
           }}
         >
           <Bell size={48} color={alpha(GRAY_COLOR, 0.3)} />
-          <Typography variant="h6" sx={{ mt: 2, color: GRAY_COLOR, fontWeight: 500 }}>
+          <Typography variant="h6" sx={{
+            mt: 2,
+            color: GRAY_COLOR,
+            fontWeight: 500,
+            fontSize: '1rem'
+          }}>
             No recent activity
           </Typography>
-          <Typography variant="body2" sx={{ color: GRAY_COLOR, mt: 1 }}>
+          <Typography variant="body2" sx={{
+            color: GRAY_COLOR,
+            mt: 1,
+            fontSize: '0.85rem'
+          }}>
             No new locates or RME in the last 30 days
           </Typography>
         </Paper>
@@ -550,7 +609,7 @@ export default function Notifications() {
         <Paper
           elevation={0}
           sx={{
-            borderRadius: '8px',
+            borderRadius: '6px',
             border: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
             overflow: 'hidden',
           }}
@@ -559,19 +618,20 @@ export default function Notifications() {
             <Box key={date}>
               {/* Date Header */}
               <Box sx={{
-                p: 2,
+                p: 1.5,
                 bgcolor: alpha(GRAY_COLOR, 0.03),
                 borderBottom: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
-                position: 'sticky',
-                top: 0,
-                zIndex: 1
+                borderTop: `1px solid ${alpha(GRAY_COLOR, 0.1)}`,
+                '&:first-of-type': {
+                  borderTop: 'none',
+                },
               }}>
-                <Typography variant="subtitle2" sx={{ 
-                  color: GRAY_COLOR, 
-                  fontWeight: 600, 
-                  fontSize: '0.75rem', 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '0.5px' 
+                <Typography variant="subtitle2" sx={{
+                  color: GRAY_COLOR,
+                  fontWeight: 600,
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
                 }}>
                   {date}
                 </Typography>
@@ -588,7 +648,7 @@ export default function Notifications() {
                       <ListItem
                         button
                         onClick={() => handleNotificationClick(notification)}
-                        disabled={markAsSeenMutation.isLoading}
+                        disabled={markAsSeenMutation.isPending}
                         sx={{
                           p: 2,
                           backgroundColor: notification.is_seen ? 'transparent' : alpha(notification.color, 0.04),
@@ -632,15 +692,15 @@ export default function Notifications() {
                                 zIndex: 2,
                               }}
                             >
-                              <X size={14} />
+                              <X size={16} />
                             </IconButton>
                           </Tooltip>
                         )}
-                        
-                        <ListItemIcon sx={{ minWidth: 44 }}>
+
+                        <ListItemIcon sx={{ minWidth: 48 }}>
                           <Box sx={{
-                            width: 36,
-                            height: 36,
+                            width: 40,
+                            height: 40,
                             borderRadius: '8px',
                             display: 'flex',
                             alignItems: 'center',
@@ -648,69 +708,72 @@ export default function Notifications() {
                             backgroundColor: alpha(notification.color, 0.1),
                             color: notification.color,
                           }}>
-                            <Icon size={16} />
+                            <Icon size={20} />
                           </Box>
                         </ListItemIcon>
-                        
+
                         <ListItemText
                           primary={
-                            <Box sx={{ 
-                              display: 'flex', 
-                              alignItems: 'flex-start', 
-                              justifyContent: 'space-between', 
+                            <Box sx={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              justifyContent: 'space-between',
                               mb: 0.5,
                               pr: notification.is_seen ? 0 : 3 // Add padding for close button space
                             }}>
                               <Typography variant="body2" sx={{
                                 color: TEXT_COLOR,
                                 fontWeight: notification.is_seen ? 500 : 600,
-                                fontSize: '0.79rem',
+                                fontSize: '0.85rem',
                                 lineHeight: 1.4,
                                 flex: 1
                               }}>
                                 {notification.description}
                               </Typography>
-                              
+
                               <Chip
                                 label={notification.type === 'locate' ? 'Locate' : 'RME'}
                                 size="small"
                                 sx={{
-                                  height: '20px',
-                                  fontSize: '0.65rem',
+                                  height: '22px',
+                                  fontSize: '0.7rem',
                                   fontWeight: 600,
                                   backgroundColor: alpha(notification.color, 0.1),
                                   color: notification.color,
                                   border: `1px solid ${alpha(notification.color, 0.2)}`,
                                   ml: 1,
-                                  flexShrink: 0
+                                  flexShrink: 0,
+                                  '& .MuiChip-label': {
+                                    px: 1,
+                                  },
                                 }}
                               />
                             </Box>
                           }
                           secondary={
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                               <Typography variant="caption" sx={{
                                 color: GRAY_COLOR,
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 0.5,
-                                fontSize: '0.65rem'
+                                fontSize: '0.75rem'
                               }}>
-                                <Clock size={12} />
+                                <Clock size={14} />
                                 {notification.type === 'locate' ? 'WO' : 'WO'}: {notification.type === 'locate' ? notification.workOrderNumber : notification.rmeNumber}
                                 <Box sx={{ mx: 0.5 }}>•</Box>
                                 {notification.formattedTime}
                               </Typography>
-                              
+
                               {notification.address && (
                                 <Typography variant="caption" sx={{
                                   color: GRAY_COLOR,
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: 0.5,
-                                  fontSize: '0.65rem'
+                                  fontSize: '0.75rem'
                                 }}>
-                                  <MapPin size={12} />
+                                  <MapPin size={14} />
                                   {notification.address}
                                 </Typography>
                               )}
@@ -718,7 +781,7 @@ export default function Notifications() {
                           }
                           sx={{ m: 0 }}
                         />
-                        
+
                         {!notification.is_seen && (
                           <Box sx={{
                             width: 8,
@@ -729,7 +792,7 @@ export default function Notifications() {
                           }} />
                         )}
                       </ListItem>
-                      
+
                       {!isLast && (
                         <Divider sx={{ mx: 2, borderColor: alpha(GRAY_COLOR, 0.1) }} />
                       )}
@@ -747,36 +810,42 @@ export default function Notifications() {
         <Box sx={{
           mt: 3,
           display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
           justifyContent: 'space-between',
-          alignItems: 'center',
-          px: 1
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          px: 1,
+          gap: 1
         }}>
-          <Typography variant="caption" sx={{ color: GRAY_COLOR }}>
+          <Typography variant="caption" sx={{
+            color: GRAY_COLOR,
+            fontSize: '0.75rem'
+          }}>
             Showing {notifications.length} notifications from the last 30 days
           </Typography>
-          
+
           <Typography variant="caption" sx={{
             color: GRAY_COLOR,
             display: 'flex',
             alignItems: 'center',
-            gap: 1
+            gap: 2,
+            fontSize: '0.75rem'
           }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Box sx={{ 
-                width: 8, 
-                height: 8, 
-                borderRadius: '50%', 
-                backgroundColor: BLUE_COLOR 
+              <Box sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                backgroundColor: BLUE_COLOR
               }} />
               <span>{counts.locateCount} Locates</span>
             </Box>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 2 }}>
-              <Box sx={{ 
-                width: 8, 
-                height: 8, 
-                borderRadius: '50%', 
-                backgroundColor: GREEN_COLOR 
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                backgroundColor: GREEN_COLOR
               }} />
               <span>{counts.rmeCount} RME</span>
             </Box>

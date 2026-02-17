@@ -4,7 +4,6 @@ import {
     Typography,
     Paper,
     Alert,
-    Snackbar,
     Avatar,
     Divider,
     Chip,
@@ -43,10 +42,10 @@ import {
 import { Helmet } from 'react-helmet-async';
 import DashboardLoader from '../Loader/DashboardLoader';
 import OutlineButton from '../ui/OutlineButton';
-import DeviceList from '../DeviceList'; // Add this import
+import DeviceList from '../DeviceList';
 import GradientButton from '../ui/GradientButton';
+import { useGlobalSnackbar } from '../../context/GlobalSnackbarContext';
 
-// Define color constants (matching your other components)
 const TEXT_COLOR = '#0F1115';
 const BLUE_COLOR = '#1976d2';
 const GREEN_COLOR = '#10b981';
@@ -59,10 +58,9 @@ export const ProfilePage = ({ roleLabel }) => {
     const queryClient = useQueryClient();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const { showSnackbar } = useGlobalSnackbar(); // Use global snackbar
 
     const [isEditing, setIsEditing] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
     const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
@@ -77,6 +75,10 @@ export const ProfilePage = ({ roleLabel }) => {
         name: '',
         email: '',
     });
+
+    // Remove local snackbar states
+    // const [error, setError] = useState('');
+    // const [success, setSuccess] = useState('');
 
     const {
         data: profile,
@@ -264,16 +266,17 @@ export const ProfilePage = ({ roleLabel }) => {
         setShowConfirmPassword(false);
     };
 
-    const showSnackbar = (message, severity = 'success') => {
-        if (severity === 'success') {
-            setSuccess(message);
-        } else {
-            setError(message);
-        }
-        setTimeout(() => {
-            severity === 'success' ? setSuccess('') : setError('');
-        }, 3000);
-    };
+    // Remove local snackbar function
+    // const showSnackbar = (message, severity = 'success') => {
+    //     if (severity === 'success') {
+    //         setSuccess(message);
+    //     } else {
+    //         setError(message);
+    //     }
+    //     setTimeout(() => {
+    //         severity === 'success' ? setSuccess('') : setError('');
+    //     }, 3000);
+    // };
 
     if (isLoading) {
         return <DashboardLoader />;
@@ -344,7 +347,7 @@ export const ProfilePage = ({ roleLabel }) => {
                     sx={{
                         mb: 0.5,
                         color: TEXT_COLOR,
-                        fontSize: '0.8rem',
+                        fontSize: isMobile ? '0.75rem' : '0.8rem',
                         fontWeight: 500,
                     }}
                 >
@@ -372,7 +375,7 @@ export const ProfilePage = ({ roleLabel }) => {
                         placeholder={label}
                         sx={{
                             width: '100%',
-                            fontSize: '0.85rem',
+                            fontSize: isMobile ? '0.8rem' : '0.85rem',
                             height: '40px',
                             paddingLeft: Icon ? '36px' : '12px',
                             paddingRight: onTogglePassword ? '36px' : '12px',
@@ -413,7 +416,7 @@ export const ProfilePage = ({ roleLabel }) => {
                         variant="caption"
                         sx={{
                             color: error ? RED_COLOR : GRAY_COLOR,
-                            fontSize: '0.75rem',
+                            fontSize: isMobile ? '0.7rem' : '0.75rem',
                             mt: 0.5,
                             display: 'block',
                         }}
@@ -433,13 +436,20 @@ export const ProfilePage = ({ roleLabel }) => {
             </Helmet>
 
             {/* Header */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: 'space-between',
+                alignItems: isMobile ? 'flex-start' : 'center',
+                mb: 3,
+                gap: isMobile ? 2 : 0
+            }}>
                 <Box>
                     <Typography
                         sx={{
                             fontWeight: 600,
                             mb: 0.5,
-                            fontSize: '1rem',
+                            fontSize: isMobile ? '0.95rem' : '1rem',
                             color: TEXT_COLOR,
                             letterSpacing: '-0.01em',
                         }}
@@ -450,7 +460,7 @@ export const ProfilePage = ({ roleLabel }) => {
                         variant="body2"
                         sx={{
                             color: GRAY_COLOR,
-                            fontSize: '0.8rem',
+                            fontSize: isMobile ? '0.8rem' : '0.85rem',
                             fontWeight: 400,
                         }}
                     >
@@ -463,15 +473,21 @@ export const ProfilePage = ({ roleLabel }) => {
                         startIcon={<Edit size={16} />}
                         onClick={() => setIsEditing(true)}
                         disabled={updating}
+                        sx={{
+                            fontSize: isMobile ? '0.75rem' : '0.85rem',
+                            px: 2,
+                            py: 1,
+                        }}
                     >
                         Edit Profile
                     </GradientButton>
                 ) : (
-                    <Box display="flex" gap={1}>
+                    <Box display="flex" gap={1} sx={{ width: isMobile ? '100%' : 'auto' }}>
                         <OutlineButton
                             startIcon={<X size={16} />}
                             onClick={handleCancel}
                             disabled={updating}
+                            fullWidth={isMobile}
                             sx={{
                                 fontSize: isMobile ? '0.75rem' : '0.85rem',
                             }}
@@ -483,6 +499,10 @@ export const ProfilePage = ({ roleLabel }) => {
                             startIcon={<Save size={16} />}
                             onClick={handleSave}
                             disabled={updating}
+                            fullWidth={isMobile}
+                            sx={{
+                                fontSize: isMobile ? '0.75rem' : '0.85rem',
+                            }}
                         >
                             {updating ? 'Saving...' : 'Save Changes'}
                         </GradientButton>
@@ -570,7 +590,7 @@ export const ProfilePage = ({ roleLabel }) => {
                                         variant="caption"
                                         sx={{
                                             color: GRAY_COLOR,
-                                            fontSize: '0.75rem',
+                                            fontSize: isMobile ? '0.7rem' : '0.75rem',
                                             fontWeight: 400,
                                         }}
                                     >
@@ -665,9 +685,9 @@ export const ProfilePage = ({ roleLabel }) => {
                             <Box sx={{ mb: 2 }}>
                                 <Avatar
                                     sx={{
-                                        width: 80,
-                                        height: 80,
-                                        fontSize: '1.5rem',
+                                        width: isMobile ? 70 : 80,
+                                        height: isMobile ? 70 : 80,
+                                        fontSize: isMobile ? '1.3rem' : '1.5rem',
                                         fontWeight: 600,
                                         bgcolor: BLUE_COLOR,
                                         color: '#ffffff',
@@ -683,7 +703,7 @@ export const ProfilePage = ({ roleLabel }) => {
                             <Typography
                                 sx={{
                                     color: TEXT_COLOR,
-                                    fontSize: '1rem',
+                                    fontSize: isMobile ? '0.9rem' : '1rem',
                                     fontWeight: 600,
                                     mb: 0.5,
                                     textAlign: 'center',
@@ -695,7 +715,7 @@ export const ProfilePage = ({ roleLabel }) => {
                                 variant="body2"
                                 sx={{
                                     color: GRAY_COLOR,
-                                    fontSize: '0.85rem',
+                                    fontSize: isMobile ? '0.8rem' : '0.85rem',
                                     fontWeight: 400,
                                     mb: 2,
                                     textAlign: 'center',
@@ -716,7 +736,7 @@ export const ProfilePage = ({ roleLabel }) => {
                                     backgroundColor: alpha(BLUE_COLOR, 0.08),
                                     color: BLUE_COLOR,
                                     border: `1px solid ${alpha(BLUE_COLOR, 0.3)}`,
-                                    fontSize: '0.75rem',
+                                    fontSize: isMobile ? '0.7rem' : '0.75rem',
                                     '& .MuiChip-icon': {
                                         color: BLUE_COLOR,
                                         marginLeft: '6px',
@@ -743,7 +763,7 @@ export const ProfilePage = ({ roleLabel }) => {
                                     startIcon={<Key size={16} />}
                                     sx={{
                                         textTransform: 'none',
-                                        fontSize: '0.85rem',
+                                        fontSize: isMobile ? '0.8rem' : '0.85rem',
                                         color: BLUE_COLOR,
                                         borderColor: alpha(BLUE_COLOR, 0.3),
                                         '&:hover': {
@@ -775,7 +795,7 @@ export const ProfilePage = ({ roleLabel }) => {
                 }}
             >
                 <DialogTitle sx={{
-                    p: 2,
+                    p: isMobile ? 1.5 : 2,
                     borderBottom: `1px solid ${alpha(BLUE_COLOR, 0.1)}`,
                     bgcolor: 'white',
                 }}>
@@ -783,7 +803,7 @@ export const ProfilePage = ({ roleLabel }) => {
                         <Lock size={18} color={BLUE_COLOR} />
                         <Typography
                             sx={{
-                                fontSize: '0.95rem',
+                                fontSize: isMobile ? '0.9rem' : '0.95rem',
                                 color: TEXT_COLOR,
                                 fontWeight: 600,
                             }}
@@ -792,7 +812,7 @@ export const ProfilePage = ({ roleLabel }) => {
                         </Typography>
                     </Box>
                 </DialogTitle>
-                <DialogContent sx={{ p: 2.5 }}>
+                <DialogContent sx={{ p: isMobile ? 2 : 2.5 }}>
                     {passwordError && (
                         <Alert
                             severity="error"
@@ -810,7 +830,7 @@ export const ProfilePage = ({ roleLabel }) => {
                             <Typography
                                 sx={{
                                     color: TEXT_COLOR,
-                                    fontSize: '0.85rem',
+                                    fontSize: isMobile ? '0.8rem' : '0.85rem',
                                     fontWeight: 500,
                                 }}
                             >
@@ -859,12 +879,19 @@ export const ProfilePage = ({ roleLabel }) => {
                         onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
                     />
                 </DialogContent>
-                <DialogActions sx={{ px: 2.5, pb: 2.5, pt: 0 }}>
+                <DialogActions sx={{
+                    px: isMobile ? 2 : 2.5,
+                    pb: isMobile ? 2 : 2.5,
+                    pt: 0,
+                    flexDirection: isMobile ? 'column' : 'row',
+                    gap: isMobile ? 1 : 0
+                }}>
                     <OutlineButton
                         startIcon={<X size={16} />}
                         onClick={handleClosePasswordDialog}
+                        fullWidth={isMobile}
                         sx={{
-                            fontSize: isMobile ? '0.75rem' : '0.85rem',
+                            fontSize: isMobile ? '0.8rem' : '0.85rem',
                         }}
                     >
                         Cancel
@@ -874,75 +901,16 @@ export const ProfilePage = ({ roleLabel }) => {
                         variant="contained"
                         disabled={changePasswordMutation.isPending}
                         startIcon={changePasswordMutation.isPending ? <RefreshCw size={16} /> : <Key size={16} />}
+                        fullWidth={isMobile}
+                        sx={{
+                            fontSize: isMobile ? '0.8rem' : '0.85rem',
+                            ml: isMobile ? 0 : 1,
+                        }}
                     >
                         {changePasswordMutation.isPending ? 'Changing...' : 'Change Password'}
                     </GradientButton>
                 </DialogActions>
             </Dialog>
-
-            {/* Success Notification */}
-            <Snackbar
-                open={!!success}
-                autoHideDuration={3000}
-                onClose={() => setSuccess('')}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
-                <Alert
-                    severity="success"
-                    icon={<CheckCircle size={20} />}
-                    sx={{
-                        width: '100%',
-                        borderRadius: '6px',
-                        backgroundColor: alpha(GREEN_COLOR, 0.05),
-                        borderLeft: `4px solid ${GREEN_COLOR}`,
-                        '& .MuiAlert-icon': {
-                            color: GREEN_COLOR,
-                        },
-                    }}
-                >
-                    <Typography
-                        sx={{
-                            fontSize: '0.85rem',
-                            fontWeight: 500,
-                            color: TEXT_COLOR,
-                        }}
-                    >
-                        {success}
-                    </Typography>
-                </Alert>
-            </Snackbar>
-
-            {/* Error Notification */}
-            <Snackbar
-                open={!!error}
-                autoHideDuration={3000}
-                onClose={() => setError('')}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
-                <Alert
-                    severity="error"
-                    icon={<AlertCircle size={20} />}
-                    sx={{
-                        width: '100%',
-                        borderRadius: '6px',
-                        backgroundColor: alpha(RED_COLOR, 0.05),
-                        borderLeft: `4px solid ${RED_COLOR}`,
-                        '& .MuiAlert-icon': {
-                            color: RED_COLOR,
-                        },
-                    }}
-                >
-                    <Typography
-                        sx={{
-                            fontSize: '0.85rem',
-                            fontWeight: 500,
-                            color: TEXT_COLOR,
-                        }}
-                    >
-                        {error}
-                    </Typography>
-                </Alert>
-            </Snackbar>
         </Box>
     );
 };

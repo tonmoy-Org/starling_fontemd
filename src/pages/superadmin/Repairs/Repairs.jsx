@@ -10,8 +10,6 @@ import {
   TableHead,
   TableRow,
   Chip,
-  Snackbar,
-  Alert,
   Stack,
   Checkbox,
   Button,
@@ -78,6 +76,7 @@ import UpdateButton from '../../../components/ui/UpdateButton';
 import OutlineButton from '../../../components/ui/OutlineButton';
 import RecycleBinModal from './RecycleBinModal';
 import { useAuth } from '../../../auth/AuthProvider';
+import { useGlobalSnackbar } from '../../../context/GlobalSnackbarContext';
 
 const TEXT_COLOR = '#0F1115';
 const BLUE_COLOR = '#1976d2';
@@ -322,6 +321,7 @@ const Repairs = () => {
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { showSnackbar } = useGlobalSnackbar(); // Use global snackbar
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [selectedRepairs, setSelectedRepairs] = useState({
@@ -353,11 +353,13 @@ const Repairs = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStage, setFilterStage] = useState('all');
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
+
+  // Remove local snackbar state
+  // const [snackbar, setSnackbar] = useState({
+  //   open: false,
+  //   message: '',
+  //   severity: 'success',
+  // });
 
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedRepair, setSelectedRepair] = useState(null);
@@ -654,6 +656,18 @@ const Repairs = () => {
     setRecycleBinRowsPerPage(isMobile ? 5 : 10);
   }, [isMobile]);
 
+  // Remove local snackbar functions
+  // const showSnackbar = (message, severity = 'success') => {
+  //   setSnackbar({ open: true, message, severity });
+  // };
+
+  // const handleCloseSnackbar = (event, reason) => {
+  //   if (reason === 'clickaway') {
+  //     return;
+  //   }
+  //   setSnackbar(prev => ({ ...prev, open: false }));
+  // };
+
   const getDaysInStage = (repair) => {
     if (!repair) return "0 min";
 
@@ -669,7 +683,7 @@ const Repairs = () => {
     const entryDate = new Date(stageEntryDate);
     if (!entryDate || isNaN(entryDate.getTime())) return "0 min";
 
-    const now = currentTime; // make sure currentTime is a Date object
+    const now = currentTime;
     const diffMs = Math.abs(now - entryDate);
 
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
@@ -684,8 +698,6 @@ const Repairs = () => {
       return `${diffDays} d`;
     }
   };
-
-
 
   const getWhatsMissing = (repair) => {
     if (!repair) return [];
@@ -782,17 +794,6 @@ const Repairs = () => {
     });
     return grouped;
   }, [activeRepairs]);
-
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const handleCloseSnackbar = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-    setSnackbar(prev => ({ ...prev, open: false }));
-  };
 
   const handleOpenDetails = (repair) => {
     setSelectedRepair(repair);
@@ -1108,32 +1109,6 @@ const Repairs = () => {
     const selectedIds = Array.from(selectedRepairs[stageId]);
     bulkSoftDeleteMutation.mutate(selectedIds);
     setSelectedRepairs(prev => ({ ...prev, [stageId]: new Set() }));
-  };
-
-  const handleSoftDeleteSelected = (stageId) => {
-    const selectedIds = Array.from(selectedRepairs[stageId]);
-    if (selectedIds.length === 0) return;
-    bulkSoftDeleteMutation.mutate(selectedIds);
-    setSelectedRepairs(prev => ({ ...prev, [stageId]: new Set() }));
-  };
-
-  const handleSingleSoftDelete = (repairId) => {
-    softDeleteRepairMutation.mutate({
-      id: repairId,
-      data: {
-        isDeleted: true,
-        deletedBy: currentUser.name,
-        deletedByEmail: currentUser.email,
-        deletedDate: new Date().toISOString().split('T')[0]
-      }
-    });
-    REPAIR_STAGES.forEach(stage => {
-      setSelectedRepairs(prev => {
-        const newSet = new Set(prev[stage.id]);
-        newSet.delete(repairId);
-        return { ...prev, [stage.id]: newSet };
-      });
-    });
   };
 
   const toggleRecycleBinSelection = (itemId) => {
@@ -2688,7 +2663,7 @@ const Repairs = () => {
             variant="body2"
             sx={{
               color: GRAY_COLOR,
-              fontSize: isMobile ? '0.75rem' : '0.85rem',
+              fontSize: isMobile ? '0.8rem' : '0.85rem',
               fontWeight: 400,
             }}
           >
@@ -3305,37 +3280,6 @@ const Repairs = () => {
         handleSinglePermanentDelete={handleSinglePermanentDelete}
         formatDateShort={formatDateShort}
       />
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: isMobile ? 'center' : 'right' }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{
-            width: isMobile ? '100%' : 'auto',
-            minWidth: isMobile ? 'auto' : '300px',
-            borderRadius: '6px',
-            backgroundColor: snackbar.severity === 'success'
-              ? alpha(GREEN_COLOR, 0.05)
-              : alpha(RED_COLOR, 0.05),
-            borderLeft: `4px solid ${snackbar.severity === 'success' ? GREEN_COLOR : RED_COLOR}`,
-          }}
-          elevation={6}
-        >
-          <Typography
-            sx={{
-              fontSize: isMobile ? '0.8rem' : '0.85rem',
-              fontWeight: 500,
-              color: TEXT_COLOR,
-            }}
-          >
-            {snackbar.message}
-          </Typography>
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

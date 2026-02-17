@@ -343,20 +343,6 @@ export const DataTable = ({
                                 }}
                             />
                         )}
-
-                        {headerActions && (
-                            <Box sx={{
-                                display: 'flex',
-                                gap: 1,
-                                alignItems: 'center',
-                                justifyContent: isMobile ? 'stretch' : 'flex-end',
-                                '& > *': {
-                                    flex: isMobile ? 1 : '0 0 auto',
-                                }
-                            }}>
-                                {headerActions}
-                            </Box>
-                        )}
                     </Box>
                 </Box>
             )}
