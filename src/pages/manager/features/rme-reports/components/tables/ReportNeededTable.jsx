@@ -33,7 +33,7 @@ const ReportNeededTable = ({
 }) => {
     const allSelectedOnPage = items.length > 0 && items.every(item => selected.has(item.id));
     const someSelectedOnPage = items.length > 0 && items.some(item => selected.has(item.id));
-    
+
     return (
         <TableContainer sx={{
             overflowX: 'auto',
@@ -95,8 +95,7 @@ const ReportNeededTable = ({
                             Technician
                         </TableCell>
                         <TableCell sx={{ minWidth: 180 }}>
-                            Address
-                        </TableCell>
+                            Customer Info                        </TableCell>
                         <TableCell align="center" sx={{ minWidth: 120 }}>
                             {isMobile ? 'Report' : 'Last Report'}
                         </TableCell>

@@ -356,7 +356,7 @@ const RmeRecycleBinModal = ({
                                     }}>
                                         <TableCell padding="checkbox" width={50} />
                                         <TableCell sx={{ minWidth: 120 }}>Work Order</TableCell>
-                                        <TableCell sx={{ minWidth: 180 }}>Address</TableCell>
+                                        <TableCell sx={{ minWidth: 180 }}>Customer Info</TableCell>
                                         <TableCell sx={{ minWidth: 120 }}>Deleted By</TableCell>
                                         <TableCell sx={{ minWidth: 150 }}>Deleted At</TableCell>
                                         <TableCell width={150} sx={{ minWidth: 120 }}>Actions</TableCell>

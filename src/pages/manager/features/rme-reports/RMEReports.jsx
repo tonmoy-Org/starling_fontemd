@@ -1103,8 +1103,6 @@ const RMEReports = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-
-            {/* Snackbar is now global - removed from here */}
         </Box>
     );
 };

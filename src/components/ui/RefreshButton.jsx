@@ -4,6 +4,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import axiosInstance from '../../api/axios';
+import { useScraping } from '../../context/ScrapingContext'; // ← ADD THIS
 
 const StyledRefreshButton = styled(Button)(({ theme }) => ({
     color: '#fff',
@@ -54,7 +55,7 @@ const DialogTitleStyled = styled(DialogTitle)(({ theme }) => ({
 }));
 
 const RefreshButton = () => {
-    const [loading, setLoading] = useState(false);
+    const { loading, setLoading } = useScraping(); // ← REPLACE useState with context
     const [openModal, setOpenModal] = useState(false);
 
     const handleOpenModal = () => {
@@ -71,11 +72,9 @@ const RefreshButton = () => {
         
         try {
             await axiosInstance.post('/work-orders-today/start-scraping/');
-            // You might want to show a success message here
             console.log('Scraping started successfully');
         } catch (error) {
             console.error('Error starting scraping:', error);
-            // You might want to show an error message here
         } finally {
             setLoading(false);
         }
@@ -113,7 +112,7 @@ const RefreshButton = () => {
                         <Typography variant="body2" color="text.secondary">
                             This action will:
                         </Typography>
-                        <Box component="ul" sx={{ mt: 0, pl: 2, color: 'text.secondary' , fontSize: '0.85rem' }}>
+                        <Box component="ul" sx={{ mt: 0, pl: 2, color: 'text.secondary', fontSize: '0.85rem' }}>
                             <li>Fetch the latest work orders from the source</li>
                             <li>Update the existing data in the system</li>
                             <li>Take a few moments to complete</li>
@@ -126,7 +125,7 @@ const RefreshButton = () => {
                         onClick={handleCloseModal}
                         variant="outlined"
                         color="inherit"
-                        sx={{ 
+                        sx={{
                             borderRadius: '5px',
                             fontSize: '13px',
                             textTransform: 'none',
@@ -140,7 +139,7 @@ const RefreshButton = () => {
                         variant="contained"
                         disabled={loading}
                         startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <RefreshIcon />}
-                        sx={{ 
+                        sx={{
                             background: 'linear-gradient(45deg, #ed6c02 30%, #ff9800 90%)',
                             borderRadius: '5px',
                             textTransform: 'none',
@@ -159,12 +158,8 @@ const RefreshButton = () => {
 
             <style jsx>{`
                 @keyframes spin {
-                    from {
-                        transform: rotate(0deg);
-                    }
-                    to {
-                        transform: rotate(360deg);
-                    }
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
                 }
                 .spin {
                     animation: spin 1s linear infinite;

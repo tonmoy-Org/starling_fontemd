@@ -105,7 +105,7 @@ const HoldingTable = ({
                             Technician
                         </TableCell>
                         <TableCell sx={{ minWidth: 180 }}>
-                            Address
+                            Customer Info
                         </TableCell>
                         <TableCell align="center" sx={{ minWidth: 120 }}>
                             {isMobile ? 'Prior Report' : 'Prior Locked Report'}

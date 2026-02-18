@@ -123,7 +123,7 @@ const ReportSubmittedTable = ({
                                 Technician
                             </TableCell>
                             <TableCell sx={{ minWidth: 180 }}>
-                                Address
+                                Customer Info
                             </TableCell>
                             <TableCell align="center" sx={{ minWidth: 120 }}>
                                 {isMobile ? 'Report' : 'Last Report'}

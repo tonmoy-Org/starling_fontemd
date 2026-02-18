@@ -1144,7 +1144,7 @@ const EditFormModal = ({ open, onClose, workOrderData, onSave, showSnackbar }) =
                                 mb: 0.3,
                                 fontWeight: 500
                             }}>
-                                Address
+                                Customer Info
                             </Typography>
                             <Typography variant="body1" sx={{
                                 fontSize: '0.8rem',
