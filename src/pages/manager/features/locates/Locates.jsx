@@ -48,6 +48,7 @@ import {
   PURPLE_COLOR,
   TEXT_COLOR,
 } from './utils/constants';
+import RefreshButton from '../../../../components/ui/RefreshButton';
 
 // Move this function outside the component or use a proper utility
 const getCalledAtDate = (item) => {
@@ -410,7 +411,7 @@ const Locates = () => {
       </Helmet>
 
       <Box sx={{
-        display: 'flex',
+        display: { md: 'flex' },
         justifyContent: 'space-between',
         alignItems: 'center',
         mb: 3,
@@ -433,24 +434,28 @@ const Locates = () => {
             Dispatch and monitor locate
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={<History size={16} />}
-          onClick={() => setRecycleBinOpen(true)}
-          sx={{
-            textTransform: 'none',
-            fontSize: '0.85rem',
-            fontWeight: 500,
-            color: PURPLE_COLOR,
-            borderColor: alpha(PURPLE_COLOR, 0.3),
-            '&:hover': {
-              borderColor: PURPLE_COLOR,
-              backgroundColor: alpha(PURPLE_COLOR, 0.05),
-            },
-          }}
-        >
-          {isMobile ? `Bin (${recycleBinItems.length})` : `Recycle Bin (${recycleBinItems.length})`}
-        </Button>
+        <Box sx={{ mt: isMobile ? 1 : 0 }}>
+          <RefreshButton />
+          <Button
+            variant="outlined"
+            startIcon={<History size={16} />}
+            onClick={() => setRecycleBinOpen(true)}
+            sx={{
+              textTransform: 'none',
+              fontSize: '0.85rem',
+              fontWeight: 500,
+              ml: isMobile ? 1 : 1,
+              color: PURPLE_COLOR,
+              borderColor: alpha(PURPLE_COLOR, 0.3),
+              '&:hover': {
+                borderColor: PURPLE_COLOR,
+                backgroundColor: alpha(PURPLE_COLOR, 0.05),
+              },
+            }}
+          >
+            {isMobile ? `Bin (${recycleBinItems.length})` : `Recycle Bin (${recycleBinItems.length})`}
+          </Button>
+        </Box>
       </Box>
 
       {/* Pending Locates */}

@@ -57,6 +57,7 @@ import {
     TEXT_COLOR,
     RED_COLOR
 } from './utils/constants';
+import RefreshButton from '../../../../components/ui/RefreshButton';
 
 const RMEReports = () => {
     const queryClient = useQueryClient();
@@ -589,27 +590,32 @@ const RMEReports = () => {
                         Track RME reports through 4 stages
                     </Typography>
                 </Box>
-                <Button
-                    variant="outlined"
-                    startIcon={<History size={isMobile ? 14 : 16} />}
-                    onClick={() => setRecycleBinModalOpen(true)}
-                    sx={{
-                        textTransform: 'none',
-                        fontSize: isMobile ? '0.8rem' : '0.85rem',
-                        fontWeight: 500,
-                        color: PURPLE_COLOR,
-                        borderColor: alpha(PURPLE_COLOR, 0.3),
-                        minWidth: isMobile ? 'auto' : undefined,
-                        '&:hover': {
-                            borderColor: PURPLE_COLOR,
-                            backgroundColor: alpha(PURPLE_COLOR, 0.05),
-                        },
-                    }}
-                >
-                    {isSmallMobile ? `Bin (${deletedWorkOrders.length})` :
-                        isMobile ? `Recycle Bin (${deletedWorkOrders.length})` :
-                            `Recycle Bin (${deletedWorkOrders.length})`}
-                </Button>
+
+                <Box>
+                    <RefreshButton />
+                    <Button
+                        variant="outlined"
+                        startIcon={<History size={isMobile ? 14 : 16} />}
+                        onClick={() => setRecycleBinModalOpen(true)}
+                        sx={{
+                            textTransform: 'none',
+                            ml: isMobile ? 1 : 1,
+                            fontSize: isMobile ? '0.8rem' : '0.85rem',
+                            fontWeight: 500,
+                            color: PURPLE_COLOR,
+                            borderColor: alpha(PURPLE_COLOR, 0.3),
+                            minWidth: isMobile ? 'auto' : undefined,
+                            '&:hover': {
+                                borderColor: PURPLE_COLOR,
+                                backgroundColor: alpha(PURPLE_COLOR, 0.05),
+                            },
+                        }}
+                    >
+                        {isSmallMobile ? `Bin (${deletedWorkOrders.length})` :
+                            isMobile ? `Recycle Bin (${deletedWorkOrders.length})` :
+                                `Recycle Bin (${deletedWorkOrders.length})`}
+                    </Button>
+                </Box>
             </Box>
 
             {/* Stage 1: Report Needed - FIXED: Hide search when items selected */}
