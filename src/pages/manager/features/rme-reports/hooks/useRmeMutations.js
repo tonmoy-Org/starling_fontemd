@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { rmeApi } from '../api/rmeApi';
-import { getCurrentPacificTimeISO } from '../utils/timeHelpers';
+import moment from 'moment/moment';
 
 export const useRmeMutations = (currentUser, showSnackbar) => {
     const queryClient = useQueryClient();
@@ -12,13 +12,17 @@ export const useRmeMutations = (currentUser, showSnackbar) => {
         await queryClient.refetchQueries({ queryKey: ['rme-deleted-work-orders'] });
     };
 
+    const getCurrentDateTime = () => {
+        return moment().format('YYYY-MM-DD HH:mm:ss');
+    };
+
     const bulkSoftDeleteMutation = useMutation({
         mutationFn: async (ids) => {
             const deleteData = {
                 is_deleted: true,
                 deleted_by: currentUser.name,
                 deleted_by_email: currentUser.email,
-                deleted_date: getCurrentPacificTimeISO(),
+                deleted_date: getCurrentDateTime(),
             };
             return await rmeApi.bulkSoftDelete(ids, deleteData);
         },
@@ -31,9 +35,16 @@ export const useRmeMutations = (currentUser, showSnackbar) => {
 
             queryClient.setQueryData(['rme-work-orders'], (old) => {
                 if (!old) return [];
+                const idSet = new Set(ids);
                 return old.map(item =>
-                    ids.has(item.id)
-                        ? { ...item, is_deleted: true, deleted_by: currentUser.name, deleted_by_email: currentUser.email, deleted_date: getCurrentPacificTimeISO() }
+                    idSet.has(item.id)
+                        ? { 
+                            ...item, 
+                            is_deleted: true, 
+                            deleted_by: currentUser.name, 
+                            deleted_by_email: currentUser.email, 
+                            deleted_date: getCurrentDateTime() 
+                        }
                         : item
                 );
             });
@@ -61,7 +72,7 @@ export const useRmeMutations = (currentUser, showSnackbar) => {
                 is_deleted: true,
                 deleted_by: currentUser.name,
                 deleted_by_email: currentUser.email,
-                deleted_date: getCurrentPacificTimeISO(),
+                deleted_date: getCurrentDateTime(),
             };
             return await rmeApi.update(id, deleteData);
         },
@@ -73,7 +84,13 @@ export const useRmeMutations = (currentUser, showSnackbar) => {
                 if (!old) return [];
                 return old.map(item =>
                     item.id === id
-                        ? { ...item, is_deleted: true, deleted_by: currentUser.name, deleted_by_email: currentUser.email, deleted_date: getCurrentPacificTimeISO() }
+                        ? { 
+                            ...item, 
+                            is_deleted: true, 
+                            deleted_by: currentUser.name, 
+                            deleted_by_email: currentUser.email, 
+                            deleted_date: getCurrentDateTime() 
+                        }
                         : item
                 );
             });
@@ -225,7 +242,7 @@ export const useRmeMutations = (currentUser, showSnackbar) => {
             const lockData = {
                 finalized_by: currentUser.name,
                 finalized_by_email: currentUser.email,
-                finalized_date: getCurrentPacificTimeISO(),
+                finalized_date: getCurrentDateTime(),
                 rme_completed: true,
                 report_id: `RME-${new Date().getFullYear()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
                 tech_report_submitted: true,
@@ -245,7 +262,7 @@ export const useRmeMutations = (currentUser, showSnackbar) => {
                             ...item,
                             finalized_by: currentUser.name,
                             finalized_by_email: currentUser.email,
-                            finalized_date: getCurrentPacificTimeISO(),
+                            finalized_date: getCurrentDateTime(),
                             rme_completed: true,
                             status: 'LOCKED'
                         }
@@ -274,7 +291,7 @@ export const useRmeMutations = (currentUser, showSnackbar) => {
                 reason: reason,
                 notes: notes,
                 moved_created_by: currentUser.name,
-                moved_to_holding_date: getCurrentPacificTimeISO(),
+                moved_to_holding_date: getCurrentDateTime(),
                 tech_report_submitted: true,
                 status: 'HOLDING',
             };
@@ -293,6 +310,8 @@ export const useRmeMutations = (currentUser, showSnackbar) => {
                             wait_to_lock: true,
                             reason: reason,
                             notes: notes,
+                            moved_created_by: currentUser.name,
+                            moved_to_holding_date: getCurrentDateTime(),
                             status: 'HOLDING'
                         }
                         : item
@@ -318,7 +337,7 @@ export const useRmeMutations = (currentUser, showSnackbar) => {
             const discardData = {
                 finalized_by: currentUser.name,
                 finalized_by_email: currentUser.email,
-                finalized_date: getCurrentPacificTimeISO(),
+                finalized_date: getCurrentDateTime(),
                 rme_completed: true,
                 status: 'DELETED',
             };
@@ -336,7 +355,7 @@ export const useRmeMutations = (currentUser, showSnackbar) => {
                             ...item,
                             finalized_by: currentUser.name,
                             finalized_by_email: currentUser.email,
-                            finalized_date: getCurrentPacificTimeISO(),
+                            finalized_date: getCurrentDateTime(),
                             rme_completed: true,
                             status: 'DELETED'
                         }

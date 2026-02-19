@@ -6,8 +6,6 @@ import {
   calculateExpirationDate,
   formatTargetWorkDate,
   isTimerExpired,
-  getCurrentPacificTime,
-  toUTC,
   formatDate,
   formatTimeRemaining
 } from '../utils/dateUtils';
@@ -45,13 +43,10 @@ export const useLocates = (currentUserName = '', currentUserEmail = '') => {
 
   const markCalledMutation = useMutation({
     mutationFn: async ({ id, callType }) => {
-      const calledDate = getCurrentPacificTime();
-      const calledDateUTC = toUTC(calledDate);
-
       return locatesApi.markCalled(id, {
         locates_called: true,
         call_type: callType === 'STANDARD' ? 'Standard' : 'Emergency',
-        called_at: calledDateUTC ? calledDateUTC.toISOString() : new Date().toISOString(),
+        called_at: new Date().toISOString(),
         called_by: currentUserName,
         called_by_email: currentUserEmail,
         timer_started: true,
@@ -64,13 +59,10 @@ export const useLocates = (currentUserName = '', currentUserEmail = '') => {
 
   const softDeleteBulkMutation = useMutation({
     mutationFn: async (ids) => {
-      const deleteTime = getCurrentPacificTime();
-      const deleteTimeUTC = toUTC(deleteTime);
-
       const promises = Array.from(ids).map(id =>
         locatesApi.update(id, {
           is_deleted: true,
-          deleted_date: deleteTimeUTC ? deleteTimeUTC.toISOString() : new Date().toISOString(),
+          deleted_date: new Date().toISOString(),
           deleted_by: currentUserName,
           deleted_by_email: currentUserEmail,
         })
@@ -82,13 +74,10 @@ export const useLocates = (currentUserName = '', currentUserEmail = '') => {
 
   const completeWorkOrderManuallyMutation = useMutation({
     mutationFn: async (id) => {
-      const completeTime = getCurrentPacificTime();
-      const completeTimeUTC = toUTC(completeTime);
-
       return locatesApi.update(id, {
         timer_expired: true,
         time_remaining: 'COMPLETED',
-        completed_at: completeTimeUTC ? completeTimeUTC.toISOString() : new Date().toISOString(),
+        completed_at: new Date().toISOString(),
       });
     },
     onSuccess: invalidateAndRefetch,
@@ -96,14 +85,11 @@ export const useLocates = (currentUserName = '', currentUserEmail = '') => {
 
   const bulkCompleteWorkOrdersMutation = useMutation({
     mutationFn: async (ids) => {
-      const completeTime = getCurrentPacificTime();
-      const completeTimeUTC = toUTC(completeTime);
-
       const promises = Array.from(ids).map(id =>
         locatesApi.update(id, {
           timer_expired: true,
           time_remaining: 'COMPLETED',
-          completed_at: completeTimeUTC ? completeTimeUTC.toISOString() : new Date().toISOString(),
+          completed_at: new Date().toISOString(),
         })
       );
       await Promise.all(promises);
@@ -180,8 +166,7 @@ export const useLocates = (currentUserName = '', currentUserEmail = '') => {
           const expirationDate = calculateExpirationDate(item.called_at, item.call_type);
 
           if (expirationDate) {
-            const nowPacific = currentTime;
-            const remainingMs = expirationDate.getTime() - nowPacific.getTime();
+            const remainingMs = expirationDate.getTime() - currentTime.getTime();
 
             if (isExpired) {
               timeRemainingText = 'EXPIRED';

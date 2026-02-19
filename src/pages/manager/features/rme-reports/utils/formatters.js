@@ -1,5 +1,4 @@
 import { format } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
 import {
     GREEN_COLOR,
     ORANGE_COLOR,
@@ -7,29 +6,25 @@ import {
     GRAY_COLOR
 } from './constants';
 
-const TIMEZONE = 'Etc/GMT+8'; // GMT-8
-
-const toGMT8 = (date) => toZonedTime(date, TIMEZONE);
-
 export const formatDate = (dateString) => {
     if (!dateString) return '—';
     const date = new Date(dateString);
     if (isNaN(date)) return '—';
-    return format(toGMT8(date), 'MMM dd, yyyy');
+    return format(date, 'MMM dd, yyyy');
 };
 
 export const formatTime = (dateString) => {
     if (!dateString) return '—';
     const date = new Date(dateString);
     if (isNaN(date)) return '—';
-    return format(toGMT8(date), 'h:mm a');
+    return format(date, 'h:mm a');
 };
 
 export const formatDateTimeWithTZ = (dateString) => {
     if (!dateString) return '—';
     const date = new Date(dateString);
     if (isNaN(date)) return '—';
-    return format(toGMT8(date), "MMM dd, yyyy h:mm a");
+    return format(date, "MMM dd, yyyy h:mm a");
 };
 
 export const calculateElapsedTime = (createdDate) => {
@@ -64,11 +59,10 @@ export const calculateCompletedElapsedTime = (completedDate) => {
     try {
         const now = new Date();
 
-        // Parse MM/DD/YYYY
         const parts = completedDate.split('/');
         if (parts.length !== 3) return '-';
 
-        const month = parseInt(parts[0], 10) - 1; // JS months 0-based
+        const month = parseInt(parts[0], 10) - 1;
         const day = parseInt(parts[1], 10);
         const year = parseInt(parts[2], 10);
 
@@ -77,7 +71,6 @@ export const calculateCompletedElapsedTime = (completedDate) => {
 
         const diffMs = now - completed;
 
-        // Don't show negative time (future dates)
         if (diffMs < 0) return '-';
 
         const diffMinutes = Math.floor(diffMs / (1000 * 60));
@@ -117,4 +110,8 @@ export const getElapsedColor = (createdDate) => {
 export const getTechnicianInitial = (technicianName) => {
     if (!technicianName) return '?';
     return technicianName.charAt(0).toUpperCase();
+};
+
+export const getCurrentTimeISO = () => {
+    return new Date().toISOString();
 };

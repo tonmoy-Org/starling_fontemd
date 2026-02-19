@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { getCurrentPacificTime } from '../utils/dateUtils';
 
 export const useTimer = (interval = 1000) => {
-    const [currentTime, setCurrentTime] = useState(() => getCurrentPacificTime());
+    const [currentTime, setCurrentTime] = useState(() => new Date());
 
     useEffect(() => {
         const timer = setInterval(() => {
-            setCurrentTime(getCurrentPacificTime());
+            setCurrentTime(new Date());
         }, interval);
 
         return () => clearInterval(timer);

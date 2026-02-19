@@ -870,7 +870,7 @@ const Locates = () => {
         message={`Are you sure you want to restore work order ${selectedSingleItem?.workOrderNumber}?`}
         confirmText="Restore"
         isLoading={restoreFromRecycleBinMutation.isPending}
-        icon={<RotateCcw size={20} color={GREEN_COLOR} />}
+        icon={<RotateCcw size={20} color='white' />}
         confirmColor={GREEN_COLOR}
       />
 

@@ -1,41 +1,10 @@
 import { addHours, addDays, format, parseISO, isAfter } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
-
-const TIMEZONE = 'Etc/GMT+8'; // GMT-8
-
-export const toPacificTime = (dateString) => {
-    if (!dateString) return null;
-    try {
-        const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
-        return toZonedTime(date, TIMEZONE);
-    } catch (e) {
-        console.error('Error converting to Pacific Time:', e);
-        return null;
-    }
-};
-
-export const toUTC = (pacificTime) => {
-    if (!pacificTime) return null;
-    try {
-        return toZonedTime(pacificTime, 'UTC');
-    } catch (e) {
-        console.error('Error converting to UTC:', e);
-        return null;
-    }
-};
-
-export const getCurrentPacificTime = () => {
-    return toZonedTime(new Date(), TIMEZONE);
-};
-
-// All format functions below use toPacificTime() which already applies
-// TIMEZONE (GMT-8), so the time shown is always GMT-8
 
 export const formatDate = (dateString) => {
     if (!dateString) return '—';
     try {
-        const date = toPacificTime(dateString);
-        return format(date, 'MMM dd, yyyy HH:mm'); // time is GMT-8
+        const date = parseISO(dateString);
+        return format(date, 'MMM dd, yyyy HH:mm');
     } catch (e) {
         return '—';
     }
@@ -44,8 +13,8 @@ export const formatDate = (dateString) => {
 export const formatDateShort = (dateString) => {
     if (!dateString) return '—';
     try {
-        const date = toPacificTime(dateString);
-        return format(date, 'MMM dd, HH:mm'); // time is GMT-8
+        const date = parseISO(dateString);
+        return format(date, 'MMM dd, HH:mm');
     } catch (e) {
         return '—';
     }
@@ -54,8 +23,8 @@ export const formatDateShort = (dateString) => {
 export const formatMonthDay = (dateString) => {
     if (!dateString) return '—';
     try {
-        const date = toPacificTime(dateString);
-        return format(date, 'MMM dd'); // date only, no time
+        const date = parseISO(dateString);
+        return format(date, 'MMM dd');
     } catch (e) {
         return '—';
     }
@@ -94,7 +63,7 @@ export const calculateExpirationDate = (calledAt, callType) => {
     if (!calledAt || !callType) return null;
 
     try {
-        const calledDate = toPacificTime(calledAt);
+        const calledDate = parseISO(calledAt);
         if (!calledDate) return null;
 
         if (callType === 'EMERGENCY' || callType === 'Emergency') {
@@ -116,8 +85,7 @@ export const isTimerExpired = (calledAt, callType) => {
     const expirationDate = calculateExpirationDate(calledAt, callType);
     if (!expirationDate) return true;
 
-    const nowPacific = getCurrentPacificTime();
-    return isAfter(nowPacific, expirationDate);
+    return isAfter(new Date(), expirationDate);
 };
 
 export const formatTargetWorkDate = (scheduledDateRaw) => {
@@ -131,8 +99,7 @@ export const formatTargetWorkDate = (scheduledDateRaw) => {
         if (!month || !day || !year) return 'ASAP';
 
         const date = new Date(year, month - 1, day);
-        const pacificDate = toPacificTime(date);
-        return format(pacificDate, 'MMM dd, yyyy');
+        return format(date, 'MMM dd, yyyy');
     } catch (e) {
         console.error('Error formatting target work date:', e);
         return 'ASAP';

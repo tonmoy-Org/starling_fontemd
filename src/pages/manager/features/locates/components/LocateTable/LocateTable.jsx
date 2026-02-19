@@ -29,7 +29,6 @@ import {
     AlertCircle,
 } from 'lucide-react';
 import {
-    getCurrentPacificTime,
     formatDate,
     formatDateShort,
     formatTimeRemaining,
@@ -67,14 +66,13 @@ const LocateTable = ({
     getCalledAtDate,
     isMobile = false,
 }) => {
-    const [currentTime, setCurrentTime] = useState(() => getCurrentPacificTime());
+    const [currentTime, setCurrentTime] = useState(() => new Date());
 
-    // MOVE getColumnCount HERE - BEFORE IT'S USED
     const getColumnCount = () => {
-        let count = 1; // Checkbox column
+        let count = 1;
         if (showCallAction) count++;
         if (showTimerColumn) count++;
-        count += 4; // Customer, Address, Date, Technician
+        count += 4;
         if (showCalledBy) count++;
         if (showManualCompleteAction && tableType === 'inProgress') count++;
         return count;
@@ -82,7 +80,7 @@ const LocateTable = ({
 
     useEffect(() => {
         const timer = setInterval(() => {
-            setCurrentTime(getCurrentPacificTime());
+            setCurrentTime(new Date());
         }, 1000);
 
         return () => clearInterval(timer);
@@ -128,8 +126,7 @@ const LocateTable = ({
             return { text: '—', color: GRAY_COLOR, detail: '' };
         }
 
-        const nowPacific = currentTime;
-        const remainingMs = expirationDate.getTime() - nowPacific.getTime();
+        const remainingMs = expirationDate.getTime() - currentTime.getTime();
         const buffer = 1000;
 
         if (remainingMs <= 0) {
@@ -525,7 +522,6 @@ const LocateTable = ({
     );
 };
 
-// Styles (keep these at the bottom as before)
 const tableContainerStyle = (color) => ({
     overflowX: 'auto',
     '&::-webkit-scrollbar': { height: '8px' },
