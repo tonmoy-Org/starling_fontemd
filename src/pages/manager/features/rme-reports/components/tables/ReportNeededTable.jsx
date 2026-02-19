@@ -217,7 +217,7 @@ const ReportNeededTable = ({
                                             wordBreak: 'break-word',
                                             overflowWrap: 'break-word',
                                         }}>
-                                            {item.street}
+                                            {item.customer} - {item.street}
                                         </Typography>
                                         <Typography variant="caption" sx={{
                                             color: '#6b7280',

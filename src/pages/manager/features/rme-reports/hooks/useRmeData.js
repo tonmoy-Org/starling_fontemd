@@ -65,6 +65,7 @@ export const useRmeData = () => {
                 completedElapsedTime: calculateCompletedElapsedTime(item.completed_date),
                 elapsedColor: getElapsedColor(item.scheduled_date),
                 technician: item.technician || 'Unassigned',
+                customer: item.customer || 'Unassigned',
                 technicianInitial: getTechnicianInitial(item.technician),
                 address: item.full_address || 'No address',
                 street: item.full_address ? item.full_address.split(',')[0]?.trim() || 'Unknown' : 'Unknown',

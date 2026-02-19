@@ -248,7 +248,7 @@ const ReportSubmittedTable = ({
                                                     wordBreak: 'break-word',
                                                     overflowWrap: 'break-word',
                                                 }}>
-                                                    {item.street}
+                                                    {item.customer} - {item.street}
                                                 </Typography>
                                                 <Typography variant="caption" sx={{
                                                     color: GRAY_COLOR,
