@@ -367,6 +367,7 @@ const RmeRecycleBinModal = ({
                                         const itemId = item.id?.toString() || item.id;
                                         const isSelected = selectedRecycleBinItems.has(itemId);
                                         const workOrderNumber = item.wo_number || 'N/A';
+                                        const customer = item.customer || 'Unknown';
                                         const deletedBy = item.deleted_by || 'Unknown';
                                         const deletedByEmail = item.deleted_by_email || '';
                                         const fullAddress = item.full_address || '';
@@ -425,7 +426,7 @@ const RmeRecycleBinModal = ({
                                                         wordBreak: 'break-word',
                                                         overflowWrap: 'break-word',
                                                     }}>
-                                                        {street}
+                                                        {customer} - {street}
                                                     </Typography>
                                                     <Typography variant="caption" sx={{
                                                         color: GRAY_COLOR,
