@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import {
     GREEN_COLOR,
     ORANGE_COLOR,
@@ -6,27 +7,30 @@ import {
     GRAY_COLOR
 } from './constants';
 
+const TIMEZONE = 'Etc/GMT+8'; // GMT-8
+
+const toGMT8 = (date) => toZonedTime(date, TIMEZONE);
+
 export const formatDate = (dateString) => {
     if (!dateString) return '—';
     const date = new Date(dateString);
     if (isNaN(date)) return '—';
-    return format(date, 'MMM dd, yyyy');
+    return format(toGMT8(date), 'MMM dd, yyyy');
 };
 
 export const formatTime = (dateString) => {
     if (!dateString) return '—';
     const date = new Date(dateString);
     if (isNaN(date)) return '—';
-    return format(date, 'MMM dd, yyyy'); // ⬅ time removed
+    return format(toGMT8(date), 'h:mm a');
 };
 
 export const formatDateTimeWithTZ = (dateString) => {
     if (!dateString) return '—';
     const date = new Date(dateString);
     if (isNaN(date)) return '—';
-    return format(date, 'MMM dd, yyyy h:mm a');
+    return format(toGMT8(date), "MMM dd, yyyy h:mm a");
 };
-
 
 export const calculateElapsedTime = (createdDate) => {
     if (!createdDate) return '—';
@@ -91,8 +95,6 @@ export const calculateCompletedElapsedTime = (completedDate) => {
         return '-';
     }
 };
-
-
 
 export const getElapsedColor = (createdDate) => {
     if (!createdDate) return GRAY_COLOR;

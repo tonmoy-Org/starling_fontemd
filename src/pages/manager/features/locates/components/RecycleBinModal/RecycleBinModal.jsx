@@ -32,7 +32,7 @@ import {
   GRAY_COLOR,
   TEXT_COLOR,
 } from '../../utils/constants';
-import { formatDateShort } from '../../utils/dateUtils';
+import { formatDate } from '../../utils/dateUtils';
 
 const RecycleBinModal = ({
   open,
@@ -418,7 +418,7 @@ const RecycleBinModal = ({
                             fontSize: isMobile ? '0.8rem' : '0.85rem',
                             color: TEXT_COLOR,
                           }}>
-                            {formatDateShort(item.deletedAt)}
+                            {formatDate(item.deletedAt)}
                           </Typography>
                         </TableCell>
                         <TableCell>

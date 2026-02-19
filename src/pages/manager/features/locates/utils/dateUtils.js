@@ -1,11 +1,13 @@
 import { addHours, addDays, format, parseISO, isAfter } from 'date-fns';
-import { TIMEZONE_OFFSET } from './constants';
+import { toZonedTime } from 'date-fns-tz';
+
+const TIMEZONE = 'Etc/GMT+8'; // GMT-8
 
 export const toPacificTime = (dateString) => {
     if (!dateString) return null;
     try {
         const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
-        return new Date(date.getTime() + TIMEZONE_OFFSET);
+        return toZonedTime(date, TIMEZONE);
     } catch (e) {
         console.error('Error converting to Pacific Time:', e);
         return null;
@@ -15,7 +17,7 @@ export const toPacificTime = (dateString) => {
 export const toUTC = (pacificTime) => {
     if (!pacificTime) return null;
     try {
-        return new Date(pacificTime.getTime() - TIMEZONE_OFFSET);
+        return toZonedTime(pacificTime, 'UTC');
     } catch (e) {
         console.error('Error converting to UTC:', e);
         return null;
@@ -23,15 +25,17 @@ export const toUTC = (pacificTime) => {
 };
 
 export const getCurrentPacificTime = () => {
-    const now = new Date();
-    return new Date(now.getTime() + TIMEZONE_OFFSET);
+    return toZonedTime(new Date(), TIMEZONE);
 };
+
+// All format functions below use toPacificTime() which already applies
+// TIMEZONE (GMT-8), so the time shown is always GMT-8
 
 export const formatDate = (dateString) => {
     if (!dateString) return '—';
     try {
         const date = toPacificTime(dateString);
-        return format(date, 'MMM dd, yyyy HH:mm');
+        return format(date, 'MMM dd, yyyy HH:mm'); // time is GMT-8
     } catch (e) {
         return '—';
     }
@@ -41,7 +45,7 @@ export const formatDateShort = (dateString) => {
     if (!dateString) return '—';
     try {
         const date = toPacificTime(dateString);
-        return format(date, 'MMM dd, HH:mm');
+        return format(date, 'MMM dd, HH:mm'); // time is GMT-8
     } catch (e) {
         return '—';
     }
@@ -51,7 +55,7 @@ export const formatMonthDay = (dateString) => {
     if (!dateString) return '—';
     try {
         const date = toPacificTime(dateString);
-        return format(date, 'MMM dd');
+        return format(date, 'MMM dd'); // date only, no time
     } catch (e) {
         return '—';
     }
