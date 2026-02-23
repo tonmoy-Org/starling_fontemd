@@ -4,7 +4,7 @@ export const formatDate = (dateString) => {
     if (!dateString) return '—';
     try {
         const date = parseISO(dateString);
-        return format(date, 'MMM dd, yyyy HH:mm');
+        return format(date, 'dd/MM/yyyy hh:mm a');
     } catch (e) {
         return '—';
     }
@@ -14,7 +14,7 @@ export const formatDateShort = (dateString) => {
     if (!dateString) return '—';
     try {
         const date = parseISO(dateString);
-        return format(date, 'MMM dd, HH:mm');
+        return format(date, 'dd/MM/yyyy hh:mm a');
     } catch (e) {
         return '—';
     }
@@ -24,7 +24,7 @@ export const formatMonthDay = (dateString) => {
     if (!dateString) return '—';
     try {
         const date = parseISO(dateString);
-        return format(date, 'MMM dd');
+        return format(date, 'dd/MM/yyyy');
     } catch (e) {
         return '—';
     }
@@ -92,16 +92,19 @@ export const formatTargetWorkDate = (scheduledDateRaw) => {
     if (!scheduledDateRaw || scheduledDateRaw === 'ASAP') return 'ASAP';
 
     try {
-        const datePart = scheduledDateRaw.split(' ')[0];
-        if (!datePart) return 'ASAP';
+        // Split date and time
+        const [datePart, ...timeParts] = scheduledDateRaw.split(' ');
+        const timePart = timeParts.join(' ');
 
         const [month, day, year] = datePart.split('/').map(Number);
-        if (!month || !day || !year) return 'ASAP';
 
         const date = new Date(year, month - 1, day);
-        return format(date, 'MMM dd, yyyy');
-    } catch (e) {
-        console.error('Error formatting target work date:', e);
-        return 'ASAP';
+
+        const formattedDate = format(date, 'dd/MM/yyyy');
+
+        return `${formattedDate} ${timePart}`;
+
+    } catch {
+        return scheduledDateRaw;
     }
 };

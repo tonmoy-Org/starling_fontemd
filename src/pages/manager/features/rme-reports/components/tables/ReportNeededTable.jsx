@@ -171,7 +171,7 @@ const ReportNeededTable = ({
                                                 color: '#0F1115',
                                                 fontSize: '0.85rem',
                                             }}>
-                                                {item.date}
+                                                {item.completedDate}
                                             </Typography>
                                             <Typography variant="caption" sx={{
                                                 color: item.elapsedColor,

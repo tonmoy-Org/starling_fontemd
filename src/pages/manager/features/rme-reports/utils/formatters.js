@@ -24,7 +24,7 @@ export const formatDateTimeWithTZ = (dateString) => {
     if (!dateString) return '—';
     const date = new Date(dateString);
     if (isNaN(date)) return '—';
-    return format(date, "MMM dd, yyyy h:mm a");
+    return format(date, "dd/MM/yyyy hh:mm a");
 };
 
 export const calculateElapsedTime = (createdDate) => {

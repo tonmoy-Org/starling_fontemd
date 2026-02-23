@@ -18,7 +18,6 @@ import {
     Alert,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useMediaQuery } from '@mui/material';
 import {
     CheckCircle,
     Clock,
@@ -63,7 +62,6 @@ const LocateTable = ({
     markCalledMutation,
     completeWorkOrderManuallyMutation,
     tableType = 'pending',
-    getCalledAtDate,
     isMobile = false,
 }) => {
     const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -209,9 +207,9 @@ const LocateTable = ({
                 <Box>
                     <Typography variant="caption" sx={captionStyle(isMobile)}>
                         {isMobile ? 'Called:' : 'Locate Called:'}
-                    </Typography>
-                    <Typography variant="caption" sx={orangeCaptionStyle(isMobile)}>
-                        {isMobile ? formatDateShort(item.calledAt) : getCalledAtDate(item)}
+                        <Typography variant="caption" sx={orangeCaptionStyle(isMobile)}>
+                            {isMobile ? formatDateShort(item.calledAt) : formatDateShort(item.calledAt)}
+                        </Typography>
                     </Typography>
                 </Box>
             );

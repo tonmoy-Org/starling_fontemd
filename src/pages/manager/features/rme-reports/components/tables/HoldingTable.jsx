@@ -194,7 +194,7 @@ const HoldingTable = ({
                                                 color: TEXT_COLOR,
                                                 fontSize: '0.85rem',
                                             }}>
-                                                {item.date}
+                                                {item.completedDate}
                                             </Typography>
                                             <Typography variant="caption" sx={{
                                                 color: item.elapsedColor,

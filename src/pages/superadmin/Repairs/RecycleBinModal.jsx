@@ -124,7 +124,6 @@ const RecycleBinModal = ({
                 display: 'flex',
                 flexDirection: 'column',
                 m: isMobile ? 1 : 0,
-                // Prevent layout shift by always reserving space for scrollbar
                 scrollbarGutter: 'stable',
             }}>
                 {/* Header */}

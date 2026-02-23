@@ -77,6 +77,7 @@ import OutlineButton from '../../../components/ui/OutlineButton';
 import RecycleBinModal from './RecycleBinModal';
 import { useAuth } from '../../../auth/AuthProvider';
 import { useGlobalSnackbar } from '../../../context/GlobalSnackbarContext';
+import { parseISO, format } from 'date-fns';
 
 const TEXT_COLOR = '#0F1115';
 const BLUE_COLOR = '#1976d2';
@@ -1210,15 +1211,15 @@ const Repairs = () => {
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
   };
 
+  // ✅ Updated formatDateShort using date-fns
   const formatDateShort = (dateString) => {
     if (!dateString) return '—';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '—';
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    try {
+      const date = parseISO(dateString);
+      return format(date, 'dd/MM/yyyy hh:mm a');
+    } catch (e) {
+      return '—';
+    }
   };
 
   const renderStageContent = (stageIndex, context = 'edit') => {
@@ -2070,7 +2071,7 @@ const Repairs = () => {
               fontSize: isMobileView ? '0.65rem' : '0.75rem',
               fontWeight: 500
             }}>
-              Completed {item.lastUpdated ? new Date(item.lastUpdated).toLocaleDateString() : '—'}
+              Completed {item.lastUpdated ? formatDateShort(item.lastUpdated) : '—'}
             </Typography>
           </Stack>
         );
@@ -2496,7 +2497,7 @@ const Repairs = () => {
                                 fontWeight: 400,
                               }}
                             >
-                              {!isMobileView && 'Created: '}{item.createdDate ? new Date(item.createdDate).toLocaleDateString() : '—'}
+                              {!isMobileView && 'Created: '}{item.createdDate ? formatDateShort(item.createdDate) : '—'}
                             </Typography>
                           </Box>
                         </TableCell>

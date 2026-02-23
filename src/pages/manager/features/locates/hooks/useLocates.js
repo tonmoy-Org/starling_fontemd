@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { locatesApi } from '../api/locatesApi';
 import { parseDashboardAddress } from '../utils/addressUtils';
@@ -139,6 +139,21 @@ export const useLocates = (currentUserName = '', currentUserEmail = '') => {
     onSuccess: invalidateAndRefetch,
   });
 
+  // ✅ NEW: Auto-expire mutation — writes completed_at to DB when timer runs out
+  const autoExpireMutation = useMutation({
+    mutationFn: async (ids) => {
+      const promises = ids.map(id =>
+        locatesApi.update(id, {
+          timer_expired: true,
+          time_remaining: 'COMPLETED',
+          completed_at: new Date().toISOString(),
+        })
+      );
+      await Promise.all(promises);
+    },
+    onSuccess: invalidateAndRefetch,
+  });
+
   const processed = useMemo(() => {
     return rawData
       .filter(item => !item.is_deleted)
@@ -217,7 +232,7 @@ export const useLocates = (currentUserName = '', currentUserEmail = '') => {
           timeRemainingDetail,
           timeRemainingColor,
           timerStarted: !!item.timer_started,
-          timerExpired: !!item.timer_expired,
+          timerExpired: !!item.timer_expired, // DB value
           timeRemainingApi: item.time_remaining || '',
           locateTriggeredDate: item.scraped_at,
           locateCalledInDate: item.called_at || '',
@@ -228,6 +243,21 @@ export const useLocates = (currentUserName = '', currentUserEmail = '') => {
         };
       });
   }, [rawData, currentTime]);
+
+  // ✅ NEW: Auto-sync — when timer expires client-side, write completed_at to DB
+  useEffect(() => {
+    const unsyncedExpired = processed.filter(
+      item =>
+        item.isExpired &&       // timer has run out client-side
+        !item.timerExpired &&   // but DB hasn't been updated yet
+        item.locatesCalled      // only for items that were actually called
+    );
+
+    if (unsyncedExpired.length > 0) {
+      const ids = unsyncedExpired.map(item => item.workOrderId);
+      autoExpireMutation.mutate(ids);
+    }
+  }, [processed]);
 
   const recycleBinItems = useMemo(() => {
     if (!Array.isArray(deletedHistoryData)) return [];
