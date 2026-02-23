@@ -205,7 +205,7 @@ const HoldingTable = ({
                                                 fontSize: '0.8rem',
                                             }}>
                                                 <Clock size={12} />
-                                                {item.elapsedTime}
+                                                {item.completedElapsedTime}
                                             </Typography>
                                         </Box>
                                     </TableCell>

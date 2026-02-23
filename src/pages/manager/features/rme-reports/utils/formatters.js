@@ -59,6 +59,9 @@ export const calculateCompletedElapsedTime = (completedDate) => {
     try {
         const now = new Date();
 
+        // Reset current time to 00:00
+        now.setHours(0, 0, 0, 0);
+
         const parts = completedDate.split('/');
         if (parts.length !== 3) return '-';
 
@@ -67,6 +70,7 @@ export const calculateCompletedElapsedTime = (completedDate) => {
         const year = parseInt(parts[2], 10);
 
         const completed = new Date(year, month, day);
+
         if (isNaN(completed.getTime())) return '-';
 
         const diffMs = now - completed;
@@ -79,9 +83,11 @@ export const calculateCompletedElapsedTime = (completedDate) => {
 
         if (diffHours < 1) {
             return `${diffMinutes} MIN${diffMinutes !== 1 ? 'S' : ''}`;
-        } else if (diffHours < 128) {
+        }
+        else if (diffHours < 128) {
             return `${diffHours} HR${diffHours !== 1 ? 'S' : ''}`;
-        } else {
+        }
+        else {
             return `${diffDays} DAY${diffDays !== 1 ? 'S' : ''}`;
         }
     } catch {
