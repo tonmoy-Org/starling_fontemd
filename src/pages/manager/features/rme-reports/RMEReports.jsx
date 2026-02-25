@@ -662,7 +662,7 @@ const RMEReports = () => {
                 isMobile={isMobile}
             >
                 <ReportNeededTable
-                    items={pageItems.reportNeeded}
+                    items={pageItems.reportNeeded.slice().reverse()}
                     selected={selectedReportNeeded}
                     onToggleSelect={(id) => toggleSelection(setSelectedReportNeeded, id)}
                     onToggleAll={() => setSelectedReportNeeded(
@@ -726,7 +726,7 @@ const RMEReports = () => {
                 isMobile={isMobile}
             >
                 <ReportSubmittedTable
-                    items={pageItems.reportSubmitted}
+                    items={pageItems.reportSubmitted.slice().reverse()}
                     selected={selectedReportSubmitted}
                     onToggleSelect={(id) => toggleSelection(setSelectedReportSubmitted, id)}
                     onToggleAll={() => setSelectedReportSubmitted(
@@ -800,7 +800,7 @@ const RMEReports = () => {
                 isMobile={isMobile}
             >
                 <HoldingTable
-                    items={pageItems.holding}
+                    items={pageItems.holding.slice().reverse()}
                     selected={selectedHolding}
                     onToggleSelect={(id) => toggleSelection(setSelectedHolding, id)}
                     onToggleAll={() => setSelectedHolding(

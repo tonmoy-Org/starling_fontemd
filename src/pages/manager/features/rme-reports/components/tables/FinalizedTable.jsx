@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
     TableContainer,
     Table,
@@ -39,8 +39,50 @@ const FinalizedTable = ({
     onRowsPerPageChange,
     isMobile,
 }) => {
-    const allSelectedOnPage = items.length > 0 && items.every(item => selected.has(item.id));
-    const someSelectedOnPage = items.length > 0 && items.some(item => selected.has(item.id));
+    // Sort items by date (newest to oldest)
+    const sortedItems = useMemo(() => {
+        return [...items].sort((a, b) => {
+            // Parse date string format: "02/15/2026 08:58 AM"
+            const parseDateTime = (dateStr) => {
+                if (!dateStr || typeof dateStr !== 'string') return new Date(0);
+
+                const parts = dateStr.trim().split(' ');
+                if (parts.length < 3) return new Date(0);
+
+                const datePart = parts[0];
+                const timePart = parts[1];
+                const period = parts[2];
+
+                const dateParts = datePart.split('/');
+                const timeParts = timePart.split(':');
+
+                if (dateParts.length !== 3 || timeParts.length !== 2) return new Date(0);
+
+                const month = parseInt(dateParts[0]);
+                const day = parseInt(dateParts[1]);
+                const year = parseInt(dateParts[2]);
+                let hours = parseInt(timeParts[0]);
+                const minutes = parseInt(timeParts[1]);
+
+                // Convert 12-hour format to 24-hour
+                if (period === 'PM' && hours !== 12) {
+                    hours += 12;
+                } else if (period === 'AM' && hours === 12) {
+                    hours = 0;
+                }
+
+                return new Date(year, month - 1, day, hours, minutes, 0);
+            };
+
+            const dateA = parseDateTime(a.finalizedDateFormatted);
+            const dateB = parseDateTime(b.finalizedDateFormatted);
+
+            return dateB.getTime() - dateA.getTime(); // Newest to oldest
+        });
+    }, [items]);
+
+    const allSelectedOnPage = sortedItems.length > 0 && sortedItems.every(item => selected.has(item.id));
+    const someSelectedOnPage = sortedItems.length > 0 && sortedItems.some(item => selected.has(item.id));
 
     return (
         <TableContainer sx={{
@@ -108,7 +150,7 @@ const FinalizedTable = ({
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {items.length === 0 ? (
+                    {sortedItems.length === 0 ? (
                         <TableRow>
                             <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                                 <Box sx={{
@@ -133,7 +175,7 @@ const FinalizedTable = ({
                             </TableCell>
                         </TableRow>
                     ) : (
-                        items.map((item) => {
+                        sortedItems.map((item) => {
                             const isSelected = selected.has(item.id);
 
                             return (
