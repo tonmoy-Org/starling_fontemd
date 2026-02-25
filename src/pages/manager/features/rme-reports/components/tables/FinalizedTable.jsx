@@ -10,7 +10,8 @@ import {
     Box,
     Typography,
     TablePagination,
-    Chip
+    Chip,
+    Link
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { CheckCircle } from 'lucide-react';
@@ -182,24 +183,43 @@ const FinalizedTable = ({
                                         />
                                     </TableCell>
                                     <TableCell sx={{ py: 1.5 }}>
-                                        <Box>
-                                            <Typography variant="body2" sx={{
-                                                fontWeight: 500,
-                                                fontSize: '0.85rem',
-                                                wordBreak: 'break-word',
-                                                overflowWrap: 'break-word',
-                                            }}>
+                                        <Link
+                                            href="https://login.fieldedge.com/#/List/0"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            underline="hover"
+                                            sx={{
+                                                color: 'inherit',
+                                                display: 'block',
+                                                transition: 'color 0.2s ease-in-out',
+                                                '&:hover': {
+                                                    color: '#1976d2',
+                                                }
+                                            }}
+                                        >
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    fontWeight: 500,
+                                                    fontSize: '0.85rem',
+                                                    wordBreak: 'break-word',
+                                                    overflowWrap: 'break-word',
+                                                }}
+                                            >
                                                 {item.customer} - {item.street}
                                             </Typography>
-                                            <Typography variant="caption" sx={{
-                                                color: GRAY_COLOR,
+                                        </Link>
+                                        <Typography
+                                            variant="caption"
+                                            sx={{
+                                                color: '#6b7280',
                                                 fontSize: '0.8rem',
                                                 wordBreak: 'break-word',
                                                 overflowWrap: 'break-word',
-                                            }}>
-                                                {item.city}, {item.state} {item.zip}
-                                            </Typography>
-                                        </Box>
+                                            }}
+                                        >
+                                            {item.city}, {item.state} {item.zip}
+                                        </Typography>
                                     </TableCell>
                                     <TableCell sx={{ py: 1.5 }}>
                                         <Typography variant="body2" sx={{

@@ -27,6 +27,13 @@ export const formatDateTimeWithTZ = (dateString) => {
     return format(date, "dd/MM/yyyy hh:mm a");
 };
 
+export const formatFinalizedDate = (dateString) => {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    if (isNaN(date)) return '—';
+    return format(date, "MM/dd/yyyy hh:mm a");
+};
+
 export const calculateElapsedTime = (createdDate) => {
     if (!createdDate) return '—';
 

@@ -9,7 +9,8 @@ import {
     getElapsedColor,
     getTechnicianInitial,
     formatDateTimeWithTZ,
-    formatTime
+    formatTime,
+    formatFinalizedDate
 } from '../utils/formatters';
 
 export const useRmeData = () => {
@@ -88,7 +89,7 @@ export const useRmeData = () => {
                 finalizedBy: item.finalized_by,
                 finalizedByEmail: item.finalized_by_email,
                 finalizedDate: item.finalized_date,
-                finalizedDateFormatted: formatDateTimeWithTZ(item.finalized_date),
+                finalizedDateFormatted: formatFinalizedDate(item.finalized_date),
                 reportId: item.report_id,
                 createdAt: item.scheduled_date,
                 timeCompleted: formatTime(item.scheduled_date),
