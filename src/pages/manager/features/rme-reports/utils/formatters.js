@@ -73,23 +73,29 @@ export const calculateCompletedElapsedTime = (completedDate) => {
         const day = parseInt(parts[1], 10);
         const year = parseInt(parts[2], 10);
 
-        // Date starts at midnight
         const completed = new Date(year, month, day);
 
         if (isNaN(completed.getTime())) return '-';
 
         const diffMs = now - completed;
-
         if (diffMs < 0) return '-';
 
+        const diffMinutes = Math.floor(diffMs / (1000 * 60));
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-        if (diffHours < 128) {
-            return `${diffHours} HR${diffHours !== 1 ? 'S' : ''}`;
-        } else {
-            return `${diffDays} DAY${diffDays !== 1 ? 'S' : ''}`;
+        // Less than 1 hour → Minutes
+        if (diffMinutes < 60) {
+            return `${diffMinutes} MIN${diffMinutes !== 1 ? 'S' : ''}`;
         }
+
+        // Less than or equal 128 hours → Hours
+        if (diffHours <= 128) {
+            return `${diffHours} HR${diffHours !== 1 ? 'S' : ''}`;
+        }
+
+        // More than 128 hours → Days
+        return `${diffDays} DAY${diffDays !== 1 ? 'S' : ''}`;
 
     } catch {
         return '-';
