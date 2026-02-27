@@ -16,10 +16,28 @@ const NOTIFICATION_PATHS = [
     '/manager-dashboard/health-department-report-tracking/rme',
 ];
 
+const MARK_SEEN_TIMEOUT = 5000; // 5 second timeout
+const DEBOUNCE_DELAY = 500; // 500ms debounce
+
 const getOneMonthAgo = () => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
     return d;
+};
+
+// ── Utility function: Debounce helper ──
+const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func(...args), delay);
+    };
+};
+
+// ── Utility function: Validate date safely ──
+const isValidDate = (dateString) => {
+    const date = new Date(dateString);
+    return !isNaN(date.getTime());
 };
 
 export const ManagerMenuComponent = ({ onMenuItemClick }) => {
@@ -27,6 +45,7 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const pendingMarkSeen = useRef(new Set());
+    const timeoutRefs = useRef(new Map());
 
     const { notifications, refetch } = useNotifications();
 
@@ -34,40 +53,92 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
     const [optimisticallyCleared, setOptimisticallyCleared] = useState(new Set());
 
     const markNotificationsAsSeenForPath = useCallback(async (path) => {
-        if (!notifications?.locates || !notifications?.workOrders) return;
-        if (pendingMarkSeen.current.has(path)) return;
+        // Early exit if no notifications data
+        if (!notifications?.locates || !notifications?.workOrders) {
+            console.warn('Notifications data not available yet');
+            return;
+        }
+
+        // Prevent duplicate requests for same path
+        if (pendingMarkSeen.current.has(path)) {
+            console.log(`Already processing mark-seen for path: ${path}`);
+            return;
+        }
 
         const oneMonthAgo = getOneMonthAgo();
 
-        let ids = [];
-        let endpoint = '';
+        // ── Filter IDs based on path ──────────────────────────────────────────
+        const { ids, endpoint } = path === '/manager-dashboard/locates'
+            ? {
+                ids: notifications.locates
+                    .filter(l => {
+                        const dateValue = l.created_at || l.created_date;
+                        return (
+                            isValidDate(dateValue) &&
+                            new Date(dateValue) >= oneMonthAgo &&
+                            !l.is_seen
+                        );
+                    })
+                    .map(l => l.id),
+                endpoint: '/locates/mark-seen/',
+            }
+            : path === '/manager-dashboard/health-department-report-tracking/rme'
+            ? {
+                ids: notifications.workOrders
+                    .filter(w => {
+                        const dateValue = w.elapsed_time;
+                        return (
+                            isValidDate(dateValue) &&
+                            new Date(dateValue) >= oneMonthAgo &&
+                            !w.is_seen
+                        );
+                    })
+                    .map(w => w.id),
+                endpoint: '/work-orders-today/mark-seen/',
+            }
+            : { ids: [], endpoint: '' };
 
-        if (path === '/manager-dashboard/locates') {
-            ids = notifications.locates
-                .filter(l => new Date(l.created_at || l.created_date) >= oneMonthAgo && !l.is_seen)
-                .map(l => l.id);
-            endpoint = '/locates/mark-seen/';
-        } else if (path === '/manager-dashboard/health-department-report-tracking/rme') {
-            ids = notifications.workOrders
-                .filter(w => new Date(w.elapsed_time) >= oneMonthAgo && !w.is_seen)
-                .map(w => w.id);
-            endpoint = '/work-orders-today/mark-seen/';
+        // If no unseen notifications, skip API call
+        if (ids.length === 0) {
+            console.log(`No unseen notifications for path: ${path}`);
+            return;
         }
-
-        if (ids.length === 0) return;
 
         // ── 1. Optimistic update: clear badge immediately ──────────────────────
         setOptimisticallyCleared(prev => new Set([...prev, path]));
-
         pendingMarkSeen.current.add(path);
+
+        // ── Set timeout to prevent stuck loading state ────────────────────────
+        const timeoutId = setTimeout(() => {
+            console.error(`Timeout marking notifications as seen for path: ${path}`);
+            pendingMarkSeen.current.delete(path);
+            setOptimisticallyCleared(prev => {
+                const next = new Set(prev);
+                next.delete(path);
+                return next;
+            });
+        }, MARK_SEEN_TIMEOUT);
+
+        timeoutRefs.current.set(path, timeoutId);
+
         try {
             await axiosInstance.post(endpoint, { ids });
+
             // ── 2. Server confirmed: sync real data ───────────────────────────
-            queryClient.invalidateQueries(['notifications-count']);
-            refetch();
+            clearTimeout(timeoutId);
+            timeoutRefs.current.delete(path);
+
+            // Invalidate and refetch notifications
+            queryClient.invalidateQueries({ queryKey: ['notifications-count'] });
+            await refetch();
+
+            console.log(`Successfully marked as seen for path: ${path}`);
         } catch (error) {
             // ── 3. On failure: roll back the optimistic clear ─────────────────
             console.error('Error marking notifications as seen:', error);
+            clearTimeout(timeoutId);
+            timeoutRefs.current.delete(path);
+
             setOptimisticallyCleared(prev => {
                 const next = new Set(prev);
                 next.delete(path);
@@ -78,36 +149,66 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
         }
     }, [notifications, queryClient, refetch]);
 
-    // When real data refreshes and server confirms seen, remove from optimistic set
+    // ── Debounced version of markNotificationsAsSeenForPath ──
+    const debouncedMarkSeen = useMemo(
+        () => debounce(markNotificationsAsSeenForPath, DEBOUNCE_DELAY),
+        [markNotificationsAsSeenForPath]
+    );
+
+    // ── When real data refreshes and the server confirms seen, remove from optimistic set ──
     useEffect(() => {
         if (!notifications) return;
+
         const oneMonthAgo = getOneMonthAgo();
 
         setOptimisticallyCleared(prev => {
             const next = new Set(prev);
+
             for (const path of prev) {
-                let hasUnseen = false;
-                if (path === '/manager-dashboard/locates') {
-                    hasUnseen = notifications.locates?.some(
-                        l => new Date(l.created_at || l.created_date) >= oneMonthAgo && !l.is_seen
-                    );
-                } else if (path === '/manager-dashboard/health-department-report-tracking/rme') {
-                    hasUnseen = notifications.workOrders?.some(
-                        w => new Date(w.elapsed_time) >= oneMonthAgo && !w.is_seen
-                    );
+                const hasUnseen = path === '/manager-dashboard/locates'
+                    ? notifications.locates?.some(l => {
+                        const dateValue = l.created_at || l.created_date;
+                        return (
+                            isValidDate(dateValue) &&
+                            new Date(dateValue) >= oneMonthAgo &&
+                            !l.is_seen
+                        );
+                    })
+                    : path === '/manager-dashboard/health-department-report-tracking/rme'
+                    ? notifications.workOrders?.some(w => {
+                        const dateValue = w.elapsed_time;
+                        return (
+                            isValidDate(dateValue) &&
+                            new Date(dateValue) >= oneMonthAgo &&
+                            !w.is_seen
+                        );
+                    })
+                    : false;
+
+                // If server data is now clean, no need to keep optimistic override
+                if (!hasUnseen) {
+                    next.delete(path);
                 }
-                if (!hasUnseen) next.delete(path);
             }
+
             return next;
         });
     }, [notifications]);
 
-    // Mark seen on navigation
+    // ── Mark seen on navigation (debounced to prevent multiple calls) ──
     useEffect(() => {
         if (NOTIFICATION_PATHS.includes(location.pathname)) {
-            markNotificationsAsSeenForPath(location.pathname);
+            debouncedMarkSeen(location.pathname);
         }
-    }, [location.pathname, markNotificationsAsSeenForPath]);
+    }, [location.pathname, debouncedMarkSeen]);
+
+    // ── Cleanup timeouts on unmount ──
+    useEffect(() => {
+        return () => {
+            timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
+            timeoutRefs.current.clear();
+        };
+    }, []);
 
     const handleMenuItemClick = useCallback((path) => {
         if (path.startsWith('http')) {
@@ -118,7 +219,7 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
         onMenuItemClick?.(path);
     }, [navigate, onMenuItemClick]);
 
-    // Compute counts — zeroed out immediately for optimistically cleared paths
+    // ── Compute counts — zeroed out immediately for optimistically cleared paths ──
     const itemCounts = useMemo(() => {
         if (!notifications?.locates || !notifications?.workOrders) return {};
 
@@ -129,15 +230,25 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
         return {
             [locatesPath]: optimisticallyCleared.has(locatesPath)
                 ? 0
-                : notifications.locates.filter(l =>
-                    new Date(l.created_at || l.created_date) >= oneMonthAgo && !l.is_seen
-                ).length,
+                : notifications.locates.filter(l => {
+                    const dateValue = l.created_at || l.created_date;
+                    return (
+                        isValidDate(dateValue) &&
+                        new Date(dateValue) >= oneMonthAgo &&
+                        !l.is_seen
+                    );
+                }).length,
 
             [rmePath]: optimisticallyCleared.has(rmePath)
                 ? 0
-                : notifications.workOrders.filter(w =>
-                    new Date(w.elapsed_time) >= oneMonthAgo && !w.is_seen
-                ).length,
+                : notifications.workOrders.filter(w => {
+                    const dateValue = w.elapsed_time;
+                    return (
+                        isValidDate(dateValue) &&
+                        new Date(dateValue) >= oneMonthAgo &&
+                        !w.is_seen
+                    );
+                }).length,
         };
     }, [notifications, optimisticallyCleared]);
 
@@ -186,26 +297,22 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
         },
     ];
 
-    const processedSections = useMemo(() => {
-        const grouped = menuItems.reduce((acc, item) => {
+    return Object.entries(
+        menuItems.reduce((acc, item) => {
             if (!acc[item.section]) acc[item.section] = [];
             acc[item.section].push(item);
             return acc;
-        }, {});
-
-        return Object.entries(grouped).map(([sectionName, items]) => ({
-            sectionName,
-            items: items.map(item => {
-                const count = itemCounts[item.path] ?? 0;
-                return {
-                    ...item,
-                    onClick: () => handleMenuItemClick(item.path),
-                    count,
-                    hasCount: count > 0,
-                };
-            }),
-        }));
-    }, [itemCounts, handleMenuItemClick]);
-
-    return processedSections;
+        }, {})
+    ).map(([sectionName, items]) => ({
+        sectionName,
+        items: items.map(item => {
+            const count = itemCounts[item.path] ?? 0;
+            return {
+                ...item,
+                onClick: () => handleMenuItemClick(item.path),
+                count,
+                hasCount: count > 0,
+            };
+        }),
+    }));
 };
