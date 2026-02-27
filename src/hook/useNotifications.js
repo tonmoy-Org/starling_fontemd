@@ -1,12 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../auth/AuthProvider';
 import axiosInstance from '../api/axios';
+import { useEffect, useRef, useCallback } from 'react';
 
 const NOTIFICATIONS_CACHE_KEY = 'notifications-cache';
 const NOTIFICATIONS_LAST_UPDATE = 'notifications-last-update';
-const CACHE_DURATION = 15000; // 15 seconds local cache
-const STALE_TIME = 20000; // 20 seconds before stale
-const REFETCH_INTERVAL = 45000; // 45 seconds auto-refetch
+const CACHE_DURATION = 8000; // 8 seconds local cache (reduced for real-time)
+const STALE_TIME = 5000; // 5 seconds before stale
+const REFETCH_INTERVAL = 10000; // 10 seconds auto-refetch (increased frequency)
 
 const ONE_MONTH_AGO = (() => {
     const date = new Date();
@@ -50,6 +51,7 @@ const processLocates = (locatesData) => {
             id: `locate-${locate.id}`,
             type: 'locate',
             timestamp: formatDate(locate.created_at),
+            data: locate,
         })),
     };
 };
@@ -64,6 +66,7 @@ const processWorkOrders = (workOrdersData) => {
             id: `rme-${wo.id}`,
             type: 'RME',
             timestamp: formatDate(wo.elapsed_time),
+            data: wo,
         })),
     };
 };
@@ -75,7 +78,7 @@ const buildResponse = (locatesData, workOrdersData) => {
     const latestNotifications = [
         ...locatesResult.notifications,
         ...workOrdersResult.notifications,
-    ].sort((a, b) => b.timestamp - a.timestamp);
+    ].sort((a, b) => b.timestamp - a.timestamp).slice(0, 50); // Limit to 50 latest
 
     const totalCount = locatesResult.count + workOrdersResult.count;
 
@@ -90,6 +93,7 @@ const buildResponse = (locatesData, workOrdersData) => {
         unseenRmeIds: workOrdersResult.ids,
         unseenIds: [...locatesResult.ids, ...workOrdersResult.ids],
         count: totalCount,
+        lastUpdated: Date.now(),
     };
 };
 
@@ -125,6 +129,61 @@ const setLocalCache = (data) => {
 export const useNotifications = () => {
     const { user } = useAuth();
     const queryClient = useQueryClient();
+    const wsRef = useRef(null);
+    const reconnectTimeoutRef = useRef(null);
+    const isConnectingRef = useRef(false);
+
+    // Initialize WebSocket connection for real-time updates
+    const initializeWebSocket = useCallback(() => {
+        if (!user || isConnectingRef.current) return;
+
+        const role = user.role?.toUpperCase();
+        if (role !== 'SUPERADMIN' && role !== 'MANAGER') return;
+
+        isConnectingRef.current = true;
+
+        try {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws/notifications/`;
+            
+            wsRef.current = new WebSocket(wsUrl);
+
+            wsRef.current.onopen = () => {
+                console.log('WebSocket connected');
+                isConnectingRef.current = false;
+            };
+
+            wsRef.current.onmessage = (event) => {
+                try {
+                    const message = JSON.parse(event.data);
+                    
+                    // Invalidate cache immediately on new notification
+                    if (message.type === 'notification' || message.type === 'update') {
+                        invalidateCache();
+                    }
+                } catch (error) {
+                    console.error('Error processing WebSocket message:', error);
+                }
+            };
+
+            wsRef.current.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                isConnectingRef.current = false;
+            };
+
+            wsRef.current.onclose = () => {
+                console.log('WebSocket disconnected');
+                isConnectingRef.current = false;
+                // Attempt reconnection after 5 seconds
+                reconnectTimeoutRef.current = setTimeout(() => {
+                    initializeWebSocket();
+                }, 5000);
+            };
+        } catch (error) {
+            console.error('Failed to initialize WebSocket:', error);
+            isConnectingRef.current = false;
+        }
+    }, [user]);
 
     const { data, isLoading, error, refetch, isFetching } = useQuery({
         queryKey: ['notifications', user?.role],
@@ -167,13 +226,13 @@ export const useNotifications = () => {
         },
         staleTime: STALE_TIME,
         refetchInterval: REFETCH_INTERVAL,
-        refetchOnWindowFocus: 'stale',
-        refetchOnReconnect: 'stale',
-        retry: 1,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
+        retry: 2,
         enabled: !!user,
     });
 
-    const invalidateCache = () => {
+    const invalidateCache = useCallback(() => {
         try {
             sessionStorage.removeItem(NOTIFICATIONS_CACHE_KEY);
             sessionStorage.removeItem(NOTIFICATIONS_LAST_UPDATE);
@@ -181,7 +240,59 @@ export const useNotifications = () => {
             // Silently fail
         }
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    };
+    }, [queryClient]);
+
+    // Handle visibility change - refetch when tab becomes visible
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                // Tab became visible, invalidate cache and refetch
+                invalidateCache();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [invalidateCache]);
+
+    // Handle online/offline events
+    useEffect(() => {
+        const handleOnline = () => {
+            console.log('Connection restored');
+            invalidateCache();
+            initializeWebSocket();
+        };
+
+        const handleOffline = () => {
+            console.log('Connection lost');
+            // Close WebSocket if offline
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
+        };
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, [invalidateCache, initializeWebSocket]);
+
+    // Initialize WebSocket on mount
+    useEffect(() => {
+        initializeWebSocket();
+
+        return () => {
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+            }
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
+        };
+    }, [initializeWebSocket]);
 
     return {
         notifications: data,
@@ -197,5 +308,6 @@ export const useNotifications = () => {
         unseenLocateIds: data?.unseenLocateIds || [],
         unseenRmeIds: data?.unseenRmeIds || [],
         unseenIds: data?.unseenIds || [],
+        latestNotifications: data?.latestNotifications || [],
     };
 };

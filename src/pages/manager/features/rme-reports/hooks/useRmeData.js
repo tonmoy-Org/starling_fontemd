@@ -28,17 +28,22 @@ export const useRmeData = () => {
         };
     }, [authUser]);
 
-    // Single API call instead of two
+    // Single API call with 1 second auto-refresh
     const { data: allWorkOrders = [], isLoading, refetch: refetchWorkOrders } = useQuery({
         queryKey: ['rme-work-orders'],
         queryFn: async () => {
             const res = await axiosInstance.get('/work-orders-today/');
             return Array.isArray(res.data) ? res.data : [];
         },
-        staleTime: 5 * 60 * 1000, // 5 minutes instead of 1 second
+        // Auto-refresh configuration
+        refetchInterval: 1000, // Refresh every 1 second
+        refetchIntervalInBackground: false, // Don't refresh when tab is in background
+        refetchOnWindowFocus: true, // Refresh when window gains focus
+        refetchOnMount: true, // Refresh when component mounts
+        refetchOnReconnect: true, // Refresh when reconnecting
+        keepPreviousData: true, // Keep showing old data while fetching new
+        staleTime: 0, // Data is always stale
         cacheTime: 10 * 60 * 1000, // 10 minutes cache
-        refetchInterval: false, // Don't auto-refetch - user can refresh manually
-        refetchOnWindowFocus: false, // Don't refetch on window focus
     });
 
     // Separate deleted and active orders from single API response

@@ -13,8 +13,8 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import Avatar from '@mui/material/Avatar';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import Badge from '@mui/material/Badge';
 import SwipeableDrawer from '@mui/material/SwipeableDrawer';
+import Tooltip from '@mui/material/Tooltip';
 import { useAuth } from '../../auth/AuthProvider';
 import { useLocation, useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -22,6 +22,7 @@ import NotificationDrawer from '../Notification/NotificationDrawer';
 import ProfileDialog from '../ProfileDialog';
 import NestedMenuItem from '../NestedMenuItem';
 import SearchBar from '../SearchBar'
+import NotificationBadge from '../Notification/Notificationbadge';
 import logo from '../../assets/logos/logo.png';
 import miniLogo from '../../assets/logos/mini_logo.png';
 import DashboardFooter from '../DashboardFooter';
@@ -30,7 +31,6 @@ import {
   LogOut,
   User,
   Menu as MenuIcon,
-  Bell,
   ChevronLeft,
   ChevronRight,
   X,
@@ -80,7 +80,6 @@ const openedMixin = (theme) => ({
   borderRight: `1px solid ${colors.borderLight}`,
   boxShadow: '1px 0 4px rgba(0,0,0,0.04)',
   zIndex: theme.zIndex.drawer,
-  // Always show scrollbar but make it transparent/very thin
   '&::-webkit-scrollbar': {
     width: '4px',
   },
@@ -112,7 +111,6 @@ const closedMixin = (theme) => ({
   borderRight: `1px solid ${colors.borderLight}`,
   boxShadow: '1px 0 4px rgba(0,0,0,0.04)',
   zIndex: theme.zIndex.drawer,
-  // Always show scrollbar but make it transparent/very thin
   '&::-webkit-scrollbar': {
     width: '4px',
   },
@@ -159,7 +157,6 @@ const AppBar = styled(MuiAppBar, {
     marginLeft: drawerWidth,
     width: `calc(100% - ${drawerWidth}px)`,
   }),
-  // Prevent layout shift when scrollbar disappears
   paddingRight: '0px !important',
 }));
 
@@ -187,9 +184,7 @@ const ScrollableBox = styled(Box)({
   flex: 1,
   overflowY: 'auto',
   overflowX: 'hidden',
-  // Always reserve space for scrollbar
   scrollbarGutter: 'stable',
-  // Custom scrollbar that doesn't cause layout shift
   '&::-webkit-scrollbar': {
     width: '5px',
   },
@@ -272,7 +267,6 @@ const DrawerCloseButton = styled(IconButton)(({ theme }) => ({
   },
 }));
 
-// Styled components for better responsive behavior
 const MainContent = styled(Box)(({ theme }) => ({
   flexGrow: 1,
   display: 'flex',
@@ -318,9 +312,7 @@ const ScrollableContent = styled(Box)(({ theme }) => ({
   },
   overflowY: 'auto',
   overflowX: 'hidden',
-  // Prevent layout shift by always reserving space for scrollbar
   scrollbarGutter: 'stable',
-  // Custom scrollbar that doesn't cause layout shift
   '&::-webkit-scrollbar': {
     width: '5px',
     height: '5px',
@@ -408,7 +400,10 @@ const DashboardLayout = ({ children, title, menuItems }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { badgeCount } = useNotifications();
+  // Get notifications hook with refetch capability
+  const {
+    badgeCount,
+  } = useNotifications();
 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
@@ -424,14 +419,12 @@ const DashboardLayout = ({ children, title, menuItems }) => {
 
   // Prevent body scroll locking issues
   React.useEffect(() => {
-    // Save original body styles
     const originalStyles = {
       overflow: document.body.style.overflow,
       paddingRight: document.body.style.paddingRight,
     };
 
     return () => {
-      // Restore original styles on unmount
       document.body.style.overflow = originalStyles.overflow;
       document.body.style.paddingRight = originalStyles.paddingRight;
     };
@@ -566,16 +559,12 @@ const DashboardLayout = ({ children, title, menuItems }) => {
 
   const handleNavigation = (path) => {
     if (path) {
-      // Check if it's an external URL (starts with http:// or https://))
       if (path.startsWith('http://') || path.startsWith('https://')) {
-        // Open external link in new tab
         window.open(path, '_blank');
       } else {
-        // Internal navigation
         navigate(path);
       }
 
-      // Close drawer on mobile after actual navigation
       if (isMobile) {
         setOpen(false);
       }
@@ -585,7 +574,6 @@ const DashboardLayout = ({ children, title, menuItems }) => {
   const handleBreadcrumbClick = (path) => {
     if (path) {
       navigate(path);
-      // Close drawer on mobile after breadcrumb navigation
       if (isMobile) {
         setOpen(false);
       }
@@ -606,7 +594,6 @@ const DashboardLayout = ({ children, title, menuItems }) => {
 
   const handleSearchChange = (value) => {
     setSearchValue(value);
-    // You can add search functionality here
     console.log('Search value:', value);
   };
 
@@ -651,7 +638,6 @@ const DashboardLayout = ({ children, title, menuItems }) => {
         borderColor: colors.borderLight,
       },
       position: 'relative',
-      // Prevent layout shift by always reserving space for scrollbar
       scrollbarGutter: 'stable',
     }}>
       {isMobile && (
@@ -748,7 +734,6 @@ const DashboardLayout = ({ children, title, menuItems }) => {
     </Box>
   );
 
-  // Menu component for reuse (desktop and mobile)
   const renderUserMenu = () => (
     <Menu
       anchorEl={menuAnchorEl}
@@ -979,8 +964,9 @@ const DashboardLayout = ({ children, title, menuItems }) => {
             </BreadcrumbContainer>
           </Box>
           <Box sx={{ flex: 1 }} />
+
+          {/* Desktop Actions Container */}
           <DesktopActionsContainer>
-            {/* Use the SearchBar component */}
             <SearchBar
               mobileSearchOpen={mobileSearchOpen}
               onMobileSearchToggle={toggleMobileSearch}
@@ -989,36 +975,13 @@ const DashboardLayout = ({ children, title, menuItems }) => {
               onSearchChange={handleSearchChange}
               placeholder="Search pages..."
             />
-
-            <IconButton
+            {/* Notification Badge - New Component */}
+            <NotificationBadge
               onClick={toggleNotificationDrawer(true)}
-              sx={{
-                color: colors.textPrimary,
-                backgroundColor: alpha('#ffffff', 0.1),
-                borderRadius: '5px',
-                border: `1px solid ${alpha('#ffffff', 0.3)}`,
-                '&:hover': {
-                  backgroundColor: alpha('#ffffff', 0.2),
-                  color: colors.primary,
-                },
-              }}
-            >
-              <Badge
-                badgeContent={badgeCount}
-                disableScrollLock={true}
-                color="error"
-                sx={{
-                  '& .MuiBadge-badge': {
-                    fontSize: '0.55rem',
-                    height: '13px',
-                    minWidth: '13px',
-                    bgcolor: colors.red,
-                  }
-                }}
-              >
-                <Bell size={22} />
-              </Badge>
-            </IconButton>
+              tooltipTitle="Notifications"
+              showPulse={true}
+              variant="default"
+            />
 
             <IconButton
               onClick={handleMenuOpen}
@@ -1049,8 +1012,8 @@ const DashboardLayout = ({ children, title, menuItems }) => {
             {renderUserMenu()}
           </DesktopActionsContainer>
 
+          {/* Mobile Actions Container */}
           <MobileActionsContainer>
-            {/* Use the SearchBar component in mobile container */}
             <SearchBar
               mobileSearchOpen={mobileSearchOpen}
               onMobileSearchToggle={toggleMobileSearch}
@@ -1060,36 +1023,13 @@ const DashboardLayout = ({ children, title, menuItems }) => {
               placeholder="Search pages..."
             />
 
-            <IconButton
+            {/* Notification Badge - Mobile */}
+            <NotificationBadge
               onClick={toggleNotificationDrawer(true)}
-              sx={{
-                color: colors.textPrimary,
-                backgroundColor: alpha('#ffffff', 0.1),
-                borderRadius: '5px',
-                border: `1px solid ${alpha('#ffffff', 0.3)}`,
-                width: 38,
-                height: 38,
-                '&:hover': {
-                  backgroundColor: alpha('#ffffff', 0.2),
-                  color: colors.primary,
-                },
-              }}
-            >
-              <Badge
-                badgeContent={badgeCount}
-                color="error"
-                sx={{
-                  '& .MuiBadge-badge': {
-                    fontSize: '0.55rem',
-                    height: '14px',
-                    minWidth: '14px',
-                    bgcolor: colors.red,
-                  }
-                }}
-              >
-                <Bell size={18} />
-              </Badge>
-            </IconButton>
+              tooltipTitle="Notifications"
+              showPulse={true}
+              variant="compact"
+            />
 
             <IconButton
               onClick={handleMenuOpen}
