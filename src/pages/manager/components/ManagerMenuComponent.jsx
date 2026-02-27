@@ -12,8 +12,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 
 const NOTIFICATION_PATHS = [
-    '/manager-dashboard/locates',
-    '/manager-dashboard/health-department-report-tracking/rme',
+    '/manager-dashboard/locates/work-orders',
+    '/manager-dashboard/rme/work-orders',
 ];
 
 const MARK_SEEN_TIMEOUT = 5000; // 5 second timeout
@@ -68,7 +68,7 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
         const oneMonthAgo = getOneMonthAgo();
 
         // ── Filter IDs based on path ──────────────────────────────────────────
-        const { ids, endpoint } = path === '/manager-dashboard/locates'
+        const { ids, endpoint } = path === '/manager-dashboard/locates/work-orders'
             ? {
                 ids: notifications.locates
                     .filter(l => {
@@ -82,7 +82,7 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
                     .map(l => l.id),
                 endpoint: '/locates/mark-seen/',
             }
-            : path === '/manager-dashboard/health-department-report-tracking/rme'
+            : path === '/manager-dashboard/rme/work-orders'
             ? {
                 ids: notifications.workOrders
                     .filter(w => {
@@ -165,7 +165,7 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
             const next = new Set(prev);
 
             for (const path of prev) {
-                const hasUnseen = path === '/manager-dashboard/locates'
+                const hasUnseen = path === '/manager-dashboard/locates/work-orders'
                     ? notifications.locates?.some(l => {
                         const dateValue = l.created_at || l.created_date;
                         return (
@@ -174,7 +174,7 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
                             !l.is_seen
                         );
                     })
-                    : path === '/manager-dashboard/health-department-report-tracking/rme'
+                    : path === '/manager-dashboard/rme/work-orders'
                     ? notifications.workOrders?.some(w => {
                         const dateValue = w.elapsed_time;
                         return (
@@ -224,8 +224,8 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
         if (!notifications?.locates || !notifications?.workOrders) return {};
 
         const oneMonthAgo = getOneMonthAgo();
-        const locatesPath = '/manager-dashboard/locates';
-        const rmePath = '/manager-dashboard/health-department-report-tracking/rme';
+        const locatesPath = '/manager-dashboard/locates/work-orders';
+        const rmePath = '/manager-dashboard/rme/work-orders';
 
         return {
             [locatesPath]: optimisticallyCleared.has(locatesPath)
@@ -263,7 +263,7 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
         {
             text: 'Locates',
             icon: <MapPin size={18} />,
-            path: '/manager-dashboard/locates',
+            path: '/manager-dashboard/locates/work-orders',
             parent: 'Operations',
             indent: 1,
             section: 'GENERAL',
@@ -281,7 +281,7 @@ export const ManagerMenuComponent = ({ onMenuItemClick }) => {
         {
             text: 'RME Reports',
             icon: <ClipboardCheck size={18} />,
-            path: '/manager-dashboard/health-department-report-tracking/rme',
+            path: '/manager-dashboard/rme/work-orders',
             parent: 'Health Dept Reports',
             grandparent: 'Reports',
             indent: 2,
