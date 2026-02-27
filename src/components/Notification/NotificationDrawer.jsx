@@ -357,14 +357,14 @@ const NotificationDrawer = ({ onClose }) => {
 
         // Redirect based on notification type
         if (notification.type === 'locate') {
-            navigate(`${dashboardBasePath}/locates`, {
+            navigate(`${dashboardBasePath}/locates/work-orders`, {
                 state: {
                     highlightLocateId: notification.entityId,
                     fromNotifications: true
                 }
             });
         } else if (notification.type === 'RME') {
-            navigate(`${dashboardBasePath}/health-department-report-tracking/rme`, {
+            navigate(`${dashboardBasePath}/rme/work-orders`, {
                 state: {
                     highlightWorkOrderId: notification.entityId,
                     fromNotifications: true
