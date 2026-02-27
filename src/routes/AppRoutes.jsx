@@ -129,11 +129,11 @@ export const AppRoutes = () => {
           <Route path="tasks" element={<Tasks />} />
           <Route path="library" element={<Library />} />
 
-          <Route path="health-department-report-tracking/rme" element={<RMEReports />} />
+          <Route path="rme/work-orders" element={<RMEReports />} />
           <Route path="health-department-report-tracking/rss" element={<RSSReports />} />
           <Route path="health-department-report-tracking/tos" element={<TOSReports />} />
 
-          <Route path="locates" element={<Locates />} />
+          <Route path="locates/work-orders" element={<Locates />} />
           <Route path="notifications" element={<Notifications />} />
         </Route>
 

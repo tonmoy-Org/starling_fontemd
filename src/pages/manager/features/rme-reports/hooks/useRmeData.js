@@ -28,26 +28,27 @@ export const useRmeData = () => {
         };
     }, [authUser]);
 
-    const { data: workOrders = [], isLoading, refetch: refetchWorkOrders } = useQuery({
+    // Single API call instead of two
+    const { data: allWorkOrders = [], isLoading, refetch: refetchWorkOrders } = useQuery({
         queryKey: ['rme-work-orders'],
         queryFn: async () => {
             const res = await axiosInstance.get('/work-orders-today/');
             return Array.isArray(res.data) ? res.data : [];
         },
-        staleTime: 1000,
-        refetchInterval: 30000,
+        staleTime: 5 * 60 * 1000, // 5 minutes instead of 1 second
+        cacheTime: 10 * 60 * 1000, // 10 minutes cache
+        refetchInterval: false, // Don't auto-refetch - user can refresh manually
+        refetchOnWindowFocus: false, // Don't refetch on window focus
     });
-    
-    const { data: deletedWorkOrders = [] } = useQuery({
-        queryKey: ['rme-deleted-work-orders'],
-        queryFn: async () => {
-            const res = await axiosInstance.get('/work-orders-today/');
-            const allOrders = Array.isArray(res.data) ? res.data : [];
-            return allOrders.filter(order => order.is_deleted);
-        },
-        staleTime: 1000,
-        refetchInterval: 30000,
-    });
+
+    // Separate deleted and active orders from single API response
+    const deletedWorkOrders = useMemo(() => {
+        return allWorkOrders.filter(order => order.is_deleted);
+    }, [allWorkOrders]);
+
+    const workOrders = useMemo(() => {
+        return allWorkOrders.filter(order => !order.is_deleted);
+    }, [allWorkOrders]);
 
     const processedData = useMemo(() => {
         const reportNeeded = [];
@@ -97,7 +98,7 @@ export const useRmeData = () => {
                 movedToHoldingDateFormatted: formatDateTimeWithTZ(item.moved_to_holding_date),
                 rawData: item,
                 currentUser: currentUser,
-                task:item.task_name || '-',
+                task: item.task_name || '-',
             };
 
             if (item.is_deleted) {

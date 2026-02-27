@@ -13,8 +13,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 
 const NOTIFICATION_PATHS = [
-    '/super-admin-dashboard/locates',
-    '/super-admin-dashboard/health-department-report-tracking/rme',
+    '/super-admin-dashboard/locates/work-orders',
+    '/super-admin-dashboard/rme/work-orders',
 ];
 
 const MARK_SEEN_TIMEOUT = 5000; // 5 second timeout
@@ -69,7 +69,7 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
         const oneMonthAgo = getOneMonthAgo();
 
         // ── Filter IDs based on path ──────────────────────────────────────────
-        const { ids, endpoint } = path === '/super-admin-dashboard/locates'
+        const { ids, endpoint } = path === '/super-admin-dashboard/locates/work-orders'
             ? {
                 ids: notifications.locates
                     .filter(l => {
@@ -83,7 +83,7 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
                     .map(l => l.id),
                 endpoint: '/locates/mark-seen/',
             }
-            : path === '/super-admin-dashboard/health-department-report-tracking/rme'
+            : path === '/super-admin-dashboard/rme/work-orders'
             ? {
                 ids: notifications.workOrders
                     .filter(w => {
@@ -166,7 +166,7 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
             const next = new Set(prev);
 
             for (const path of prev) {
-                const hasUnseen = path === '/super-admin-dashboard/locates'
+                const hasUnseen = path === '/super-admin-dashboard/locates/work-orders'
                     ? notifications.locates?.some(l => {
                         const dateValue = l.created_at || l.created_date;
                         return (
@@ -175,7 +175,7 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
                             !l.is_seen
                         );
                     })
-                    : path === '/super-admin-dashboard/health-department-report-tracking/rme'
+                    : path === '/super-admin-dashboard/rme/work-orders'
                     ? notifications.workOrders?.some(w => {
                         const dateValue = w.elapsed_time;
                         return (
@@ -226,8 +226,8 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
 
         const oneMonthAgo = getOneMonthAgo();
 
-        const locatesPath = '/super-admin-dashboard/locates';
-        const rmePath = '/super-admin-dashboard/health-department-report-tracking/rme';
+        const locatesPath = '/super-admin-dashboard/locates/work-orders';
+        const rmePath = '/super-admin-dashboard/rme/work-orders';
 
         return {
             [locatesPath]: optimisticallyCleared.has(locatesPath)
@@ -264,7 +264,7 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
         {
             text: 'Locates',
             icon: <MapPin size={18} />,
-            path: '/super-admin-dashboard/locates',
+            path: '/super-admin-dashboard/locates/work-orders',
             parent: 'Operations',
             indent: 1,
             section: 'GENERAL',
@@ -286,7 +286,7 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
         {
             text: 'RME Reports',
             icon: <ClipboardCheck size={18} />,
-            path: '/super-admin-dashboard/health-department-report-tracking/rme',
+            path: '/super-admin-dashboard/rme/work-orders',
             parent: 'Health Dept Reports',
             grandparent: 'Reports',
             indent: 2,
