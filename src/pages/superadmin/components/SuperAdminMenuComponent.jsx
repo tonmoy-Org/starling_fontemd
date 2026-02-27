@@ -12,15 +12,35 @@ import axiosInstance from '../../../api/axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 
+const ONE_MONTH_MILLISECONDS = 30 * 24 * 60 * 60 * 1000;
+const ONE_MONTH_AGO_TIMESTAMP = Date.now() - ONE_MONTH_MILLISECONDS;
+
 const NOTIFICATION_PATHS = [
-    '/super-admin-dashboard/locates',
-    '/super-admin-dashboard/health-department-report-tracking/rme',
+    { path: '/super-admin-dashboard/locates', type: 'locates', endpoint: '/locates/mark-seen/' },
+    { path: '/super-admin-dashboard/health-department-report-tracking/rme', type: 'workOrders', endpoint: '/work-orders-today/mark-seen/' },
 ];
 
-const getOneMonthAgo = () => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 1);
-    return d;
+const MENU_ITEMS_CONFIG = [
+    { text: 'Dashboard', icon: LayoutDashboard, path: '/super-admin-dashboard', section: 'GENERAL' },
+    { text: 'Locates', icon: MapPin, path: '/super-admin-dashboard/locates', section: 'GENERAL', parent: 'Operations', indent: 1 },
+    { text: 'Tank Repairs', icon: Wrench, path: '/super-admin-dashboard/repairs', section: 'GENERAL', parent: 'Work Orders', indent: 1 },
+    { text: 'Users', icon: Users, path: '/super-admin-dashboard/users', section: 'MANAGEMENT' },
+    { text: 'RME Reports', icon: ClipboardCheck, path: '/super-admin-dashboard/health-department-report-tracking/rme', section: 'SYSTEM', parent: 'Health Dept Reports', grandparent: 'Reports', indent: 2 },
+    { text: 'Lookup', icon: Search, path: 'https://dashboard.sterlingsepticandplumbing.com/lookup', section: 'RESOURCES', isExternal: true },
+];
+
+const getUnseenIds = (data, dateField, oneMonthAgoTimestamp) => {
+    if (!Array.isArray(data)) return [];
+    return data
+        .filter(item => {
+            const timestamp = new Date(item[dateField]).getTime();
+            return !isNaN(timestamp) && timestamp >= oneMonthAgoTimestamp && item.is_seen === false;
+        })
+        .map(item => item.id);
+};
+
+const getUnseenCount = (data, dateField, oneMonthAgoTimestamp) => {
+    return getUnseenIds(data, dateField, oneMonthAgoTimestamp).length;
 };
 
 export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
@@ -28,88 +48,77 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const pendingMarkSeen = useRef(new Set());
+    const optimisticCacheRef = useRef(new Map());
 
-    const { notifications, refetch } = useNotifications();
-
-    // ── Optimistic state: tracks paths whose badges have been cleared locally ──
+    const { notifications, refetch, invalidateCache } = useNotifications();
     const [optimisticallyCleared, setOptimisticallyCleared] = useState(new Set());
 
-    const markNotificationsAsSeenForPath = useCallback(async (path) => {
+    const getPathConfig = useCallback((pathname) => {
+        return NOTIFICATION_PATHS.find(config => config.path === pathname);
+    }, []);
+
+    const markNotificationsAsSeenForPath = useCallback(async (pathname) => {
         if (!notifications?.locates || !notifications?.workOrders) return;
-        if (pendingMarkSeen.current.has(path)) return;
+        
+        const pathConfig = getPathConfig(pathname);
+        if (!pathConfig || pendingMarkSeen.current.has(pathname)) return;
 
-        const oneMonthAgo = getOneMonthAgo();
-
-        let ids = [];
-        let endpoint = '';
-
-        if (path === '/super-admin-dashboard/locates') {
-            ids = notifications.locates
-                .filter(l => new Date(l.created_at || l.created_date) >= oneMonthAgo && !l.is_seen)
-                .map(l => l.id);
-            endpoint = '/locates/mark-seen/';
-        } else if (path === '/super-admin-dashboard/health-department-report-tracking/rme') {
-            ids = notifications.workOrders
-                .filter(w => new Date(w.elapsed_time) >= oneMonthAgo && !w.is_seen)
-                .map(w => w.id);
-            endpoint = '/work-orders-today/mark-seen/';
-        }
+        const dataSource = notifications[pathConfig.type];
+        const dateField = pathConfig.type === 'locates' ? 'created_at' : 'elapsed_time';
+        const ids = getUnseenIds(dataSource, dateField, ONE_MONTH_AGO_TIMESTAMP);
 
         if (ids.length === 0) return;
 
-        // ── 1. Optimistic update: clear badge immediately ──────────────────────
-        setOptimisticallyCleared(prev => new Set([...prev, path]));
+        setOptimisticallyCleared(prev => new Set([...prev, pathname]));
+        optimisticCacheRef.current.set(pathname, ids);
+        pendingMarkSeen.current.add(pathname);
 
-        pendingMarkSeen.current.add(path);
         try {
-            await axiosInstance.post(endpoint, { ids });
-            // ── 2. Server confirmed: sync real data ───────────────────────────
-            queryClient.invalidateQueries(['notifications-count']);
+            await axiosInstance.post(pathConfig.endpoint, { ids });
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+            invalidateCache?.();
             refetch();
         } catch (error) {
-            // ── 3. On failure: roll back the optimistic clear ─────────────────
-            console.error('Error marking notifications as seen:', error);
+            console.error(`Error marking ${pathConfig.type} as seen:`, error);
             setOptimisticallyCleared(prev => {
                 const next = new Set(prev);
-                next.delete(path);
+                next.delete(pathname);
                 return next;
             });
+            optimisticCacheRef.current.delete(pathname);
         } finally {
-            pendingMarkSeen.current.delete(path);
+            pendingMarkSeen.current.delete(pathname);
         }
-    }, [notifications, queryClient, refetch]);
+    }, [notifications, getPathConfig, queryClient, refetch, invalidateCache]);
 
-    // When real data refreshes and the server confirms seen, remove from optimistic set
     useEffect(() => {
         if (!notifications) return;
-        const oneMonthAgo = getOneMonthAgo();
 
         setOptimisticallyCleared(prev => {
             const next = new Set(prev);
-            for (const path of prev) {
-                let hasUnseen = false;
-                if (path === '/super-admin-dashboard/locates') {
-                    hasUnseen = notifications.locates?.some(
-                        l => new Date(l.created_at || l.created_date) >= oneMonthAgo && !l.is_seen
-                    );
-                } else if (path === '/super-admin-dashboard/health-department-report-tracking/rme') {
-                    hasUnseen = notifications.workOrders?.some(
-                        w => new Date(w.elapsed_time) >= oneMonthAgo && !w.is_seen
-                    );
+            for (const pathname of prev) {
+                const pathConfig = getPathConfig(pathname);
+                if (!pathConfig) continue;
+
+                const dataSource = notifications[pathConfig.type];
+                const dateField = pathConfig.type === 'locates' ? 'created_at' : 'elapsed_time';
+                const hasUnseen = getUnseenCount(dataSource, dateField, ONE_MONTH_AGO_TIMESTAMP) > 0;
+
+                if (!hasUnseen) {
+                    next.delete(pathname);
+                    optimisticCacheRef.current.delete(pathname);
                 }
-                // If server data is now clean, no need to keep optimistic override
-                if (!hasUnseen) next.delete(path);
             }
             return next;
         });
-    }, [notifications]);
+    }, [notifications, getPathConfig]);
 
-    // Mark seen on navigation
     useEffect(() => {
-        if (NOTIFICATION_PATHS.includes(location.pathname)) {
+        const pathConfig = getPathConfig(location.pathname);
+        if (pathConfig) {
             markNotificationsAsSeenForPath(location.pathname);
         }
-    }, [location.pathname, markNotificationsAsSeenForPath]);
+    }, [location.pathname, markNotificationsAsSeenForPath, getPathConfig]);
 
     const handleMenuItemClick = useCallback((path) => {
         if (path.startsWith('http')) {
@@ -120,77 +129,22 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
         onMenuItemClick?.(path);
     }, [navigate, onMenuItemClick]);
 
-    // Compute counts — zeroed out immediately for optimistically cleared paths
     const itemCounts = useMemo(() => {
         if (!notifications?.locates || !notifications?.workOrders) return {};
-        const oneMonthAgo = getOneMonthAgo();
 
-        const locatesPath = '/super-admin-dashboard/locates';
-        const rmePath = '/super-admin-dashboard/health-department-report-tracking/rme';
-
-        return {
-            [locatesPath]: optimisticallyCleared.has(locatesPath)
+        const counts = {};
+        NOTIFICATION_PATHS.forEach(({ path, type, endpoint }) => {
+            const dateField = type === 'locates' ? 'created_at' : 'elapsed_time';
+            counts[path] = optimisticallyCleared.has(path)
                 ? 0
-                : notifications.locates.filter(l =>
-                    new Date(l.created_at || l.created_date) >= oneMonthAgo && !l.is_seen
-                  ).length,
+                : getUnseenCount(notifications[type], dateField, ONE_MONTH_AGO_TIMESTAMP);
+        });
 
-            [rmePath]: optimisticallyCleared.has(rmePath)
-                ? 0
-                : notifications.workOrders.filter(w =>
-                    new Date(w.elapsed_time) >= oneMonthAgo && !w.is_seen
-                  ).length,
-        };
+        return counts;
     }, [notifications, optimisticallyCleared]);
 
-    const menuItems = [
-        {
-            text: 'Dashboard',
-            icon: <LayoutDashboard size={18} />,
-            path: '/super-admin-dashboard',
-            section: 'GENERAL',
-        },
-        {
-            text: 'Locates',
-            icon: <MapPin size={18} />,
-            path: '/super-admin-dashboard/locates',
-            parent: 'Operations',
-            indent: 1,
-            section: 'GENERAL',
-        },
-        {
-            text: 'Tank Repairs',
-            icon: <Wrench size={18} />,
-            path: '/super-admin-dashboard/repairs',
-            parent: 'Work Orders',
-            indent: 1,
-            section: 'GENERAL',
-        },
-        {
-            text: 'Users',
-            icon: <Users size={18} />,
-            path: '/super-admin-dashboard/users',
-            section: 'MANAGEMENT',
-        },
-        {
-            text: 'RME Reports',
-            icon: <ClipboardCheck size={18} />,
-            path: '/super-admin-dashboard/health-department-report-tracking/rme',
-            parent: 'Health Dept Reports',
-            grandparent: 'Reports',
-            indent: 2,
-            section: 'SYSTEM',
-        },
-        {
-            text: 'Lookup',
-            icon: <Search size={18} />,
-            path: 'https://dashboard.sterlingsepticandplumbing.com/lookup',
-            section: 'RESOURCES',
-        },
-    ];
-
     const processedSections = useMemo(() => {
-        const grouped = menuItems.reduce((acc, item) => {
+        const grouped = MENU_ITEMS_CONFIG.reduce((acc, item) => {
             if (!acc[item.section]) acc[item.section] = [];
             acc[item.section].push(item);
             return acc;
@@ -198,15 +152,13 @@ export const SuperAdminMenuComponent = ({ onMenuItemClick }) => {
 
         return Object.entries(grouped).map(([sectionName, items]) => ({
             sectionName,
-            items: items.map(item => {
-                const count = itemCounts[item.path] ?? 0;
-                return {
-                    ...item,
-                    onClick: () => handleMenuItemClick(item.path),
-                    count,
-                    hasCount: count > 0,
-                };
-            }),
+            items: items.map(item => ({
+                ...item,
+                icon: item.icon,
+                onClick: () => handleMenuItemClick(item.path),
+                count: itemCounts[item.path] ?? 0,
+                hasCount: (itemCounts[item.path] ?? 0) > 0,
+            })),
         }));
     }, [itemCounts, handleMenuItemClick]);
 

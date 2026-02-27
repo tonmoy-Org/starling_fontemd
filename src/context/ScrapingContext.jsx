@@ -1,32 +1,50 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-const ScrapingContext = createContext();
+const ScrapingContext = createContext(null);
+
+const STORAGE_KEY = 'scraping_loading';
+const LOADING_TIMEOUT = 5 * 60 * 1000;
 
 export const ScrapingProvider = ({ children }) => {
-    // ← Initialize from localStorage so reload restores the state
     const [loading, setLoadingState] = useState(() => {
-        return localStorage.getItem('scraping_loading') === 'true';
+        try {
+            return localStorage.getItem(STORAGE_KEY) === 'true';
+        } catch (error) {
+            console.warn('Failed to read from localStorage:', error);
+            return false;
+        }
     });
 
-    // Wrap setLoading to always sync with localStorage
-    const setLoading = (value) => {
-        localStorage.setItem('scraping_loading', value);
-        setLoadingState(value);
+    const setLoading = useCallback((value) => {
+        try {
+            localStorage.setItem(STORAGE_KEY, String(value));
+            setLoadingState(value);
+        } catch (error) {
+            console.error('Failed to persist loading state:', error);
+            setLoadingState(value);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!loading) return;
+
+        const timeoutId = setTimeout(() => {
+            console.warn(
+                'Scraping state stuck for 5 minutes. Auto-recovering...'
+            );
+            setLoading(false);
+        }, LOADING_TIMEOUT);
+
+        return () => clearTimeout(timeoutId);
+    }, [loading, setLoading]);
+
+    const value = {
+        loading,
+        setLoading,
     };
 
-    // ← Safety: if user reloads and scraping is "stuck", 
-    //   clear it after 5 minutes automatically
-    useEffect(() => {
-        if (loading) {
-            const timeout = setTimeout(() => {
-                setLoading(false);
-            }, 5 * 60 * 1000); // 5 minutes
-            return () => clearTimeout(timeout);
-        }
-    }, [loading]);
-
     return (
-        <ScrapingContext.Provider value={{ loading, setLoading }}>
+        <ScrapingContext.Provider value={value}>
             {children}
         </ScrapingContext.Provider>
     );
@@ -34,8 +52,13 @@ export const ScrapingProvider = ({ children }) => {
 
 export const useScraping = () => {
     const context = useContext(ScrapingContext);
-    if (!context) {
-        throw new Error('useScraping must be used within a ScrapingProvider');
+
+    if (context === null) {
+        throw new Error(
+            'useScraping must be used within a <ScrapingProvider>. ' +
+            'Ensure your component tree includes the provider at or above this component.'
+        );
     }
+
     return context;
 };
