@@ -59,6 +59,7 @@ const RecycleBinModal = ({
   isMobile,
   isSmallMobile,
 }) => {
+  // First filter items by search
   const filteredRecycleBinItems = useMemo(() => {
     if (!recycleBinSearch) return recycleBinItems;
     const searchLower = recycleBinSearch.toLowerCase();
@@ -71,12 +72,35 @@ const RecycleBinModal = ({
     );
   }, [recycleBinItems, recycleBinSearch]);
 
+  // Then sort by deletedAt (newest to oldest)
+  const sortedRecycleBinItems = useMemo(() => {
+    return [...filteredRecycleBinItems].sort((a, b) => {
+      const parseDateTime = (dateStr) => {
+        if (!dateStr) return new Date(0);
+
+        try {
+          // Handle ISO format or any valid date string
+          const date = new Date(dateStr);
+          return isNaN(date.getTime()) ? new Date(0) : date;
+        } catch {
+          return new Date(0);
+        }
+      };
+
+      const dateA = parseDateTime(a.deletedAt);
+      const dateB = parseDateTime(b.deletedAt);
+
+      return dateB.getTime() - dateA.getTime(); // Newest to oldest
+    });
+  }, [filteredRecycleBinItems]);
+
+  // Paginate the sorted items
   const recycleBinPageItems = useMemo(() => {
-    return filteredRecycleBinItems.slice(
+    return sortedRecycleBinItems.slice(
       recycleBinPage * recycleBinRowsPerPage,
       recycleBinPage * recycleBinRowsPerPage + recycleBinRowsPerPage
     );
-  }, [filteredRecycleBinItems, recycleBinPage, recycleBinRowsPerPage]);
+  }, [sortedRecycleBinItems, recycleBinPage, recycleBinRowsPerPage]);
 
   // Check if all items on current page are selected
   const allSelectedOnPage = recycleBinPageItems.length > 0 &&
@@ -275,7 +299,7 @@ const RecycleBinModal = ({
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
               <CircularProgress size={24} sx={{ color: PURPLE_COLOR }} />
             </Box>
-          ) : filteredRecycleBinItems.length === 0 ? (
+          ) : sortedRecycleBinItems.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 8 }}>
               <History size={48} color={alpha(GRAY_COLOR, 0.3)} />
               <Typography variant="body2" sx={{
@@ -283,13 +307,13 @@ const RecycleBinModal = ({
                 color: GRAY_COLOR,
                 fontSize: '0.9rem',
               }}>
-                No deleted items in recycle bin
+                {recycleBinSearch ? 'No matching deleted items found' : 'No deleted items in recycle bin'}
               </Typography>
               <Typography variant="caption" sx={{
                 color: GRAY_COLOR,
                 fontSize: '0.8rem',
               }}>
-                Deleted items will appear here
+                {recycleBinSearch ? 'Try a different search term' : 'Deleted items will appear here'}
               </Typography>
             </Box>
           ) : (
@@ -461,7 +485,7 @@ const RecycleBinModal = ({
         </Box>
 
         {/* Pagination */}
-        {filteredRecycleBinItems.length > 0 && (
+        {sortedRecycleBinItems.length > 0 && (
           <Box sx={{
             borderTop: `1px solid ${alpha(PURPLE_COLOR, 0.1)}`,
             p: 1,
@@ -469,7 +493,7 @@ const RecycleBinModal = ({
             <TablePagination
               rowsPerPageOptions={[5, 10, 25, 50]}
               component="div"
-              count={filteredRecycleBinItems.length}
+              count={sortedRecycleBinItems.length}
               rowsPerPage={recycleBinRowsPerPage}
               page={recycleBinPage}
               onPageChange={handleChangeRecycleBinPage}

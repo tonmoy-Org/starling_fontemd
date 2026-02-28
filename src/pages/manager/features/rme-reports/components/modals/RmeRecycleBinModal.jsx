@@ -59,6 +59,8 @@ const RmeRecycleBinModal = ({
     isSmallMobile = false,
 }) => {
     const theme = useTheme();
+    
+    // First filter items by search
     const filteredRecycleBinItems = useMemo(() => {
         if (!recycleBinSearch) return recycleBinItems;
         const searchLower = recycleBinSearch.toLowerCase();
@@ -77,12 +79,35 @@ const RmeRecycleBinModal = ({
         });
     }, [recycleBinItems, recycleBinSearch]);
 
+    // Then sort by deleted_date (newest to oldest)
+    const sortedRecycleBinItems = useMemo(() => {
+        return [...filteredRecycleBinItems].sort((a, b) => {
+            const parseDateTime = (dateStr) => {
+                if (!dateStr) return new Date(0);
+                
+                try {
+                    // Handle format: "2026-02-15T08:58:00" or similar ISO format
+                    const date = new Date(dateStr);
+                    return isNaN(date.getTime()) ? new Date(0) : date;
+                } catch {
+                    return new Date(0);
+                }
+            };
+
+            const dateA = parseDateTime(a.deleted_date);
+            const dateB = parseDateTime(b.deleted_date);
+
+            return dateB.getTime() - dateA.getTime(); // Newest to oldest
+        });
+    }, [filteredRecycleBinItems]);
+
+    // Paginate the sorted items
     const recycleBinPageItems = useMemo(() => {
-        return filteredRecycleBinItems.slice(
+        return sortedRecycleBinItems.slice(
             recycleBinPage * recycleBinRowsPerPage,
             recycleBinPage * recycleBinRowsPerPage + recycleBinRowsPerPage
         );
-    }, [filteredRecycleBinItems, recycleBinPage, recycleBinRowsPerPage]);
+    }, [sortedRecycleBinItems, recycleBinPage, recycleBinRowsPerPage]);
 
     const allSelectedOnPage = recycleBinPageItems.length > 0 &&
         recycleBinPageItems.every(item =>
@@ -322,7 +347,7 @@ const RmeRecycleBinModal = ({
                                 </Typography>
                             </Box>
                         </Box>
-                    ) : filteredRecycleBinItems.length === 0 ? (
+                    ) : sortedRecycleBinItems.length === 0 ? (
                         <Box sx={{ textAlign: 'center', py: 8 }}>
                             <History size={48} color={alpha(GRAY_COLOR, 0.3)} />
                             <Typography variant="body2" sx={{
@@ -330,13 +355,13 @@ const RmeRecycleBinModal = ({
                                 color: GRAY_COLOR,
                                 fontSize: '0.9rem',
                             }}>
-                                No deleted items in recycle bin
+                                {recycleBinSearch ? 'No matching deleted items found' : 'No deleted items in recycle bin'}
                             </Typography>
                             <Typography variant="caption" sx={{
                                 color: GRAY_COLOR,
                                 fontSize: '0.8rem',
                             }}>
-                                Deleted work orders will appear here
+                                {recycleBinSearch ? 'Try a different search term' : 'Deleted work orders will appear here'}
                             </Typography>
                         </Box>
                     ) : (
@@ -528,7 +553,7 @@ const RmeRecycleBinModal = ({
                     )}
                 </Box>
 
-                {filteredRecycleBinItems.length > 0 && (
+                {sortedRecycleBinItems.length > 0 && (
                     <Box sx={{
                         borderTop: `1px solid ${alpha(PURPLE_COLOR, 0.1)}`,
                         p: 1,
@@ -536,7 +561,7 @@ const RmeRecycleBinModal = ({
                         <TablePagination
                             rowsPerPageOptions={[5, 10, 25, 50]}
                             component="div"
-                            count={filteredRecycleBinItems.length}
+                            count={sortedRecycleBinItems.length}
                             rowsPerPage={recycleBinRowsPerPage}
                             page={recycleBinPage}
                             onPageChange={handleChangeRecycleBinPage}
