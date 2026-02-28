@@ -46,7 +46,6 @@ const formatDate = (dateString) => {
     const diffInHours = (now - date) / (1000 * 60 * 60);
     const diffInDays = Math.floor(diffInHours / 24);
 
-    // For dates within last 7 days
     if (diffInDays === 0) {
       return `Today at ${date.toLocaleTimeString('en-US', {
         hour: '2-digit',
@@ -69,7 +68,6 @@ const formatDate = (dateString) => {
       })}`;
     }
 
-    // For older dates
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -78,7 +76,6 @@ const formatDate = (dateString) => {
       hour12: true,
     }).replace(',', '');
   } catch (e) {
-    console.error('Error formatting detailed date:', e);
     return '—';
   }
 };
@@ -109,10 +106,8 @@ export default function Notifications() {
   const { showSnackbar } = useGlobalSnackbar();
   const prevNotificationsRef = useRef([]);
 
-  // Get user from localStorage or your auth context
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  // Get dashboard base path based on user role
   const getDashboardBasePath = () => {
     switch (user?.role?.toUpperCase()) {
       case 'SUPER-ADMIN':
@@ -127,7 +122,6 @@ export default function Notifications() {
     }
   };
 
-  // Process and combine notifications - Show ALL notifications from last 30 days (not just latest 10)
   const notifications = useMemo(() => {
     if (!combinedData) return [];
 
@@ -137,7 +131,6 @@ export default function Notifications() {
 
     const allNotifications = [];
 
-    // Process locates data
     locates.forEach((locate) => {
       const createdAt = locate.created_at || locate.created_date;
       if (!createdAt) return;
@@ -145,6 +138,7 @@ export default function Notifications() {
       const createdDate = new Date(createdAt);
       if (createdDate >= oneMonthAgo) {
         const addr = parseDashboardAddress(locate.customer_address || '');
+        const customerName = locate.customer_name || 'Customer';
 
         allNotifications.push({
           id: `locate-${locate.id}`,
@@ -153,7 +147,7 @@ export default function Notifications() {
           description: `New locate request added for address: "${addr.street || 'unknown address'}"`,
           address: addr.original || 'Unknown address',
           workOrderNumber: locate.work_order_number || 'N/A',
-          customerName: locate.customer_name || 'Unknown',
+          customerName: customerName,
           timestamp: createdDate,
           formattedTime: formatDate(createdAt),
           icon: MapPin,
@@ -165,7 +159,6 @@ export default function Notifications() {
       }
     });
 
-    // Process work orders data (RME)
     workOrders.forEach((workOrder) => {
       const elapsedTime = workOrder.elapsed_time;
       if (!elapsedTime) return;
@@ -176,6 +169,7 @@ export default function Notifications() {
         if (elapsedDate >= oneMonthAgo) {
           const address = workOrder.full_address || workOrder.full_address || 'Unknown address';
           const addr = parseDashboardAddress(address);
+          const customerName = workOrder.customer_name || 'Customer';
 
           allNotifications.push({
             id: `rme-${workOrder.id}`,
@@ -184,7 +178,7 @@ export default function Notifications() {
             description: `New RME created for address: "${addr.street || 'unknown address'}"`,
             address: addr.original || 'Unknown address',
             rmeNumber: workOrder.wo_number || workOrder.wo_number || workOrder.id || 'N/A',
-            customerName: workOrder.customer_name || 'Unknown',
+            customerName: customerName,
             timestamp: elapsedDate,
             formattedTime: formatDate(elapsedTime),
             icon: Wrench,
@@ -199,38 +193,36 @@ export default function Notifications() {
       }
     });
 
-    // Sort by timestamp (newest first)
     return allNotifications.sort((a, b) => b.timestamp - a.timestamp);
   }, [combinedData]);
 
-  // Check for new notifications and show snackbar alerts
   useEffect(() => {
     if (notifications.length > 0) {
       const prevNotifications = prevNotificationsRef.current;
 
-      // Find new notifications that weren't in the previous list
       const newNotifications = notifications.filter(notification => {
         return !prevNotifications.some(prev => prev.id === notification.id);
       });
 
-      // Show snackbar for each new notification (limit to first 3 to avoid spam)
       newNotifications.slice(0, 3).forEach((notification, index) => {
-        // Add a slight delay for multiple notifications
         setTimeout(() => {
+          const type = notification.type === 'locate' ? 'Locate' : 'RME';
+          const customerName = notification.customerName && notification.customerName !== 'Unknown'
+            ? notification.customerName
+            : 'New Notification';
+
           const message = notification.type === 'locate'
-            ? `New locate request: ${notification.customerName || 'No New Notification'}`
-            : `New RME: ${notification.customerName || 'No New Notification'}`;
+            ? `New locate request: ${customerName}`
+            : `New RME: ${customerName}`;
 
           showSnackbar(message, 'info');
         }, index * 300);
       });
 
-      // Update ref with current notifications
       prevNotificationsRef.current = notifications;
     }
   }, [notifications, showSnackbar]);
 
-  // Group notifications by date
   const groupedNotifications = useMemo(() => {
     const groups = {};
 
@@ -265,7 +257,6 @@ export default function Notifications() {
     return groups;
   }, [notifications]);
 
-  // Get counts by type and seen/unseen status
   const counts = useMemo(() => {
     const locateCount = notifications.filter(n => n.type === 'locate').length;
     const rmeCount = notifications.filter(n => n.type === 'RME').length;
@@ -281,16 +272,13 @@ export default function Notifications() {
     };
   }, [notifications]);
 
-  // Single mutation for marking a single notification as seen
   const markAsSeenMutation = useMutation({
     mutationFn: async (notification) => {
       if (notification.type === 'RME') {
-        // Mark RME/Work Order as seen
         await axiosInstance.post('/work-orders-today/mark-seen/', {
           ids: [notification.entityId]
         });
       } else if (notification.type === 'locate') {
-        // Mark Locate as seen
         await axiosInstance.post('/locates/mark-seen/', {
           ids: [notification.entityId]
         });
@@ -305,10 +293,8 @@ export default function Notifications() {
     }
   });
 
-  // Bulk mark all as seen mutation
   const markAllAsSeenMutation = useMutation({
     mutationFn: async () => {
-      // Separate IDs by type
       const locateIds = notifications
         .filter(n => n.type === 'locate' && !n.is_seen)
         .map(n => n.entityId);
@@ -317,7 +303,6 @@ export default function Notifications() {
         .filter(n => n.type === 'RME' && !n.is_seen)
         .map(n => n.entityId);
 
-      // Make API calls for each type if there are IDs
       const promises = [];
 
       if (locateIds.length > 0) {
@@ -332,11 +317,9 @@ export default function Notifications() {
         );
       }
 
-      // Wait for all API calls to complete
       await Promise.all(promises);
     },
     onSuccess: () => {
-      // Invalidate and refetch notifications data
       queryClient.invalidateQueries(['notifications-data']);
       refetch();
       showSnackbar(`Marked ${counts.unseenCount} notification(s) as read`, 'success');
@@ -368,18 +351,14 @@ export default function Notifications() {
   };
 
   const handleNotificationClick = (notification) => {
-    // Mark as seen if not already seen
     if (!notification.is_seen) {
       markAsSeenMutation.mutate(notification);
     }
 
-    // Get the base dashboard path
     const dashboardBasePath = getDashboardBasePath();
 
-    // Scroll to top before navigation (optional)
     scrollToTop();
 
-    // Redirect based on notification type
     if (notification.type === 'locate') {
       navigate(`${dashboardBasePath}/locates/work-orders`, {
         state: {
@@ -399,20 +378,14 @@ export default function Notifications() {
     }
   };
 
-  // Function to mark a single notification as seen without redirecting
   const handleMarkNotificationSeen = (notification, event) => {
-    // Stop event propagation to prevent the ListItem onClick from firing
     event.stopPropagation();
-
-    // Mark the notification as seen
     markAsSeenMutation.mutate(notification);
   };
 
-  // Scroll to top on component mount (when coming from other pages)
   React.useEffect(() => {
     scrollToTop();
   }, []);
-
 
   if (isLoading) {
     return <DashboardLoader />;
@@ -446,7 +419,6 @@ export default function Notifications() {
         <meta name="description" content="View and manage notifications" />
       </Helmet>
 
-      {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
           <Box>
@@ -517,7 +489,6 @@ export default function Notifications() {
           </Box>
         </Box>
 
-        {/* Stats Cards */}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
           <Paper
             elevation={0}
@@ -577,7 +548,6 @@ export default function Notifications() {
         </Stack>
       </Box>
 
-      {/* Notifications List */}
       {notifications.length === 0 ? (
         <Paper
           elevation={0}
@@ -616,7 +586,6 @@ export default function Notifications() {
         >
           {Object.entries(groupedNotifications).map(([date, dateNotifications]) => (
             <Box key={date}>
-              {/* Date Header */}
               <Box sx={{
                 p: 1.5,
                 bgcolor: alpha(GRAY_COLOR, 0.03),
@@ -637,7 +606,6 @@ export default function Notifications() {
                 </Typography>
               </Box>
 
-              {/* Notifications for this date */}
               <List disablePadding>
                 {dateNotifications.map((notification, index) => {
                   const Icon = notification.icon;
@@ -669,7 +637,6 @@ export default function Notifications() {
                           }
                         }}
                       >
-                        {/* Close Button (X) - Only visible on hover for unread notifications */}
                         {!notification.is_seen && (
                           <Tooltip title="Mark as read" placement="top">
                             <IconButton
@@ -719,7 +686,7 @@ export default function Notifications() {
                               alignItems: 'flex-start',
                               justifyContent: 'space-between',
                               mb: 0.5,
-                              pr: notification.is_seen ? 0 : 3 // Add padding for close button space
+                              pr: notification.is_seen ? 0 : 3
                             }}>
                               <Typography variant="body2" sx={{
                                 color: TEXT_COLOR,
@@ -805,7 +772,6 @@ export default function Notifications() {
         </Paper>
       )}
 
-      {/* Summary Footer */}
       {notifications.length > 0 && (
         <Box sx={{
           mt: 3,
